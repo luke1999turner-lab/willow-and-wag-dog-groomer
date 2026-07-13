@@ -212,8 +212,8 @@ border-radius:14px;padding:16px;text-align:center;margin:16px 0 4px}
 /* ---------- team ---------- */
 .team{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
 .card.member{padding:26px;text-align:center}
-.card.member .photo-wrap{width:120px;height:104px;margin:0 auto 16px;position:relative} /* 983/854 aspect, matches the real traced silhouette so the shape isn't stretched */
-.card.member .photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;clip-path:url(#pawClipSmall);-webkit-clip-path:url(#pawClipSmall)}
+.card.member .photo-wrap{width:112px;height:112px;margin:0 auto 16px;position:relative;border-radius:50%;overflow:hidden;box-shadow:0 10px 22px -8px rgba(40,30,10,.28);border:3px solid var(--card)}
+.card.member .photo-wrap img{width:100%;height:100%;object-fit:cover;display:block}
 .card.member h3{margin:0 0 3px;font-size:18px;font-weight:700;color:var(--forest)}
 .card.member .role{font-size:13px;color:var(--terracotta-dark);font-weight:600;letter-spacing:.02em}
 .card.member .creds{display:inline-block;margin-top:12px;font-size:11.5px;font-weight:700;color:var(--muted);
@@ -223,7 +223,11 @@ background:var(--card2);border:1px solid var(--line);padding:4px 12px;border-rad
 /* ---------- gallery (The Transformation) ---------- */
 .gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
 .gallery figure{margin:0;cursor:pointer;position:relative;text-align:center}
-.gallery .paw-frame{width:100%;aspect-ratio:983/854;margin:0 auto 12px}
+.gallery .photo-frame{width:100%;aspect-ratio:4/5;margin:0 auto 14px;border-radius:26px 26px 10px 26px;overflow:hidden;
+  box-shadow:var(--shadow);transition:.25s ease;border:1px solid var(--line)}
+.gallery .photo-frame img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
+.gallery figure:hover .photo-frame{transform:translateY(-4px);box-shadow:0 1px 3px rgba(40,30,10,.08),0 26px 48px -18px rgba(40,30,10,.28)}
+.gallery figure:hover .photo-frame img{transform:scale(1.05)}
 .gallery figcaption{font-size:13px;font-weight:600;color:var(--slate)}
 @media(max-width:760px){.gallery{grid-template-columns:repeat(2,1fr);gap:28px}}
 
@@ -231,16 +235,31 @@ background:var(--card2);border:1px solid var(--line);padding:4px 12px;border-rad
 .lightbox img{max-width:100%;max-height:85vh;border-radius:14px}
 .lightbox .lb-close{position:absolute;top:22px;right:26px;color:#fff;font-size:30px;cursor:pointer;line-height:1}
 
-/* ---------- reviews ---------- */
-.rev-head{display:flex;align-items:center;justify-content:space-between;gap:20px;max-width:1140px;margin:0 auto 34px;flex-wrap:wrap}
+/* ---------- reviews (same paw-print mosaic structure as the hero) ---------- */
+.rev-head{display:flex;align-items:center;justify-content:space-between;gap:20px;max-width:1140px;margin:0 auto 8px;flex-wrap:wrap}
 .rev-score{display:flex;align-items:center;gap:16px}
 .rev-score .n{font-family:var(--serif);font-size:42px;font-weight:800;color:var(--terracotta-dark)}
 .rev-score .gl{font-size:13px;color:var(--muted)}
-.reviews-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px}
-.card.review{padding:22px}
-.card.review .stars{color:var(--terracotta);letter-spacing:2px;margin-bottom:12px;font-size:15px}
-.card.review p{margin:0 0 14px;font-size:14.5px;color:var(--slate)}
-.card.review .who{font-size:13px;color:var(--muted);font-weight:600}
+.rev-hint{text-align:center;font-size:13px;color:var(--muted);margin:0 0 22px}
+
+.reviews-mosaic{position:relative;width:min(620px,94%);margin:0 auto;aspect-ratio:983/854}
+.reviews-mosaic .pad .tile{background:var(--terracotta-soft);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:11%;text-align:center}
+.reviews-mosaic .pad .tile .rv-stars{color:var(--terracotta-dark);font-size:11.5px;letter-spacing:1.5px;margin-bottom:6px}
+.reviews-mosaic .pad .tile .rv-quote{font-family:var(--serif);font-weight:600;font-size:13px;line-height:1.3;color:var(--forest);
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+@media(max-width:560px){.reviews-mosaic .pad .tile .rv-quote{font-size:10.5px}.reviews-mosaic .pad .tile .rv-stars{font-size:9.5px}}
+
+.review-backdrop{position:fixed;inset:0;background:rgba(34,28,20,.6);z-index:60;display:grid;place-items:center;padding:30px}
+.review-modal{position:relative;width:min(560px,92vw);aspect-ratio:983/854;background:#f2e9d8;
+  clip-path:url(#pawClip);-webkit-clip-path:url(#pawClip);display:grid;place-items:center;
+  box-shadow:0 30px 80px rgba(34,28,20,.4)}
+.review-modal .rm-inner{width:56%;text-align:center}
+.review-modal .rm-stars{color:var(--terracotta-dark);letter-spacing:3px;font-size:17px;margin-bottom:16px}
+.review-modal .rm-text{font-family:var(--serif);font-size:16.5px;line-height:1.55;color:var(--ink);margin:0 0 16px;font-weight:600}
+.review-modal .rm-who{font-size:13px;font-weight:700;color:var(--forest);letter-spacing:.02em}
+.review-backdrop .lb-close{position:absolute;top:22px;right:26px;color:#fff;font-size:30px;cursor:pointer;line-height:1}
+@media(max-width:560px){.review-modal .rm-inner{width:66%}.review-modal .rm-text{font-size:14px}}
 
 /* ---------- why-us band ---------- */
 .why-band{background:var(--cream-alt);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
@@ -492,7 +511,8 @@ padding:10px 14px;gap:10px}
 </div>
 <div class="kicker" style="margin:0">From Our Community</div>
 </div>
-<div class="reviews-grid reveal" id="reviewsGrid"></div>
+<p class="rev-hint reveal">Tap a paw pad to read the full review</p>
+<div class="reveal"><div class="paw-mosaic reviews-mosaic" id="reviewsMosaic"></div></div>
 </div></section>
 
 <!-- ============ FAQ ============ -->
@@ -609,14 +629,24 @@ const DB = {
 const GALLERY = [
   { src:"https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=700&q=75", alt:"Groomed Bichon Frise", caption:"Chloe · Bichon Frise" },
   { src:"https://images.unsplash.com/photo-1591160690555-5debfba289f0?auto=format&fit=crop&w=700&q=75", alt:"Groomed Poodle mix", caption:"Max · Cockapoo" },
-  { src:"https://images.unsplash.com/photo-1477884143824-5686077dc728?auto=format&fit=crop&w=700&q=75", alt:"Groomed Golden Retriever", caption:"Bella · Golden Retriever" },
+  { src:"https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=700&q=75", alt:"Groomed Golden Retriever", caption:"Bella · Golden Retriever" },
   { src:"https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=700&q=75", alt:"Groomed Schnauzer", caption:"Rocky · Schnauzer" },
 ];
 const REVIEWS = [
-  { name:"Amelia R.", text:"Sarah is incredible with nervous dogs — my rescue actually enjoys her grooms now. Booking online took thirty seconds.", stars:5 },
-  { name:"Tom W.", text:"The de-shedding treatment for our Husky is worth every penny. House has never had less fur in it.", stars:5 },
-  { name:"Priya S.", text:"Marcus gave our Poodle the neatest show trim we've ever had. Consistently excellent.", stars:5 },
-  { name:"Callum B.", text:"Took our puppy for her first groom — patient, calm, and she came home smelling amazing. Will be back.", stars:5 },
+  { name:"Amelia R.", summary:"Patient with nervous dogs — booking took seconds.", text:"Sarah is incredible with nervous dogs — my rescue actually enjoys her grooms now. Booking online took thirty seconds.", stars:5 },
+  { name:"Tom W.", summary:"De-shedding treatment is worth every penny.", text:"The de-shedding treatment for our Husky is worth every penny. House has never had less fur in it.", stars:5 },
+  { name:"Priya S.", summary:"Neatest show trim our Poodle's ever had.", text:"Marcus gave our Poodle the neatest show trim we've ever had. Consistently excellent.", stars:5 },
+  { name:"Callum B.", summary:"Puppy's first groom — calm, patient, amazing.", text:"Took our puppy for her first groom — patient, calm, and she came home smelling amazing. Will be back.", stars:5 },
+  { name:"Harriet N.", summary:"Unbelievably gentle with our anxious rescue.", text:"Booked a full boutique groom for our anxious rescue lurcher and the team were unbelievably gentle. He came home looking — and smelling — incredible.", stars:5 },
+];
+/* pad positions/clip-paths match the hero paw-mosaic exactly, so the reviews
+   section reuses the same silhouette structure (1 heel pad + 4 toe pads) */
+const REVIEW_PADS = [
+  { clip:"padHeel", style:"left:15.056%;top:44.145%;width:70.193%;height:55.855%" },
+  { clip:"padToeOuterLeft", style:"left:0%;top:21.311%;width:26.857%;height:38.642%" },
+  { clip:"padToeInnerLeft", style:"left:23.499%;top:0%;width:24.415%;height:42.623%" },
+  { clip:"padToeInnerRight", style:"left:52.187%;top:0%;width:24.212%;height:42.623%" },
+  { clip:"padToeOuterRight", style:"left:73.550%;top:21.311%;width:26.450%;height:38.642%" },
 ];
 
 /* ================= state ================= */
@@ -659,7 +689,7 @@ function renderTeam(groomers){
 
 /* ================= gallery ================= */
 function renderGallery(){
-  $("#galleryGrid").innerHTML = GALLERY.map((g, i) => `<figure data-i="${i}"><div class="paw-frame"><img src="${g.src}" alt="${esc(g.alt)}" loading="lazy"></div><figcaption>${esc(g.caption)}</figcaption></figure>`).join("");
+  $("#galleryGrid").innerHTML = GALLERY.map((g, i) => `<figure data-i="${i}"><div class="photo-frame"><img src="${g.src}" alt="${esc(g.alt)}" loading="lazy"></div><figcaption>${esc(g.caption)}</figcaption></figure>`).join("");
   $$("#galleryGrid figure").forEach((f) => f.addEventListener("click", () => openLightbox(GALLERY[+f.dataset.i])));
 }
 function openLightbox(g){
@@ -668,14 +698,32 @@ function openLightbox(g){
   lb.addEventListener("click", () => { $("#lightboxRoot").innerHTML = ""; });
 }
 
-/* ================= reviews ================= */
+/* ================= reviews (paw-print mosaic — same structure as the hero) ================= */
 function renderReviews(){
-  $("#reviewsGrid").innerHTML = REVIEWS.map((r) => `
-    <div class="card review">
-      <div class="stars">${"★".repeat(r.stars)}</div>
-      <p>"${esc(r.text)}"</p>
-      <div class="who">${esc(r.name)} · Google review</div>
-    </div>`).join("");
+  $("#reviewsMosaic").innerHTML = REVIEW_PADS.map((p, i) => {
+    const r = REVIEWS[i];
+    if (!r) return "";
+    return `<div class="pad" style="${p.style}">
+      <div class="tile" data-i="${i}" style="clip-path:url(#${p.clip});-webkit-clip-path:url(#${p.clip})">
+        <div class="rv-stars">${"★".repeat(r.stars)}</div>
+        <div class="rv-quote">"${esc(r.summary)}"</div>
+      </div>
+    </div>`;
+  }).join("");
+  $$("#reviewsMosaic .tile").forEach((t) => t.addEventListener("click", () => openReviewModal(REVIEWS[+t.dataset.i])));
+}
+function openReviewModal(r){
+  $("#lightboxRoot").innerHTML = `<div class="review-backdrop" id="revBackdrop">
+    <span class="lb-close">&times;</span>
+    <div class="review-modal"><div class="rm-inner">
+      <div class="rm-stars">${"★".repeat(r.stars)}</div>
+      <p class="rm-text">"${esc(r.text)}"</p>
+      <div class="rm-who">${esc(r.name)} · Google review</div>
+    </div></div>
+  </div>`;
+  $("#revBackdrop").addEventListener("click", (e) => {
+    if (e.target.id === "revBackdrop" || e.target.classList.contains("lb-close")) $("#lightboxRoot").innerHTML = "";
+  });
 }
 
 /* ================= booking wizard ================= */
