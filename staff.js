@@ -29,7 +29,7 @@ function fmtFromTs(ts) {
 
 const DAY_START = 8 * 60, DAY_END = 20 * 60, PXH = 56;   // visible window 08:00-20:00
 const PXMIN = PXH / 60;
-const state = { date: null, groomers: [], services: [], editing: null, affected: [], blocks: [] };
+const state = { date: null, view: 'day', groomers: [], services: [], editing: null, affected: [], blocks: [], editingDate: null };
 
 async function init() {
   state.groomers = (await api('/api/groomers')).data;
@@ -46,10 +46,13 @@ async function init() {
   $('#nbGroomer').innerHTML = `<option value="any">Any available</option>` + opts;
   $('#nbService').innerHTML = state.services.map((s) => `<option value="${s.id}">${s.name} (${s.duration_min}min)</option>`).join('');
 
-  $('#prev').onclick = () => shiftDay(-1);
-  $('#next').onclick = () => shiftDay(1);
+  $('#prev').onclick = () => shiftView(-1);
+  $('#next').onclick = () => shiftView(1);
   $('#today').onclick = () => { state.date = new Date().toISOString().slice(0, 10); $('#date').value = state.date; load(); };
   $('#date').onchange = () => { state.date = $('#date').value; load(); };
+  $('#weekBtn').onclick = () => { state.view = 'week'; setActiveViewBtn(); load(); };
+  $('#monthBtn').onclick = () => { state.view = 'month'; setActiveViewBtn(); load(); };
+  setActiveViewBtn();
   $('#blockBtn').onclick = () => openBlock('add');
   $('#waitlistBtn').onclick = openWaitlist;
   $('#briefBtn').onclick = openBrief;
@@ -86,28 +89,35 @@ function updateHero() {
 
 // ---------- stats bar ----------
 function updateStats(appts) {
+  // Always reflects TODAY's real numbers, independent of whatever date/view
+  // is currently being browsed in the calendar below.
+  const today = new Date().toISOString().slice(0, 10);
   const booked = appts.filter((a) => a.status === 'booked');
   $('#statBookings').textContent = booked.length;
-  const isToday = state.date === new Date().toISOString().slice(0, 10);
-  $('#statBookingsSub').textContent = isToday ? "Today's schedule" : prettyDate(state.date).split(',')[0];
+  $('#statBookingsSub').textContent = "Today's schedule";
   const arrived = booked.filter((a) => a.arrived_at).length;
   $('#statArrived').innerHTML = `${arrived} <span style="font-size:15px;color:var(--muted);font-weight:500">/ ${booked.length}</span>`;
   $('#statArrivedSub').textContent = booked.length ? `${booked.length - arrived} still due in` : 'No bookings today';
   const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-  const dayTs = toTs(state.date, 0);
-  const upcoming = booked.filter((a) => !isToday || (a.start_ts - dayTs) >= nowMin).sort((a, b) => a.start_ts - b.start_ts)[0];
+  const dayTs = toTs(today, 0);
+  const upcoming = booked.filter((a) => (a.start_ts - dayTs) >= nowMin).sort((a, b) => a.start_ts - b.start_ts)[0];
   if (upcoming) {
     $('#statNext').textContent = fmt(upcoming.start_ts - dayTs);
     $('#statNextSub').textContent = `${upcoming.client_name} · ${upcoming.service_name} · ${upcoming.groomer_name}`;
   } else {
     $('#statNext').textContent = '—';
-    $('#statNextSub').textContent = isToday ? 'All done for today' : 'No bookings';
+    $('#statNextSub').textContent = 'All done for today';
   }
   const serviceById = new Map(state.services.map((s) => [s.id, s]));
   const pence = booked.reduce((sum, a) => sum + (serviceById.get(a.service_id)?.price_pence || 0), 0);
   $('#statRevenue').textContent = `£${(pence / 100).toFixed(0)}`;
   const groomerCount = new Set(booked.map((a) => a.groomer_id)).size;
   $('#statRevenueSub').textContent = groomerCount ? `Across ${groomerCount} groomer${groomerCount === 1 ? '' : 's'}` : 'No bookings today';
+}
+async function refreshTodayStats() {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await api(`/api/appointments?from=${today}&to=${today}`);
+  updateStats(data);
 }
 
 async function refreshWaitlistCount() {
@@ -168,29 +178,219 @@ async function openBrief() {
   $('#briefModal').classList.remove('hidden');
 }
 
-// Shift the visible day by n days. Uses UTC date math throughout (matching how
-// dates are stored/sent everywhere else in this app) so it can't drift
-// depending on the browser's local timezone/DST offset.
-function shiftDay(n) {
-  const [y, m, d] = state.date.split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d + n));
-  state.date = dt.toISOString().slice(0, 10);
+// ---------- date helpers ----------
+function addDays(dateStr, n) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+function mondayOf(dateStr) {
+  const dt = new Date(dateStr + 'T00:00');
+  const dow = dt.getUTCDay(); // 0=Sun..6=Sat
+  const diff = dow === 0 ? -6 : 1 - dow;
+  return addDays(dateStr, diff);
+}
+function firstOfMonthGridStart(dateStr) {
+  const [y, m] = dateStr.split('-').map(Number);
+  const first = new Date(Date.UTC(y, m - 1, 1)).toISOString().slice(0, 10);
+  return mondayOf(first);
+}
+function weekLabel(monday, sunday) {
+  const opts = { weekday: 'short', day: 'numeric', month: 'short' };
+  const a = new Date(monday + 'T00:00').toLocaleDateString('en-GB', opts);
+  const b = new Date(sunday + 'T00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  return `${a} – ${b}`;
+}
+function staffColorFor(a) {
+  const g = state.groomers.find((x) => x.id === a.groomer_id);
+  return g ? g.color : '#8a8272';
+}
+
+// Shift the visible period by n units — a day, a week, or a month, depending
+// on which calendar view is currently active. Uses UTC date math throughout
+// (matching how dates are stored/sent everywhere else in this app) so it
+// can't drift depending on the browser's local timezone/DST offset.
+function shiftView(n) {
+  if (state.view === 'week') {
+    state.date = addDays(state.date, 7 * n);
+  } else if (state.view === 'month') {
+    const [y, m, d] = state.date.split('-').map(Number);
+    state.date = new Date(Date.UTC(y, m - 1 + n, Math.min(d, 28))).toISOString().slice(0, 10);
+  } else {
+    state.date = addDays(state.date, n);
+  }
   $('#date').value = state.date;
   load();
 }
 
+function setActiveViewBtn() {
+  $('#weekBtn').classList.toggle('primary', state.view === 'week');
+  $('#weekBtn').classList.toggle('ghost', state.view !== 'week');
+  $('#monthBtn').classList.toggle('primary', state.view === 'month');
+  $('#monthBtn').classList.toggle('ghost', state.view !== 'month');
+}
+
+// Switch straight to Day view for a specific date — used when clicking a day
+// header in Week view, or a day cell in Month view.
+function switchToDay(d) {
+  state.date = d;
+  state.view = 'day';
+  $('#date').value = d;
+  setActiveViewBtn();
+  load();
+}
+
 async function load() {
+  refreshTodayStats();
+  if (state.view === 'week') return loadWeek();
+  if (state.view === 'month') return loadMonth();
+  return loadDay();
+}
+
+async function loadDay() {
   $('#dayLabel').textContent = prettyDate(state.date);
   const [appts, blocks] = await Promise.all([
     api(`/api/appointments?from=${state.date}&to=${state.date}`),
     api(`/api/blocks?from=${state.date}&to=${state.date}`),
   ]);
   state.blocks = blocks.data;
-  updateStats(appts.data);
-  render(appts.data, blocks.data);
+  renderDay(appts.data, blocks.data);
 }
 
-function render(appts, blocks) {
+async function loadWeek() {
+  const monday = mondayOf(state.date);
+  const sunday = addDays(monday, 6);
+  $('#dayLabel').textContent = weekLabel(monday, sunday);
+  const [appts, blocks] = await Promise.all([
+    api(`/api/appointments?from=${monday}&to=${sunday}`),
+    api(`/api/blocks?from=${monday}&to=${sunday}`),
+  ]);
+  renderWeek(monday, appts.data, blocks.data);
+}
+
+async function loadMonth() {
+  const gridStart = firstOfMonthGridStart(state.date);
+  const gridEnd = addDays(gridStart, 41);
+  const [y, m] = state.date.split('-').map(Number);
+  $('#dayLabel').textContent = new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const [appts, blocks] = await Promise.all([
+    api(`/api/appointments?from=${gridStart}&to=${gridEnd}`),
+    api(`/api/blocks?from=${gridStart}&to=${gridEnd}`),
+  ]);
+  renderMonth(state.date, appts.data, blocks.data);
+}
+
+// ---------- week view ----------
+// Agenda-style: each day shows its bookings as a stacked, time-ordered list
+// (not absolutely time-positioned) so appointments from different groomers at
+// the same time never visually collide. Click a chip to open it exactly like
+// the day view; click a day's header to jump straight into Day view for it.
+function renderWeek(monday, appts, blocks) {
+  const cal = $('#cal');
+  cal.className = 'cal';
+  cal.style.gridTemplateColumns = `56px repeat(7, 1fr)`;
+  const days = [...Array(7)].map((_, i) => addDays(monday, i));
+  const today = new Date().toISOString().slice(0, 10);
+  const hours = [];
+  for (let h = DAY_START; h < DAY_END; h += 60) hours.push(h);
+
+  let html = `<div class="colhead gutterhead"></div>`;
+  html += days.map((d) => {
+    const dt = new Date(d + 'T00:00');
+    const dayName = dt.toLocaleDateString('en-GB', { weekday: 'short' });
+    return `<div class="colhead weekcolhead ${d === today ? 'is-today' : ''}" data-date="${d}">
+      <div class="wk-dayname">${dayName}</div><div class="wk-daynum">${dt.getUTCDate()}</div></div>`;
+  }).join('');
+
+  html += `<div class="gutter" style="grid-column:1">` +
+    hours.map((h) => `<div class="hourline"><span>${fmt(h)}</span></div>`).join('') + `</div>`;
+
+  days.forEach((d) => {
+    const dayTs = toTs(d, 0);
+    const dayAppts = appts.filter((a) => a.status === 'booked' && fromTs(a.start_ts).date === d)
+      .sort((a, b) => a.start_ts - b.start_ts);
+    const dayBlocks = blocks.filter((bl) => fromTs(bl.start_ts).date <= d && fromTs(bl.end_ts - 1).date >= d);
+    let col = `<div class="daycol week-daycol" data-date="${d}">`;
+    dayBlocks.forEach((bl) => {
+      col += `<div class="wk-chip wk-block">${bl.reason}${bl.groomer_name ? ' · ' + bl.groomer_name : ''}</div>`;
+    });
+    if (!dayAppts.length && !dayBlocks.length) col += `<div class="wk-empty">No bookings</div>`;
+    dayAppts.forEach((a) => {
+      const min = a.start_ts - dayTs;
+      col += `<div class="wk-chip wk-appt" data-id="${a.id}" style="border-left-color:${staffColorFor(a)}">
+        <b>${fmt(min)}</b> ${a.client_name}<span class="wk-who">${a.groomer_name} · ${a.service_name}</span></div>`;
+    });
+    col += `</div>`;
+    html += col;
+  });
+
+  cal.innerHTML = html;
+  cal.querySelectorAll('.hourline').forEach((el) => { el.style.height = PXH + 'px'; });
+  cal.querySelectorAll('.weekcolhead').forEach((el) => el.onclick = () => switchToDay(el.dataset.date));
+  cal.querySelectorAll('.wk-appt').forEach((el) => el.onclick = () => {
+    const d = el.closest('.week-daycol').dataset.date;
+    openAppt(+el.dataset.id, d);
+  });
+}
+
+// ---------- month view ----------
+// A traditional month grid. Each cell shows up to 3 bookings as small colored
+// chips (click to open), a "+N more" note if there are more, and a flag icon
+// if any block/holiday covers that day. Click anywhere else on a day cell to
+// jump into Day view for that date.
+function renderMonth(dateStr, appts, blocks) {
+  const cal = $('#cal');
+  cal.className = 'cal';
+  cal.style.gridTemplateColumns = `repeat(7, 1fr)`;
+  const gridStart = firstOfMonthGridStart(dateStr);
+  const [y, m] = dateStr.split('-').map(Number);
+  const monthIdx = m - 1;
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const today = new Date().toISOString().slice(0, 10);
+
+  const apptsByDate = new Map();
+  appts.filter((a) => a.status === 'booked').forEach((a) => {
+    const d = fromTs(a.start_ts).date;
+    if (!apptsByDate.has(d)) apptsByDate.set(d, []);
+    apptsByDate.get(d).push(a);
+  });
+  const blocksByDate = new Map();
+  blocks.forEach((bl) => {
+    let d = fromTs(bl.start_ts).date;
+    const end = fromTs(bl.end_ts - 1).date;
+    while (d <= end) {
+      if (!blocksByDate.has(d)) blocksByDate.set(d, []);
+      blocksByDate.get(d).push(bl);
+      d = addDays(d, 1);
+    }
+  });
+
+  let html = dayNames.map((n) => `<div class="colhead monthcolhead">${n}</div>`).join('');
+  for (let i = 0; i < 42; i++) {
+    const d = addDays(gridStart, i);
+    const inMonth = new Date(d + 'T00:00').getUTCMonth() === monthIdx;
+    const dayAppts = (apptsByDate.get(d) || []).sort((a, b) => a.start_ts - b.start_ts);
+    const dayBlocks = blocksByDate.get(d) || [];
+    const dayTs = toTs(d, 0);
+    let cell = `<div class="monthcell ${inMonth ? '' : 'is-outside'} ${d === today ? 'is-today' : ''}" data-date="${d}">`;
+    cell += `<div class="mc-num">${new Date(d + 'T00:00').getUTCDate()}${dayBlocks.length ? ' <span class="mc-block-flag" title="' + dayBlocks.map((b) => b.reason).join(', ') + '">⛔</span>' : ''}</div>`;
+    dayAppts.slice(0, 3).forEach((a) => {
+      const min = a.start_ts - dayTs;
+      cell += `<div class="mc-chip" data-id="${a.id}" style="background:${staffColorFor(a)}">${fmt(min)} ${a.client_name}</div>`;
+    });
+    if (dayAppts.length > 3) cell += `<div class="mc-more">+${dayAppts.length - 3} more</div>`;
+    cell += `</div>`;
+    html += cell;
+  }
+  cal.innerHTML = html;
+  cal.querySelectorAll('.mc-chip').forEach((el) => el.onclick = (e) => {
+    e.stopPropagation();
+    const d = el.closest('.monthcell').dataset.date;
+    openAppt(+el.dataset.id, d);
+  });
+  cal.querySelectorAll('.monthcell').forEach((el) => el.onclick = () => switchToDay(el.dataset.date));
+}
+
+function renderDay(appts, blocks) {
   const cal = $('#cal');
   const N = state.groomers.length;
   cal.style.gridTemplateColumns = `56px repeat(${N}, 1fr)`;
@@ -268,20 +468,22 @@ async function removeBlock(b) {
 }
 
 // ---------- appointment modal ----------
-async function openAppt(id) {
-  const { data: list } = await api(`/api/appointments?from=${state.date}&to=${state.date}`);
+async function openAppt(id, forDate) {
+  const d = forDate || state.date;
+  const { data: list } = await api(`/api/appointments?from=${d}&to=${d}`);
   const a = list.find((x) => x.id === id); if (!a) return;
   state.editing = a;
-  const dayTs = toTs(state.date, 0);
+  state.editingDate = d;
+  const dayTs = toTs(d, 0);
   $('#apptInfo').innerHTML = `
     <div><span class="k">Client</span><span class="v">${a.client_name}</span></div>
     <div><span class="k">Contact</span><span class="v">${a.client_email} · ${a.client_phone || ''}</span></div>
     <div><span class="k">Service</span><span class="v">${a.service_name} (${a.duration_min} min)</span></div>
     <div><span class="k">With</span><span class="v">${a.groomer_name}</span></div>
-    <div><span class="k">When</span><span class="v">${fmt(a.start_ts - dayTs)}, ${prettyDate(state.date)}</span></div>
+    <div><span class="k">When</span><span class="v">${fmt(a.start_ts - dayTs)}, ${prettyDate(d)}</span></div>
     ${a.notes ? `<div><span class="k">Notes</span><span class="v">${a.notes}</span></div>` : ''}`;
   $('#rGroomer').value = a.groomer_id;
-  $('#rDate').value = state.date;
+  $('#rDate').value = d;
   $('#apptErr').classList.add('hidden');
   $('#toggleArrived').textContent = a.arrived_at ? 'Undo arrived' : 'Mark arrived';
   await refreshRTimes();
@@ -296,10 +498,10 @@ async function refreshRTimes() {
   const cur = a.start_ts - toTs(date, 0);
   let opts = slots.map((s) => `<option value="${s.min}">${s.label}</option>`).join('');
   // Ensure the current time is selectable if it falls on this groomer/date
-  if (+groomerId === a.groomer_id && date === state.date && !slots.some((s) => s.min === cur))
+  if (+groomerId === a.groomer_id && date === state.editingDate && !slots.some((s) => s.min === cur))
     opts = `<option value="${cur}">${fmt(cur)} (current)</option>` + opts;
   $('#rTime').innerHTML = opts || `<option value="">No free times</option>`;
-  if (+groomerId === a.groomer_id && date === state.date) $('#rTime').value = cur;
+  if (+groomerId === a.groomer_id && date === state.editingDate) $('#rTime').value = cur;
 }
 
 async function saveAppt() {

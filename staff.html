@@ -113,6 +113,26 @@ textarea{resize:vertical}
   color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--sans)}
 .tab-btn.active{background:var(--forest);color:#fff;border-color:var(--forest)}
 
+.week-daycol{border-left:1px solid var(--line);padding:8px 6px;display:flex;flex-direction:column;gap:6px;min-height:420px}
+.weekcolhead{cursor:pointer}
+.weekcolhead.is-today .wk-daynum{color:var(--terracotta-dark);font-weight:800}
+.wk-dayname{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.wk-daynum{font-size:16px;font-weight:700;color:var(--ink)}
+.wk-chip{border-radius:8px;padding:6px 8px;font-size:12px;cursor:pointer;border-left:3px solid transparent;background:var(--card2);color:var(--ink)}
+.wk-chip .wk-who{color:var(--muted);display:block;font-size:11px}
+.wk-block{background:repeating-linear-gradient(135deg,var(--line),var(--line) 8px,var(--card2) 8px,var(--card2) 16px);color:var(--muted);border:1px dashed var(--line);cursor:default}
+.wk-empty{color:var(--muted);font-size:12px;padding:10px 0;text-align:center}
+
+.monthcolhead{padding:10px;text-align:center;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--line);background:var(--cream-alt)}
+.monthcell{border:1px solid var(--line);min-height:96px;padding:6px;cursor:pointer;display:flex;flex-direction:column;gap:3px;transition:.15s;background:var(--card)}
+.monthcell:hover{background:var(--cream-alt)}
+.monthcell.is-outside{opacity:.4}
+.monthcell.is-today{box-shadow:inset 0 0 0 2px var(--terracotta)}
+.mc-num{font-size:12px;font-weight:700;color:var(--ink)}
+.mc-block-flag{font-size:10px}
+.mc-chip{border-radius:5px;padding:2px 5px;font-size:10.5px;color:#fff;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer}
+.mc-more{font-size:10px;color:var(--muted)}
+
 @media (max-width:760px){
   .stats{grid-template-columns:repeat(2,1fr)}
 }
@@ -174,6 +194,8 @@ textarea{resize:vertical}
     <button class="iconbtn" id="prev">‹</button>
     <button class="btn ghost" id="today">Today</button>
     <button class="iconbtn" id="next">›</button>
+    <button class="btn ghost" id="weekBtn">Week</button>
+    <button class="btn ghost" id="monthBtn">Month</button>
     <input type="date" id="date" style="max-width:180px">
     <span class="today-label" id="dayLabel"></span>
     <span class="spacer"></span>
@@ -305,6 +327,6 @@ textarea{resize:vertical}
   </div>
 </div>
 
-<script src="/staff.js"></script>
+<script src="staff.js"></script>
 </body>
 </html>
