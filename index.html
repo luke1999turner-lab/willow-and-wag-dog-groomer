@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Willow &amp; Wag — Boutique Dog Grooming</title>
+<meta name="description" content="Willow &amp; Wag: elevated, artisanal dog grooming in a boutique English countryside-inspired studio. Book your dog's groom online in seconds.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+WILLOW & WAG — "Countryside Boutique" theme: warm, soft, premium.
+============================================================ */
+:root{
+--forest:#1f3327; --forest-dark:#152219; --forest-soft:#2f4b3b;
+--terracotta:#d97b4f; --terracotta-dark:#c2643a; --terracotta-soft:#f3d9c9;
+--cream:#faf6ee; --cream-alt:#f3ecdf; --card:#ffffff; --card2:#fbf8f2;
+--ink:#221c14; --slate:#5a5346; --muted:#8a8272; --line:#e7ddc9;
+--ok:#4c8f6c; --danger:#c2564a;
+--radius:20px;
+--shadow:0 1px 3px rgba(40,30,10,.06),0 20px 44px -18px rgba(40,30,10,.18);
+--serif:'Playfair Display',Georgia,serif;
+--sans:'Inter',ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--cream);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--forest);text-decoration:none}
+h1,h2,h3{font-family:var(--serif);letter-spacing:-.01em;font-weight:700;color:var(--forest)}
+.container{max-width:1140px;margin:0 auto;padding:0 22px}
+.hidden{display:none !important}
+::selection{background:var(--terracotta-soft);color:var(--forest)}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:999px;
+padding:13px 26px;font:inherit;font-weight:700;font-size:14.5px;cursor:pointer;transition:.2s;letter-spacing:.02em}
+.btn.primary{background:var(--forest);color:#fff;box-shadow:0 10px 24px -10px rgba(31,51,39,.45)}
+.btn.primary:hover{background:var(--forest-dark);transform:translateY(-1px)}
+.btn.primary:disabled{background:#c8c2b2;color:#fff;box-shadow:none;cursor:not-allowed;transform:none}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--forest)}
+.btn.ghost:hover{border-color:var(--forest);background:rgba(31,51,39,.05)}
+.btn.big{padding:16px 32px;font-size:15.5px}
+.link-danger{background:none;border:none;color:var(--danger);font-weight:600;cursor:pointer;font:inherit}
+
+/* ---------- header ---------- */
+#hdr{position:sticky;top:0;z-index:30;background:rgba(250,246,238,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:76px;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-weight:800;font-size:22px;letter-spacing:.01em;color:var(--forest)}
+.navlinks{display:flex;gap:2px}
+.navlinks a{color:var(--slate);font-weight:600;font-size:13.5px;padding:8px 13px;border-radius:8px;letter-spacing:.02em}
+.navlinks a:hover{color:var(--forest);background:rgba(31,51,39,.06)}
+.nav-cta{display:flex;align-items:center;gap:14px}
+.nav-cta .call{font-weight:700;font-size:13.5px;color:var(--slate);white-space:nowrap}
+.nav-cta .call:hover{color:var(--forest)}
+@media(max-width:940px){.navlinks{display:none}}
+@media(max-width:560px){.nav-cta .call{display:none}}
+
+/* ---------- hero ---------- */
+.hero{position:relative;overflow:hidden;padding:70px 0 90px}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center}
+@media(max-width:860px){.hero-grid{grid-template-columns:1fr;text-align:center}}
+.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(217,123,79,.4);background:var(--terracotta-soft);
+border-radius:999px;padding:7px 16px;font-size:12px;color:var(--terracotta-dark);font-weight:700;margin-bottom:22px;letter-spacing:.1em;text-transform:uppercase}
+.hero h1{font-size:clamp(2.3rem,4.8vw,3.6rem);font-weight:800;line-height:1.1;margin:0 0 18px}
+.hero .sub{font-size:17px;color:var(--slate);max-width:480px;margin:0 0 32px}
+@media(max-width:860px){.hero .sub{margin:0 auto 32px}}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap}
+@media(max-width:860px){.hero-cta{justify-content:center}}
+.trust{display:flex;align-items:center;gap:10px;margin-top:26px;font-size:14px;color:var(--slate);font-weight:600}
+@media(max-width:860px){.trust{justify-content:center}}
+.trust .stars{color:var(--terracotta);letter-spacing:2px}
+
+/* hero paw-print photo frame (single-photo version: gallery/team)
+   aspect-ratio 983/854 = the real traced silhouette's union bounding box (px) */
+.hero-photo-wrap{position:relative;display:flex;justify-content:center}
+.paw-frame{position:relative;width:min(420px,90%);aspect-ratio:983/854}
+.paw-frame img{width:100%;height:100%;object-fit:cover;display:block;clip-path:url(#pawClip);-webkit-clip-path:url(#pawClip)}
+
+/* hero paw-print PHOTO MOSAIC: five independently-clipped, hoverable photo tiles,
+   computationally traced (OpenCV contour trace + Catmull-Rom smoothing) from the
+   user's actual reference paw-print silhouette (one heel pad + four toe pads) */
+.paw-mosaic{position:relative;width:min(460px,92%);margin:0 auto;aspect-ratio:983/854}
+.paw-mosaic .pad{position:absolute}
+.paw-mosaic .pad .tile{position:relative;width:100%;height:100%;cursor:pointer;
+  filter:drop-shadow(0 8px 24px rgba(0,0,0,.12));transition:transform .25s ease;transform-origin:center}
+.paw-mosaic .pad .tile img{width:100%;height:100%;object-fit:cover;display:block}
+.paw-mosaic .pad:hover .tile,.paw-mosaic .pad:focus-within .tile{transform:scale(1.03)}
+
+/* decorative drifting paw prints (background) */
+.hero .drift{position:absolute;color:var(--terracotta);opacity:.16;pointer-events:none;z-index:0}
+.hero .drift svg{width:100%;height:100%;fill:currentColor}
+
+/* ---------- stats band ---------- */
+.stats-band{background:var(--forest);border-bottom:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:44px 0;text-align:center}
+.stats .stat b{display:block;font-family:var(--serif);font-size:clamp(1.7rem,3vw,2.4rem);color:var(--terracotta-soft);font-weight:800}
+.stats .stat span{font-size:12.5px;color:#cfd8cf;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+/* ---------- sections ---------- */
+.section{padding:76px 0 8px}
+.sec-head{max-width:640px;margin:0 auto 42px;text-align:center}
+.kicker{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--terracotta-dark);margin-bottom:10px}
+.sec-head h2{font-size:clamp(1.7rem,3.4vw,2.3rem);font-weight:800;margin:0}
+.sec-head .lead{color:var(--muted);font-size:15px;margin:12px 0 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card.pad{padding:24px}
+
+/* ---------- services ---------- */
+.svc-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.card.svc{padding:28px;text-align:left;position:relative;transition:.2s}
+.card.svc:hover{border-color:rgba(217,123,79,.4);transform:translateY(-2px)}
+.card.svc.popular{border-color:var(--forest);background:var(--forest);color:#fff}
+.card.svc.popular h3,.card.svc.popular .dur{color:#fff}
+.card.svc.popular p{color:#d7dfd7}
+.card.svc.popular .price{color:var(--terracotta-soft)}
+.card.svc.popular .meta{border-top-color:rgba(255,255,255,.18)}
+.card.svc .pop-badge{position:absolute;top:-11px;right:20px;background:var(--terracotta);color:#fff;font-size:11px;font-weight:800;
+padding:4px 12px;border-radius:999px;letter-spacing:.05em;text-transform:uppercase}
+.card.svc .svc-ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;margin-bottom:16px;
+background:rgba(217,123,79,.12);font-size:21px;border:1px solid rgba(217,123,79,.25)}
+.card.svc.popular .svc-ic{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25)}
+.card.svc h3{margin:0 0 7px;font-size:17px;font-weight:700;color:var(--forest)}
+.card.svc p{margin:0 0 16px;font-size:13.5px;color:var(--muted);min-height:40px}
+.card.svc .meta{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;margin-bottom:14px;
+border-top:1px solid var(--line);padding-top:14px}
+.card.svc .dur{color:var(--muted)} .card.svc .price{font-weight:800;color:var(--terracotta-dark);font-size:16px}
+.book-link{font-weight:700;font-size:13.5px;display:block;text-align:center;padding:10px;border:1.5px solid var(--line);border-radius:999px;color:var(--forest)}
+.book-link:hover{border-color:var(--forest);background:rgba(31,51,39,.05)}
+.card.svc.popular .book-link{border-color:rgba(255,255,255,.3);color:#fff}
+.card.svc.popular .book-link:hover{background:rgba(255,255,255,.1)}
+
+/* ---------- booking wizard ---------- */
+.booking{margin:30px auto 0;position:relative;overflow:hidden;scroll-margin-top:88px}
+.steps{display:flex;gap:6px;padding:20px 26px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:var(--card2)}
+.step{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);font-weight:600}
+.step .dot{width:23px;height:23px;border-radius:50%;background:#ece4d2;color:var(--muted);display:grid;place-items:center;font-size:12px;transition:.2s}
+.step.active{color:var(--terracotta-dark)} .step.active .dot{background:var(--terracotta);color:#fff}
+.step.done .dot{background:var(--ok);color:#fff}
+.step .sep{width:20px;height:1px;background:var(--line)}
+.panel{padding:28px 26px 30px}
+.panel h2{margin:0 0 4px;font-size:22px;font-weight:800;color:var(--forest)}
+.panel .sub{color:var(--muted);font-size:14px;margin:0 0 22px}
+.actions{display:flex;justify-content:space-between;margin-top:24px;gap:10px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:12px}
+.choice{position:relative;border:1.5px solid var(--line);border-radius:16px;padding:16px;cursor:pointer;transition:.15s;background:var(--card2)}
+.choice:hover{border-color:var(--terracotta);transform:translateY(-1px)}
+.choice.sel{border-color:var(--terracotta);background:var(--terracotta-soft)}
+.choice.sel::after{content:"✓";position:absolute;top:10px;right:12px;width:20px;height:20px;border-radius:50%;
+background:var(--terracotta);color:#fff;font-size:12px;display:grid;place-items:center;font-weight:800}
+.choice h3{margin:0 0 4px;font-size:15px;font-weight:700;padding-right:22px;color:var(--forest)}
+.choice p{margin:0;font-size:13px;color:var(--muted)}
+.choice .meta{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:13px}
+.choice .dur{color:var(--muted)} .choice .price{font-weight:700;color:var(--terracotta-dark)}
+.choice .go{display:none;width:100%;margin-top:14px;justify-content:center}
+@media(max-width:700px){.choice.sel .go{display:inline-flex}}
+.avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px;flex:0 0 auto;object-fit:cover}
+.choice.person{display:flex;align-items:center;gap:12px}
+.choice.person h3{padding-right:0}
+.choice.person p{font-size:12.5px;color:var(--muted)}
+
+.datestrip{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:20px;scrollbar-width:thin}
+.day{flex:0 0 74px;text-align:center;border:1.5px solid var(--line);border-radius:14px;padding:10px 4px;cursor:pointer;background:var(--card2);transition:.15s}
+.day:hover{border-color:var(--terracotta)}
+.day.sel{border-color:var(--terracotta);background:var(--terracotta-soft)}
+.day.off{opacity:.4;cursor:not-allowed}
+.day .dw{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.day .dn{font-size:19px;font-weight:800;margin:2px 0;color:var(--forest)}
+.day .cnt{font-size:11px;font-weight:600;color:var(--ok)}
+.day.off .cnt{color:var(--muted)}
+.day.sel .dw,.day.sel .dn{color:var(--terracotta-dark)}
+.strip-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.strip-nav .label{font-weight:700;font-size:15px;color:var(--forest)}
+.iconbtn{border:1px solid var(--line);width:34px;height:34px;display:grid;place-items:center;background:var(--card2);border-radius:10px;cursor:pointer;font-size:16px;color:var(--slate)}
+.iconbtn:hover{border-color:var(--terracotta);color:var(--terracotta-dark)}
+
+.period{margin-bottom:18px}
+.period h4{margin:0 0 8px;font-size:12.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px}
+.slot{padding:10px 0;text-align:center;border:1.5px solid var(--line);border-radius:12px;background:var(--card2);cursor:pointer;font-weight:600;font-size:14px;transition:.12s;color:var(--slate)}
+.slot:hover{border-color:var(--terracotta);color:var(--terracotta-dark)}
+.slot.sel{background:var(--terracotta);border-color:var(--terracotta);color:#fff}
+.empty{color:var(--muted);font-size:14px;padding:14px 0}
+.waitbox{border:1.5px dashed var(--line);border-radius:16px;padding:20px;text-align:center;background:var(--card2)}
+.waitbox p{margin:0 0 12px;color:var(--slate);font-size:14px}
+
+.field{margin-bottom:15px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--slate)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+input[type=date],input[type=time],select,input[type=text],input[type=email],input[type=tel],input[type=password],textarea{
+font:inherit;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;background:var(--card2);color:var(--ink);width:100%}
+input::placeholder,textarea::placeholder{color:#a49c8c}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--terracotta);box-shadow:0 0 0 3px rgba(217,123,79,.15)}
+input.invalid,textarea.invalid,select.invalid{border-color:var(--danger)}
+
+.summary{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:18px;font-size:14px;margin-bottom:16px}
+.summary div{display:flex;justify-content:space-between;gap:14px;padding:6px 0}
+.summary .k{color:var(--muted)} .summary .v{font-weight:600;text-align:right;color:var(--forest)}
+.notice{padding:12px 15px;border-radius:12px;font-size:14px;margin-top:12px}
+.notice.err{background:rgba(194,86,74,.1);color:var(--danger);border:1px solid rgba(194,86,74,.3)}
+.notice.info{background:var(--terracotta-soft);color:var(--terracotta-dark);border:1px solid rgba(217,123,79,.3)}
+.confirm{text-align:center}
+.confirm .tick{width:66px;height:66px;border-radius:50%;background:rgba(76,143,108,.14);color:var(--ok);
+display:grid;place-items:center;margin:0 auto 18px;font-size:28px}
+.refbox{font-size:27px;font-weight:800;letter-spacing:.08em;background:var(--card2);border:1.5px dashed var(--terracotta);color:var(--terracotta-dark);
+border-radius:14px;padding:16px;text-align:center;margin:16px 0 4px}
+.hint{font-size:12.5px;color:var(--muted);text-align:center;margin:0 0 20px}
+.confirm-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+
+/* ---------- team ---------- */
+.team{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
+.card.member{padding:26px;text-align:center}
+.card.member .photo-wrap{width:120px;height:104px;margin:0 auto 16px;position:relative} /* 983/854 aspect, matches the real traced silhouette so the shape isn't stretched */
+.card.member .photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;clip-path:url(#pawClipSmall);-webkit-clip-path:url(#pawClipSmall)}
+.card.member h3{margin:0 0 3px;font-size:18px;font-weight:700;color:var(--forest)}
+.card.member .role{font-size:13px;color:var(--terracotta-dark);font-weight:600;letter-spacing:.02em}
+.card.member .creds{display:inline-block;margin-top:12px;font-size:11.5px;font-weight:700;color:var(--muted);
+background:var(--card2);border:1px solid var(--line);padding:4px 12px;border-radius:999px}
+.card.member .bio{font-size:13.5px;color:var(--slate);margin:14px 0 0}
+
+/* ---------- gallery (The Transformation) ---------- */
+.gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.gallery figure{margin:0;cursor:pointer;position:relative;text-align:center}
+.gallery .paw-frame{width:100%;aspect-ratio:983/854;margin:0 auto 12px}
+.gallery figcaption{font-size:13px;font-weight:600;color:var(--slate)}
+@media(max-width:760px){.gallery{grid-template-columns:repeat(2,1fr);gap:28px}}
+
+.lightbox{position:fixed;inset:0;background:rgba(34,28,20,.92);z-index:60;display:grid;place-items:center;padding:30px}
+.lightbox img{max-width:100%;max-height:85vh;border-radius:14px}
+.lightbox .lb-close{position:absolute;top:22px;right:26px;color:#fff;font-size:30px;cursor:pointer;line-height:1}
+
+/* ---------- reviews ---------- */
+.rev-head{display:flex;align-items:center;justify-content:space-between;gap:20px;max-width:1140px;margin:0 auto 34px;flex-wrap:wrap}
+.rev-score{display:flex;align-items:center;gap:16px}
+.rev-score .n{font-family:var(--serif);font-size:42px;font-weight:800;color:var(--terracotta-dark)}
+.rev-score .gl{font-size:13px;color:var(--muted)}
+.reviews-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px}
+.card.review{padding:22px}
+.card.review .stars{color:var(--terracotta);letter-spacing:2px;margin-bottom:12px;font-size:15px}
+.card.review p{margin:0 0 14px;font-size:14.5px;color:var(--slate)}
+.card.review .who{font-size:13px;color:var(--muted);font-weight:600}
+
+/* ---------- why-us band ---------- */
+.why-band{background:var(--cream-alt);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;padding:64px 0;text-align:center}
+.why-grid .wi .ic{width:52px;height:52px;border-radius:50%;background:var(--terracotta-soft);border:1px solid rgba(217,123,79,.3);
+display:grid;place-items:center;margin:0 auto 16px;font-size:22px}
+.why-grid .wi h3{font-size:16.5px;margin:0 0 8px;color:var(--forest)}
+.why-grid .wi p{font-size:13.5px;color:var(--muted);margin:0;max-width:260px;margin:0 auto}
+@media(max-width:760px){.why-grid{grid-template-columns:1fr;gap:34px}}
+
+/* ---------- FAQ ---------- */
+.faq-list{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.faq-list details{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.faq-list summary{cursor:pointer;font-weight:700;font-size:15px;list-style:none;color:var(--forest)}
+.faq-list summary::-webkit-details-marker{display:none}
+.faq-list summary::after{content:"+";float:right;color:var(--terracotta-dark);font-weight:800;font-size:18px}
+.faq-list details[open] summary::after{content:"–"}
+.faq-list p{margin:14px 0 0;color:var(--slate);font-size:14px}
+
+/* ---------- contact ---------- */
+.contact-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:20px}
+@media(max-width:800px){.contact-grid{grid-template-columns:1fr}}
+.contact-info{display:flex;flex-direction:column;gap:14px}
+.contact-info .card.pad h3{margin:0 0 8px;font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.contact-info .card.pad p{margin:0;font-size:15px;font-weight:600;color:var(--forest)}
+.contact-info .card.pad.hours #hoursList{display:flex;flex-direction:column;gap:5px}
+.contact-info .card.pad.hours #hoursList div{display:flex;justify-content:space-between;font-size:13.5px;font-weight:500;color:var(--slate)}
+.map-card{border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);min-height:280px}
+.map-card iframe{width:100%;height:100%;min-height:280px;border:0}
+
+/* ---------- final CTA ---------- */
+.final-cta{background:linear-gradient(135deg,var(--forest),var(--forest-dark) 60%);color:#fff;text-align:center;padding:80px 0}
+.final-cta h2{font-size:clamp(1.8rem,3.6vw,2.6rem);margin:0 0 16px;color:#fff}
+.final-cta p{color:#d7dfd7;font-size:15.5px;margin:0 0 30px;max-width:520px;margin-left:auto;margin-right:auto}
+.final-cta .btn.ghost{border-color:rgba(255,255,255,.4);color:#fff}
+.final-cta .btn.ghost:hover{background:rgba(255,255,255,.1)}
+
+.footer{text-align:center;color:var(--muted);font-size:13px;padding:40px 0 110px;border-top:1px solid var(--line)}
+.footer .fbrand{font-family:var(--serif);color:var(--forest);font-size:16px;font-weight:700;margin-bottom:10px}
+
+/* ---------- mobile sticky bar ---------- */
+.mobile-bar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card);border-top:1px solid var(--line);
+padding:10px 14px;gap:10px}
+.mobile-bar a{flex:1;text-align:center;padding:13px;border-radius:999px;font-weight:700;font-size:14.5px}
+.mobile-bar .mb-call{border:1.5px solid var(--line);color:var(--forest)}
+.mobile-bar .mb-book{background:var(--forest);color:#fff}
+@media(max-width:700px){.mobile-bar{display:flex}.footer{padding-bottom:96px}}
+
+/* ---------- reveal on scroll ---------- */
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease, transform .5s ease}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- modal ---------- */
+.backdrop{position:fixed;inset:0;background:rgba(34,28,20,.5);display:grid;place-items:center;z-index:50;padding:20px}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:20px;max-width:450px;width:100%;box-shadow:0 24px 70px rgba(34,28,20,.3);max-height:90vh;overflow:auto}
+.modal header{padding:20px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.modal header h3{margin:0;font-size:17px;color:var(--forest)}
+.modal .body{padding:22px}
+.modal footer{padding:18px 22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+@media(max-width:560px){
+.row{grid-template-columns:1fr}
+.why-grid{padding:48px 0}
+}
+</style>
+</head>
+<body>
+
+<!-- REAL traced paw-print clip paths — computed from the user's actual reference
+     photo via OpenCV contour detection (not hand-drawn/estimated): threshold to a
+     binary silhouette, findContours to isolate the 5 separate pads, approxPolyDP to
+     simplify to clean polygons, then Catmull-Rom -> cubic-bezier for smooth curves.
+     Two sets:
+       - pawClip / pawClipSmall: the 5 pads' FULL outlines, each normalized into ONE
+         shared objectBoundingBox (0-1) so together they render as a single combined
+         paw silhouette — used for single-photo frames (hero single, gallery, team).
+       - pad*: each pad's INSET outline (shrunk ~14px in source-image scale to form
+         the white gap) normalized to that pad's OWN bounding box — used per-tile in
+         the 5-photo hero mosaic. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <clipPath id="pawClip" clipPathUnits="objectBoundingBox">
+      <path d="M 0.1577,0.7740 C 0.1472,0.8103 0.1485,0.8381 0.1516,0.8642 C 0.1546,0.8903 0.1643,0.9122 0.1760,0.9309 C 0.1877,0.9496 0.2030,0.9652 0.2218,0.9766 C 0.2406,0.9879 0.2663,0.9959 0.2889,0.9988 C 0.3115,1.0018 0.3242,1.0012 0.3571,0.9941 C 0.3899,0.9871 0.4354,0.9561 0.4863,0.9567 C 0.5371,0.9573 0.6197,0.9916 0.6623,0.9977 C 0.7048,1.0037 0.7160,1.0020 0.7416,0.9930 C 0.7672,0.9840 0.7978,0.9669 0.8159,0.9438 C 0.8340,0.9207 0.8476,0.8890 0.8505,0.8548 C 0.8533,0.8206 0.8494,0.7819 0.8332,0.7389 C 0.8169,0.6959 0.7845,0.6390 0.7528,0.5972 C 0.7211,0.5554 0.6799,0.5141 0.6429,0.4883 C 0.6060,0.4625 0.5669,0.4485 0.5310,0.4426 C 0.4951,0.4368 0.4616,0.4411 0.4273,0.4532 C 0.3929,0.4652 0.3599,0.4830 0.3245,0.5152 C 0.2891,0.5474 0.2424,0.6033 0.2146,0.6464 C 0.1869,0.6895 0.1682,0.7377 0.1577,0.7740 Z"/>
+      <path d="M 0.0417,0.2248 C 0.0318,0.2293 0.0307,0.2328 0.0254,0.2400 C 0.0201,0.2473 0.0144,0.2541 0.0102,0.2681 C 0.0059,0.2822 0.0002,0.3015 0.0000,0.3244 C -0.0002,0.3472 0.0034,0.3800 0.0092,0.4052 C 0.0150,0.4303 0.0237,0.4532 0.0346,0.4754 C 0.0455,0.4977 0.0590,0.5205 0.0743,0.5386 C 0.0895,0.5568 0.1101,0.5744 0.1261,0.5843 C 0.1422,0.5943 0.1551,0.5981 0.1709,0.5984 C 0.1867,0.5986 0.2072,0.5937 0.2208,0.5855 C 0.2343,0.5773 0.2445,0.5662 0.2523,0.5492 C 0.2601,0.5322 0.2665,0.5061 0.2675,0.4836 C 0.2686,0.4611 0.2640,0.4368 0.2584,0.4145 C 0.2528,0.3923 0.2445,0.3712 0.2340,0.3501 C 0.2235,0.3290 0.2116,0.3077 0.1953,0.2881 C 0.1790,0.2684 0.1548,0.2444 0.1363,0.2319 C 0.1178,0.2193 0.1002,0.2143 0.0844,0.2131 C 0.0687,0.2119 0.0516,0.2204 0.0417,0.2248 Z"/>
+      <path d="M 0.3174,0.0012 C 0.3044,0.0039 0.2906,0.0143 0.2818,0.0211 C 0.2729,0.0279 0.2704,0.0320 0.2645,0.0422 C 0.2586,0.0523 0.2511,0.0650 0.2462,0.0820 C 0.2413,0.0989 0.2358,0.1185 0.2350,0.1440 C 0.2342,0.1696 0.2367,0.2081 0.2411,0.2354 C 0.2455,0.2626 0.2520,0.2845 0.2614,0.3080 C 0.2709,0.3314 0.2840,0.3575 0.2981,0.3759 C 0.3121,0.3943 0.3291,0.4101 0.3459,0.4180 C 0.3627,0.4260 0.3828,0.4278 0.3988,0.4239 C 0.4148,0.4200 0.4298,0.4087 0.4415,0.3946 C 0.4532,0.3806 0.4629,0.3580 0.4690,0.3396 C 0.4751,0.3212 0.4776,0.3094 0.4781,0.2845 C 0.4786,0.2597 0.4773,0.2207 0.4720,0.1909 C 0.4667,0.1610 0.4575,0.1306 0.4466,0.1054 C 0.4357,0.0802 0.4214,0.0566 0.4069,0.0398 C 0.3925,0.0231 0.3751,0.0111 0.3601,0.0047 C 0.3452,-0.0018 0.3304,-0.0015 0.3174,0.0012 Z"/>
+      <path d="M 0.6816,0.0012 C 0.6673,-0.0015 0.6501,-0.0012 0.6338,0.0070 C 0.6175,0.0152 0.5980,0.0326 0.5839,0.0504 C 0.5699,0.0681 0.5587,0.0905 0.5493,0.1136 C 0.5400,0.1367 0.5326,0.1607 0.5280,0.1885 C 0.5234,0.2164 0.5209,0.2544 0.5219,0.2810 C 0.5229,0.3076 0.5262,0.3270 0.5341,0.3478 C 0.5419,0.3685 0.5573,0.3925 0.5687,0.4052 C 0.5801,0.4178 0.5890,0.4213 0.6022,0.4239 C 0.6155,0.4265 0.6328,0.4268 0.6480,0.4204 C 0.6633,0.4139 0.6804,0.4005 0.6938,0.3852 C 0.7072,0.3700 0.7180,0.3528 0.7284,0.3290 C 0.7388,0.3053 0.7501,0.2734 0.7558,0.2424 C 0.7616,0.2114 0.7637,0.1698 0.7630,0.1429 C 0.7623,0.1159 0.7591,0.1007 0.7518,0.0808 C 0.7445,0.0609 0.7309,0.0367 0.7192,0.0234 C 0.7075,0.0102 0.6958,0.0039 0.6816,0.0012 Z"/>
+      <path d="M 0.9502,0.2201 C 0.9364,0.2135 0.9178,0.2122 0.9013,0.2155 C 0.8848,0.2187 0.8681,0.2274 0.8515,0.2400 C 0.8349,0.2527 0.8162,0.2725 0.8016,0.2916 C 0.7871,0.3107 0.7744,0.3317 0.7640,0.3548 C 0.7536,0.3779 0.7444,0.4066 0.7396,0.4297 C 0.7348,0.4529 0.7340,0.4748 0.7355,0.4941 C 0.7370,0.5135 0.7408,0.5302 0.7487,0.5457 C 0.7567,0.5611 0.7699,0.5779 0.7833,0.5867 C 0.7967,0.5954 0.8128,0.5993 0.8291,0.5984 C 0.8454,0.5974 0.8639,0.5917 0.8810,0.5808 C 0.8981,0.5699 0.9178,0.5500 0.9318,0.5328 C 0.9459,0.5156 0.9554,0.4996 0.9654,0.4778 C 0.9754,0.4559 0.9863,0.4288 0.9919,0.4016 C 0.9975,0.3745 1.0003,0.3393 0.9990,0.3150 C 0.9977,0.2906 0.9919,0.2711 0.9837,0.2553 C 0.9756,0.2395 0.9639,0.2268 0.9502,0.2201 Z"/>
+    </clipPath>
+    <clipPath id="pawClipSmall" clipPathUnits="objectBoundingBox">
+      <path d="M 0.1577,0.7740 C 0.1472,0.8103 0.1485,0.8381 0.1516,0.8642 C 0.1546,0.8903 0.1643,0.9122 0.1760,0.9309 C 0.1877,0.9496 0.2030,0.9652 0.2218,0.9766 C 0.2406,0.9879 0.2663,0.9959 0.2889,0.9988 C 0.3115,1.0018 0.3242,1.0012 0.3571,0.9941 C 0.3899,0.9871 0.4354,0.9561 0.4863,0.9567 C 0.5371,0.9573 0.6197,0.9916 0.6623,0.9977 C 0.7048,1.0037 0.7160,1.0020 0.7416,0.9930 C 0.7672,0.9840 0.7978,0.9669 0.8159,0.9438 C 0.8340,0.9207 0.8476,0.8890 0.8505,0.8548 C 0.8533,0.8206 0.8494,0.7819 0.8332,0.7389 C 0.8169,0.6959 0.7845,0.6390 0.7528,0.5972 C 0.7211,0.5554 0.6799,0.5141 0.6429,0.4883 C 0.6060,0.4625 0.5669,0.4485 0.5310,0.4426 C 0.4951,0.4368 0.4616,0.4411 0.4273,0.4532 C 0.3929,0.4652 0.3599,0.4830 0.3245,0.5152 C 0.2891,0.5474 0.2424,0.6033 0.2146,0.6464 C 0.1869,0.6895 0.1682,0.7377 0.1577,0.7740 Z"/>
+      <path d="M 0.0417,0.2248 C 0.0318,0.2293 0.0307,0.2328 0.0254,0.2400 C 0.0201,0.2473 0.0144,0.2541 0.0102,0.2681 C 0.0059,0.2822 0.0002,0.3015 0.0000,0.3244 C -0.0002,0.3472 0.0034,0.3800 0.0092,0.4052 C 0.0150,0.4303 0.0237,0.4532 0.0346,0.4754 C 0.0455,0.4977 0.0590,0.5205 0.0743,0.5386 C 0.0895,0.5568 0.1101,0.5744 0.1261,0.5843 C 0.1422,0.5943 0.1551,0.5981 0.1709,0.5984 C 0.1867,0.5986 0.2072,0.5937 0.2208,0.5855 C 0.2343,0.5773 0.2445,0.5662 0.2523,0.5492 C 0.2601,0.5322 0.2665,0.5061 0.2675,0.4836 C 0.2686,0.4611 0.2640,0.4368 0.2584,0.4145 C 0.2528,0.3923 0.2445,0.3712 0.2340,0.3501 C 0.2235,0.3290 0.2116,0.3077 0.1953,0.2881 C 0.1790,0.2684 0.1548,0.2444 0.1363,0.2319 C 0.1178,0.2193 0.1002,0.2143 0.0844,0.2131 C 0.0687,0.2119 0.0516,0.2204 0.0417,0.2248 Z"/>
+      <path d="M 0.3174,0.0012 C 0.3044,0.0039 0.2906,0.0143 0.2818,0.0211 C 0.2729,0.0279 0.2704,0.0320 0.2645,0.0422 C 0.2586,0.0523 0.2511,0.0650 0.2462,0.0820 C 0.2413,0.0989 0.2358,0.1185 0.2350,0.1440 C 0.2342,0.1696 0.2367,0.2081 0.2411,0.2354 C 0.2455,0.2626 0.2520,0.2845 0.2614,0.3080 C 0.2709,0.3314 0.2840,0.3575 0.2981,0.3759 C 0.3121,0.3943 0.3291,0.4101 0.3459,0.4180 C 0.3627,0.4260 0.3828,0.4278 0.3988,0.4239 C 0.4148,0.4200 0.4298,0.4087 0.4415,0.3946 C 0.4532,0.3806 0.4629,0.3580 0.4690,0.3396 C 0.4751,0.3212 0.4776,0.3094 0.4781,0.2845 C 0.4786,0.2597 0.4773,0.2207 0.4720,0.1909 C 0.4667,0.1610 0.4575,0.1306 0.4466,0.1054 C 0.4357,0.0802 0.4214,0.0566 0.4069,0.0398 C 0.3925,0.0231 0.3751,0.0111 0.3601,0.0047 C 0.3452,-0.0018 0.3304,-0.0015 0.3174,0.0012 Z"/>
+      <path d="M 0.6816,0.0012 C 0.6673,-0.0015 0.6501,-0.0012 0.6338,0.0070 C 0.6175,0.0152 0.5980,0.0326 0.5839,0.0504 C 0.5699,0.0681 0.5587,0.0905 0.5493,0.1136 C 0.5400,0.1367 0.5326,0.1607 0.5280,0.1885 C 0.5234,0.2164 0.5209,0.2544 0.5219,0.2810 C 0.5229,0.3076 0.5262,0.3270 0.5341,0.3478 C 0.5419,0.3685 0.5573,0.3925 0.5687,0.4052 C 0.5801,0.4178 0.5890,0.4213 0.6022,0.4239 C 0.6155,0.4265 0.6328,0.4268 0.6480,0.4204 C 0.6633,0.4139 0.6804,0.4005 0.6938,0.3852 C 0.7072,0.3700 0.7180,0.3528 0.7284,0.3290 C 0.7388,0.3053 0.7501,0.2734 0.7558,0.2424 C 0.7616,0.2114 0.7637,0.1698 0.7630,0.1429 C 0.7623,0.1159 0.7591,0.1007 0.7518,0.0808 C 0.7445,0.0609 0.7309,0.0367 0.7192,0.0234 C 0.7075,0.0102 0.6958,0.0039 0.6816,0.0012 Z"/>
+      <path d="M 0.9502,0.2201 C 0.9364,0.2135 0.9178,0.2122 0.9013,0.2155 C 0.8848,0.2187 0.8681,0.2274 0.8515,0.2400 C 0.8349,0.2527 0.8162,0.2725 0.8016,0.2916 C 0.7871,0.3107 0.7744,0.3317 0.7640,0.3548 C 0.7536,0.3779 0.7444,0.4066 0.7396,0.4297 C 0.7348,0.4529 0.7340,0.4748 0.7355,0.4941 C 0.7370,0.5135 0.7408,0.5302 0.7487,0.5457 C 0.7567,0.5611 0.7699,0.5779 0.7833,0.5867 C 0.7967,0.5954 0.8128,0.5993 0.8291,0.5984 C 0.8454,0.5974 0.8639,0.5917 0.8810,0.5808 C 0.8981,0.5699 0.9178,0.5500 0.9318,0.5328 C 0.9459,0.5156 0.9554,0.4996 0.9654,0.4778 C 0.9754,0.4559 0.9863,0.4288 0.9919,0.4016 C 0.9975,0.3745 1.0003,0.3393 0.9990,0.3150 C 0.9977,0.2906 0.9919,0.2711 0.9837,0.2553 C 0.9756,0.2395 0.9639,0.2268 0.9502,0.2201 Z"/>
+    </clipPath>
+
+    <!-- per-pad clip paths for the 5-photo hero mosaic (own-bbox normalized, gap-inset) -->
+    <clipPath id="padHeel" clipPathUnits="objectBoundingBox">
+      <path d="M 0.6899,0.1090 C 0.7401,0.1530 0.7967,0.2229 0.8406,0.2956 C 0.8845,0.3683 0.9312,0.4717 0.9536,0.5451 C 0.9761,0.6184 0.9790,0.6799 0.9754,0.7358 C 0.9717,0.7918 0.9551,0.8434 0.9319,0.8805 C 0.9087,0.9176 0.8696,0.9438 0.8362,0.9581 C 0.8029,0.9723 0.7909,0.9774 0.7319,0.9665 C 0.6729,0.9556 0.5257,0.9052 0.4826,0.8931 C 0.4396,0.8809 0.5061,0.8820 0.4739,0.8931 C 0.4417,0.9042 0.3359,0.9476 0.2899,0.9602 C 0.2438,0.9727 0.2265,0.9732 0.1971,0.9686 C 0.1677,0.9639 0.1372,0.9514 0.1130,0.9329 C 0.0888,0.9145 0.0674,0.8874 0.0522,0.8574 C 0.0370,0.8275 0.0254,0.7956 0.0217,0.7526 C 0.0181,0.7096 0.0164,0.6604 0.0304,0.5996 C 0.0445,0.5388 0.0674,0.4618 0.1058,0.3878 C 0.1442,0.3138 0.2119,0.2113 0.2609,0.1551 C 0.3099,0.0990 0.3536,0.0709 0.4000,0.0503 C 0.4464,0.0298 0.4909,0.0216 0.5391,0.0314 C 0.5874,0.0413 0.6396,0.0650 0.6899,0.1090 Z"/>
+    </clipPath>
+    <clipPath id="padToeOuterLeft" clipPathUnits="objectBoundingBox">
+      <path d="M 0.4773,0.0848 C 0.5398,0.1152 0.6356,0.1794 0.6932,0.2273 C 0.7508,0.2752 0.7852,0.3206 0.8220,0.3727 C 0.8587,0.4248 0.8932,0.4858 0.9129,0.5394 C 0.9326,0.5930 0.9432,0.6424 0.9394,0.6939 C 0.9356,0.7455 0.9140,0.8100 0.8902,0.8485 C 0.8663,0.8870 0.8371,0.9070 0.7955,0.9242 C 0.7538,0.9415 0.6905,0.9524 0.6402,0.9515 C 0.5898,0.9506 0.5473,0.9418 0.4924,0.9182 C 0.4375,0.8945 0.3629,0.8521 0.3106,0.8091 C 0.2583,0.7661 0.2152,0.7142 0.1780,0.6606 C 0.1409,0.6070 0.1080,0.5494 0.0871,0.4879 C 0.0663,0.4264 0.0523,0.3464 0.0530,0.2909 C 0.0538,0.2355 0.0777,0.1864 0.0909,0.1545 C 0.1042,0.1227 0.1182,0.1142 0.1326,0.1000 C 0.1470,0.0858 0.1470,0.0788 0.1780,0.0697 C 0.2091,0.0606 0.2682,0.0430 0.3182,0.0455 C 0.3682,0.0479 0.4148,0.0545 0.4773,0.0848 Z"/>
+    </clipPath>
+    <clipPath id="padToeInnerLeft" clipPathUnits="objectBoundingBox">
+      <path d="M 0.4917,0.0495 C 0.5450,0.0637 0.6175,0.0912 0.6708,0.1264 C 0.7242,0.1615 0.7721,0.2069 0.8125,0.2610 C 0.8529,0.3151 0.8917,0.3841 0.9125,0.4505 C 0.9333,0.5170 0.9396,0.6036 0.9375,0.6593 C 0.9354,0.7151 0.9221,0.7459 0.9000,0.7857 C 0.8779,0.8255 0.8446,0.8701 0.8042,0.8984 C 0.7637,0.9266 0.7125,0.9486 0.6583,0.9560 C 0.6042,0.9635 0.5388,0.9593 0.4792,0.9423 C 0.4196,0.9253 0.3533,0.8942 0.3000,0.8544 C 0.2467,0.8146 0.1946,0.7541 0.1583,0.7033 C 0.1221,0.6525 0.1000,0.6091 0.0833,0.5495 C 0.0667,0.4898 0.0550,0.4044 0.0583,0.3462 C 0.0617,0.2879 0.0867,0.2371 0.1042,0.2005 C 0.1217,0.1640 0.1425,0.1462 0.1625,0.1264 C 0.1825,0.1066 0.1938,0.0967 0.2250,0.0824 C 0.2562,0.0681 0.3054,0.0467 0.3500,0.0412 C 0.3946,0.0357 0.4383,0.0352 0.4917,0.0495 Z"/>
+    </clipPath>
+    <clipPath id="padToeInnerRight" clipPathUnits="objectBoundingBox">
+      <path d="M 0.7689,0.0797 C 0.8097,0.1071 0.8668,0.1621 0.8950,0.2060 C 0.9231,0.2500 0.9349,0.2843 0.9370,0.3434 C 0.9391,0.4025 0.9307,0.4912 0.9076,0.5604 C 0.8845,0.6297 0.8370,0.7066 0.7983,0.7582 C 0.7597,0.8099 0.7261,0.8393 0.6765,0.8709 C 0.6269,0.9025 0.5555,0.9335 0.5000,0.9478 C 0.4445,0.9621 0.3887,0.9607 0.3445,0.9560 C 0.3004,0.9514 0.2752,0.9464 0.2353,0.9203 C 0.1954,0.8942 0.1345,0.8442 0.1050,0.7995 C 0.0756,0.7547 0.0622,0.7102 0.0588,0.6511 C 0.0555,0.5920 0.0664,0.5060 0.0840,0.4451 C 0.1017,0.3841 0.1273,0.3360 0.1639,0.2857 C 0.2004,0.2354 0.2492,0.1813 0.3025,0.1429 C 0.3559,0.1044 0.4252,0.0720 0.4832,0.0549 C 0.5412,0.0379 0.6038,0.0371 0.6513,0.0412 C 0.6987,0.0453 0.7282,0.0522 0.7689,0.0797 Z"/>
+    </clipPath>
+    <clipPath id="padToeOuterRight" clipPathUnits="objectBoundingBox">
+      <path d="M 0.7923,0.0606 C 0.8346,0.0742 0.8673,0.0970 0.8923,0.1303 C 0.9173,0.1636 0.9385,0.2024 0.9423,0.2606 C 0.9462,0.3188 0.9358,0.4106 0.9154,0.4788 C 0.8950,0.5470 0.8538,0.6173 0.8192,0.6697 C 0.7846,0.7221 0.7577,0.7530 0.7077,0.7939 C 0.6577,0.8348 0.5777,0.8885 0.5192,0.9152 C 0.4608,0.9418 0.4096,0.9524 0.3577,0.9545 C 0.3058,0.9567 0.2512,0.9470 0.2077,0.9273 C 0.1642,0.9076 0.1219,0.8691 0.0962,0.8364 C 0.0704,0.8036 0.0585,0.7748 0.0538,0.7303 C 0.0492,0.6858 0.0527,0.6264 0.0692,0.5697 C 0.0858,0.5130 0.1162,0.4479 0.1538,0.3909 C 0.1915,0.3339 0.2450,0.2742 0.2962,0.2273 C 0.3473,0.1803 0.4046,0.1388 0.4615,0.1091 C 0.5185,0.0794 0.5835,0.0567 0.6385,0.0485 C 0.6935,0.0403 0.7500,0.0470 0.7923,0.0606 Z"/>
+    </clipPath>
+  </defs>
+</svg>
+
+<header id="hdr"><div class="container nav">
+<div class="brand">Willow &amp; Wag</div>
+<nav class="navlinks">
+<a href="#services">Services</a>
+<a href="#gallery">Gallery</a>
+<a href="#team">Team</a>
+<a href="#reviews">Testimonials</a>
+<a href="#" id="manageLink">Manage booking</a>
+</nav>
+<div class="nav-cta">
+<a class="call" href="tel:01144960192">0114 496 0192</a>
+<a href="#book" class="btn primary">Book Appointment</a>
+</div>
+</div></header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+<div class="drift" style="top:6%;left:4%;width:60px;height:60px;transform:rotate(-18deg)">
+  <svg viewBox="0 0 100 100"><ellipse cx="50" cy="72" rx="26" ry="21"/><circle cx="16" cy="46" r="12"/><circle cx="37" cy="24" r="14"/><circle cx="63" cy="24" r="14"/><circle cx="84" cy="46" r="12"/></svg>
+</div>
+<div class="drift" style="top:62%;left:8%;width:38px;height:38px;transform:rotate(12deg)">
+  <svg viewBox="0 0 100 100"><ellipse cx="50" cy="72" rx="26" ry="21"/><circle cx="16" cy="46" r="12"/><circle cx="37" cy="24" r="14"/><circle cx="63" cy="24" r="14"/><circle cx="84" cy="46" r="12"/></svg>
+</div>
+<div class="drift" style="top:14%;right:6%;width:46px;height:46px;transform:rotate(24deg)">
+  <svg viewBox="0 0 100 100"><ellipse cx="50" cy="72" rx="26" ry="21"/><circle cx="16" cy="46" r="12"/><circle cx="37" cy="24" r="14"/><circle cx="63" cy="24" r="14"/><circle cx="84" cy="46" r="12"/></svg>
+</div>
+<div class="drift" style="bottom:8%;right:14%;width:32px;height:32px;transform:rotate(-8deg)">
+  <svg viewBox="0 0 100 100"><ellipse cx="50" cy="72" rx="26" ry="21"/><circle cx="16" cy="46" r="12"/><circle cx="37" cy="24" r="14"/><circle cx="63" cy="24" r="14"/><circle cx="84" cy="46" r="12"/></svg>
+</div>
+<div class="container hero-grid">
+<div>
+<span class="pill">Boutique Grooming · Est. Sheffield</span>
+<h1>The Art of the Groom.</h1>
+<p class="sub">Elevated grooming experiences for your most cherished companions. We blend traditional artisanal care with modern wellness, in a boutique English countryside-inspired studio.</p>
+<div class="hero-cta">
+<a href="#book" class="btn primary big">Book Appointment</a>
+<a href="#gallery" class="btn ghost big">Explore Gallery</a>
+</div>
+<div class="trust"><span class="stars">★★★★★</span><span>4.9 out of 5 · 210+ Google reviews</span></div>
+</div>
+<div class="hero-photo-wrap">
+<div class="paw-mosaic">
+<div class="pad" style="left:15.056%;top:44.145%;width:70.193%;height:55.855%">
+  <div class="tile" style="clip-path:url(#padHeel);-webkit-clip-path:url(#padHeel)">
+    <img src="https://images.unsplash.com/photo-1594149929911-78975a43d4f5?auto=format&fit=crop&w=900&q=75" alt="Freshly groomed dog in the Willow &amp; Wag studio" loading="lazy">
+  </div>
+</div>
+<div class="pad" style="left:0%;top:21.311%;width:26.857%;height:38.642%">
+  <div class="tile" style="clip-path:url(#padToeOuterLeft);-webkit-clip-path:url(#padToeOuterLeft)">
+    <img src="https://images.unsplash.com/photo-1528846104175-4fd300ee59da?auto=format&fit=crop&w=600&q=75" alt="Groomer brushing a dog's coat" loading="lazy">
+  </div>
+</div>
+<div class="pad" style="left:23.499%;top:0%;width:24.415%;height:42.623%">
+  <div class="tile" style="clip-path:url(#padToeInnerLeft);-webkit-clip-path:url(#padToeInnerLeft)">
+    <img src="https://images.unsplash.com/photo-1611173622933-91942d394b04?auto=format&fit=crop&w=600&q=75" alt="Dog wrapped in a towel after a bath" loading="lazy">
+  </div>
+</div>
+<div class="pad" style="left:52.187%;top:0%;width:24.212%;height:42.623%">
+  <div class="tile" style="clip-path:url(#padToeInnerRight);-webkit-clip-path:url(#padToeInnerRight)">
+    <img src="https://images.unsplash.com/photo-1719464454959-9cf304ef4774?auto=format&fit=crop&w=600&q=75" alt="Dog receiving a precise scissor trim" loading="lazy">
+  </div>
+</div>
+<div class="pad" style="left:73.550%;top:21.311%;width:26.450%;height:38.642%">
+  <div class="tile" style="clip-path:url(#padToeOuterRight);-webkit-clip-path:url(#padToeOuterRight)">
+    <img src="https://images.unsplash.com/photo-1625321171045-1fea4ac688e9?auto=format&fit=crop&w=600&q=75" alt="Finishing blow-dry after a groom" loading="lazy">
+  </div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<div class="stats-band"><div class="container stats reveal">
+<div class="stat"><b>12+</b><span>Years Combined Craft</span></div>
+<div class="stat"><b>6,500+</b><span>Grooms Delivered</span></div>
+<div class="stat"><b>4.9★</b><span>Average Rating</span></div>
+<div class="stat"><b>3</b><span>Master Groomers</span></div>
+</div></div>
+
+<!-- ============ SERVICES ============ -->
+<section class="section" id="services"><div class="container">
+<div class="sec-head reveal">
+<div class="kicker">Tailored Grooming Collections</div>
+<h2>Every Price. Every Minute. No Surprises.</h2>
+<p class="lead">Full transparency on price and duration — choose a service below to jump straight into booking.</p>
+</div>
+<div class="svc-list reveal" id="svcList"></div>
+</div></section>
+
+<!-- ============ BOOKING WIZARD ============ -->
+<section class="section" id="book"><div class="container">
+<div class="sec-head reveal">
+<div class="kicker">Book Online</div>
+<h2>Reserve Your Dog's Groom</h2>
+<p class="lead">Live availability, instant confirmation — takes less than a minute.</p>
+</div>
+<div class="card booking reveal" id="wizard">
+<div class="steps" id="stepsBar"></div>
+<div id="panels"></div>
+</div>
+</div></section>
+
+<!-- ============ TEAM ============ -->
+<section class="section" id="team"><div class="container">
+<div class="sec-head reveal">
+<div class="kicker">Meet The Masters</div>
+<h2>Skilled Hands, Gentle Care</h2>
+<p class="lead">Every groom at Willow &amp; Wag is held by a specialist with years of dedicated craft behind them.</p>
+</div>
+<div class="team reveal" id="teamList"></div>
+</div></section>
+
+<!-- ============ WHY CHOOSE US ============ -->
+<div class="why-band"><div class="container why-grid reveal">
+<div class="wi"><div class="ic">🐾</div><h3>Fear-Free Handling</h3><p>Patient, low-stress techniques so every dog — nervous or not — leaves calmer than they arrived.</p></div>
+<div class="wi"><div class="ic">🕰️</div><h3>Never Rushed</h3><p>Full time slots for every groom — no ten-minute conveyor-belt trims here.</p></div>
+<div class="wi"><div class="ic">🌿</div><h3>Natural Products Only</h3><p>Botanical shampoos and conditioners, chosen for sensitive skin and coat health.</p></div>
+</div></div>
+
+<!-- ============ GALLERY ============ -->
+<section class="section" id="gallery"><div class="container">
+<div class="sec-head reveal">
+<div class="kicker">The Transformation</div>
+<h2>See The Difference, Up Close</h2>
+</div>
+<div class="gallery reveal" id="galleryGrid"></div>
+</div></section>
+
+<!-- ============ REVIEWS ============ -->
+<section class="section" id="reviews"><div class="container">
+<div class="rev-head reveal">
+<div class="rev-score">
+<div class="n">4.9</div>
+<div><div class="stars" style="color:var(--terracotta)">★★★★★</div><div class="gl">Based on 210+ Google reviews</div></div>
+</div>
+<div class="kicker" style="margin:0">From Our Community</div>
+</div>
+<div class="reviews-grid reveal" id="reviewsGrid"></div>
+</div></section>
+
+<!-- ============ FAQ ============ -->
+<section class="section" id="faq"><div class="container">
+<div class="sec-head reveal">
+<div class="kicker">Good To Know</div>
+<h2>Frequently Asked Questions</h2>
+</div>
+<div class="faq-list reveal">
+<details><summary>Do I need to book in advance?</summary><p>We recommend booking online to guarantee your preferred groomer and time — especially for full boutique experiences and weekends.</p></details>
+<details><summary>Can I request a specific groomer?</summary><p>Absolutely. Choose "Any available groomer" for the fastest slot, or pick a named groomer during booking if you have a preference.</p></details>
+<details><summary>What if I need to cancel or change my time?</summary><p>Use "Manage booking" in the top menu with your reference code and email to cancel any time before your appointment.</p></details>
+<details><summary>Is my dog safe with you?</summary><p>Yes — all groomers are fully insured, trained in fear-free handling, and every dog is supervised throughout their visit.</p></details>
+<details><summary>How early should I arrive?</summary><p>Please arrive 5 minutes before your slot with your dog on a secure lead. Running more than 10 minutes late may mean your appointment needs to be rescheduled.</p></details>
+</div>
+</div></section>
+
+<!-- ============ CONTACT ============ -->
+<section class="section" id="contact"><div class="container">
+<div class="sec-head reveal">
+<div class="kicker">Visit Us</div>
+<h2>Find Willow &amp; Wag</h2>
+</div>
+<div class="contact-grid reveal">
+<div class="contact-info">
+<div class="card pad"><h3>Address</h3><p>22 Hathersage Road, Sheffield S11 9QT</p></div>
+<div class="card pad"><h3>Phone</h3><p><a href="tel:01144960192" style="color:var(--forest)">0114 496 0192</a></p></div>
+<div class="card pad"><h3>Email</h3><p><a href="mailto:hello@willowandwag.dog" style="color:var(--forest)">hello@willowandwag.dog</a></p></div>
+<div class="card pad hours"><h3>Opening Hours</h3><div id="hoursList">
+<div><span>Monday – Friday</span><span>8:30 – 18:00</span></div>
+<div><span>Saturday</span><span>9:00 – 16:00</span></div>
+<div><span>Sunday</span><span>Closed</span></div>
+</div></div>
+</div>
+<div class="map-card"><iframe src="https://www.google.com/maps?q=22+Hathersage+Road,Sheffield+S11+9QT&output=embed" loading="lazy" title="Map to Willow &amp; Wag"></iframe></div>
+</div>
+</div></section>
+
+<!-- ============ FINAL CTA ============ -->
+<section class="final-cta reveal"><div class="container">
+<h2>Your Dog's Best Look Is One Booking Away.</h2>
+<p>Join the pet parents who trust Willow &amp; Wag for every groom, trim and bath.</p>
+<a href="#book" class="btn primary big" style="background:#fff;color:var(--forest)">Book Appointment</a>
+</div></section>
+
+<footer class="footer">
+<div class="fbrand">Willow &amp; Wag</div>
+<div>22 Hathersage Road, Sheffield S11 9QT · 0114 496 0192</div>
+<div style="margin-top:10px">© <span id="yr"></span> Willow &amp; Wag Boutique Grooming. Demo site for portfolio purposes.</div>
+</footer>
+
+<div class="mobile-bar">
+<a href="tel:01144960192" class="mb-call">Call</a>
+<a href="#book" class="mb-book">Book Now</a>
+</div>
+
+<div id="modalRoot"></div>
+<div id="lightboxRoot"></div>
+
+<script>
+/* ================= config / constants ================= */
+const API = "https://willow-and-wag-api.luke1999-turner.workers.dev/api";
+const ICONS = { paw:"🐾", bath:"🛁", scissors:"✂️", puppy:"🐶", brush:"🪮", spa:"🌿" };
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => [...el.querySelectorAll(s)];
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+$("#yr").textContent = new Date().getFullYear();
+
+/* ================= tiny DB layer (real Cloudflare Worker + D1 backend) ================= */
+const DB = {
+  async services(){ return (await fetch(`${API}/services`)).json(); },
+  async groomers(){ return (await fetch(`${API}/groomers`)).json(); },
+  async availability(date, serviceId, groomerId){
+    const q = new URLSearchParams({ date, serviceId });
+    if (groomerId && groomerId !== "any") q.set("groomerId", groomerId);
+    const r = await (await fetch(`${API}/availability?${q}`)).json();
+    return r.slots || [];
+  },
+  async dayCounts(serviceId, groomerId, from, to){
+    const q = new URLSearchParams({ serviceId, from, to });
+    if (groomerId && groomerId !== "any") q.set("groomerId", groomerId);
+    return (await fetch(`${API}/day-counts?${q}`)).json();
+  },
+  async book(payload){
+    const r = await fetch(`${API}/appointments`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Booking failed.");
+    return data;
+  },
+  async lookup(ref, email){
+    const q = new URLSearchParams({ ref, email });
+    const r = await fetch(`${API}/appointments/lookup?${q}`);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Not found.");
+    return data;
+  },
+  async cancel(ref, email){
+    const r = await fetch(`${API}/appointments/lookup`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ ref, email, status:"cancelled" }) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Could not cancel.");
+    return data;
+  },
+  async waitlist(payload){
+    const r = await fetch(`${API}/waitlist`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Could not join waitlist.");
+    return data;
+  },
+  fmt(min){ return `${String(Math.floor(min/60)).padStart(2,"0")}:${String(min%60).padStart(2,"0")}`; },
+  money(pence){ return `£${(pence/100).toFixed(2)}`; }
+};
+
+/* ================= static content (not stored in D1 — same pattern as Vanguard/Riverside) ================= */
+const GALLERY = [
+  { src:"https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=700&q=75", alt:"Groomed Bichon Frise", caption:"Chloe · Bichon Frise" },
+  { src:"https://images.unsplash.com/photo-1591160690555-5debfba289f0?auto=format&fit=crop&w=700&q=75", alt:"Groomed Poodle mix", caption:"Max · Cockapoo" },
+  { src:"https://images.unsplash.com/photo-1477884143824-5686077dc728?auto=format&fit=crop&w=700&q=75", alt:"Groomed Golden Retriever", caption:"Bella · Golden Retriever" },
+  { src:"https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=700&q=75", alt:"Groomed Schnauzer", caption:"Rocky · Schnauzer" },
+];
+const REVIEWS = [
+  { name:"Amelia R.", text:"Sarah is incredible with nervous dogs — my rescue actually enjoys her grooms now. Booking online took thirty seconds.", stars:5 },
+  { name:"Tom W.", text:"The de-shedding treatment for our Husky is worth every penny. House has never had less fur in it.", stars:5 },
+  { name:"Priya S.", text:"Marcus gave our Poodle the neatest show trim we've ever had. Consistently excellent.", stars:5 },
+  { name:"Callum B.", text:"Took our puppy for her first groom — patient, calm, and she came home smelling amazing. Will be back.", stars:5 },
+];
+
+/* ================= state ================= */
+const state = { services:[], groomers:[], service:null, groomerId:"any", date:null, slotMin:null, slotGroomerId:null };
+
+/* ================= reveal on scroll ================= */
+const io = new IntersectionObserver((entries) => {
+  entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add("in"); });
+}, { threshold:.12 });
+$$(".reveal").forEach((el) => io.observe(el));
+
+/* ================= render services ================= */
+function renderServices(services){
+  $("#svcList").innerHTML = services.map((s) => `
+    <div class="card svc ${s.popular ? "popular" : ""}">
+      ${s.popular ? '<span class="pop-badge">Most Popular</span>' : ""}
+      <div class="svc-ic">${ICONS[s.icon] || "🐾"}</div>
+      <h3>${esc(s.name)}</h3>
+      <p>${esc(s.description || "")}</p>
+      <div class="meta"><span class="dur">${s.duration_min} min</span><span class="price">${DB.money(s.price_pence)}</span></div>
+      <a href="#book" class="book-link" data-svc="${s.id}">Book This Service</a>
+    </div>`).join("");
+  $$("#svcList [data-svc]").forEach((a) => a.addEventListener("click", (e) => {
+    const svc = services.find((s) => s.id === +e.currentTarget.dataset.svc);
+    setTimeout(() => selectService(svc), 300);
+  }));
+}
+
+/* ================= render team ================= */
+function renderTeam(groomers){
+  $("#teamList").innerHTML = groomers.map((b) => `
+    <div class="card member">
+      <div class="photo-wrap"><img src="${b.photo}" alt="${esc(b.name)}"></div>
+      <h3>${esc(b.name)}</h3>
+      <div class="role">${esc(b.title)}</div>
+      <div class="creds">${b.experience_years}+ years experience</div>
+      <p class="bio">${esc(b.bio || "")}</p>
+    </div>`).join("");
+}
+
+/* ================= gallery ================= */
+function renderGallery(){
+  $("#galle
