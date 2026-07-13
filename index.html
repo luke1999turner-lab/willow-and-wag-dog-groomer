@@ -86,10 +86,22 @@ border-radius:999px;padding:7px 16px;font-size:12px;color:var(--terracotta-dark)
   filter:drop-shadow(0 8px 24px rgba(0,0,0,.12));transition:transform .25s ease;transform-origin:center}
 .paw-mosaic .pad .tile img{width:100%;height:100%;object-fit:cover;display:block}
 .paw-mosaic .pad:hover .tile,.paw-mosaic .pad:focus-within .tile{transform:scale(1.03)}
+/* pads step into place one after another, like a paw print landing */
+.paw-mosaic .pad{opacity:0;transform:scale(.4) translateY(24px);
+  transition:opacity .6s cubic-bezier(.34,1.56,.64,1), transform .6s cubic-bezier(.34,1.56,.64,1)}
+.paw-mosaic.in .pad{opacity:1;transform:none}
+.paw-mosaic.in .pad:nth-child(1){transition-delay:0s}
+.paw-mosaic.in .pad:nth-child(2){transition-delay:.12s}
+.paw-mosaic.in .pad:nth-child(3){transition-delay:.22s}
+.paw-mosaic.in .pad:nth-child(4){transition-delay:.32s}
+.paw-mosaic.in .pad:nth-child(5){transition-delay:.42s}
 
 /* decorative drifting paw prints (background) */
-.hero .drift{position:absolute;color:var(--terracotta);opacity:.16;pointer-events:none;z-index:0}
+.hero .drift{position:absolute;color:var(--terracotta);opacity:.16;pointer-events:none;z-index:0;animation:floaty 7s ease-in-out infinite}
 .hero .drift svg{width:100%;height:100%;fill:currentColor}
+.hero .drift:nth-of-type(2){animation-duration:8.5s;animation-delay:.5s}
+.hero .drift:nth-of-type(3){animation-duration:6.5s;animation-delay:1.1s}
+.hero .drift:nth-of-type(4){animation-duration:9s;animation-delay:.2s}
 
 /* ---------- stats band ---------- */
 .stats-band{background:var(--forest);border-bottom:1px solid var(--line)}
@@ -321,8 +333,31 @@ padding:10px 14px;gap:10px}
 @media(max-width:700px){.mobile-bar{display:flex}.footer{padding-bottom:96px}}
 
 /* ---------- reveal on scroll ---------- */
-.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease, transform .5s ease}
-.reveal.in{opacity:1;transform:none}
+.reveal,.reveal-left,.reveal-right,.reveal-scale{
+  transition:opacity .8s cubic-bezier(.16,.8,.24,1), transform .8s cubic-bezier(.16,.8,.24,1);will-change:opacity,transform}
+.reveal{opacity:0;transform:translateY(28px)}
+.reveal-left{opacity:0;transform:translate(-56px,0)}
+.reveal-right{opacity:0;transform:translate(56px,0)}
+.reveal-scale{opacity:0;transform:scale(.86) translateY(10px)}
+.reveal.in,.reveal-left.in,.reveal-right.in,.reveal-scale.in{opacity:1;transform:none}
+
+/* ---------- ambient floaty motion ---------- */
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+.floaty{animation:floaty 6s ease-in-out infinite}
+
+/* ---------- modal entrance: smooth pop rather than an instant appearance ---------- */
+@keyframes fadeInBackdrop{from{opacity:0}to{opacity:1}}
+@keyframes modalPop{from{opacity:0;transform:scale(.82) translateY(18px)}to{opacity:1;transform:none}}
+.lightbox{animation:fadeInBackdrop .35s ease}
+.lightbox img{animation:modalPop .45s cubic-bezier(.34,1.56,.64,1)}
+.review-backdrop{animation:fadeInBackdrop .35s ease}
+.review-modal{animation:modalPop .5s cubic-bezier(.34,1.56,.64,1)}
+
+@media (prefers-reduced-motion: reduce){
+  .reveal,.reveal-left,.reveal-right,.reveal-scale,.paw-mosaic .pad,.floaty,.hero .drift,
+  .lightbox,.lightbox img,.review-backdrop,.review-modal{
+    animation:none!important;transition:none!important;opacity:1!important;transform:none!important}
+}
 
 /* ---------- modal ---------- */
 .backdrop{position:fixed;inset:0;background:rgba(34,28,20,.5);display:grid;place-items:center;z-index:50;padding:20px}
@@ -416,7 +451,7 @@ padding:10px 14px;gap:10px}
   <svg viewBox="0 0 100 100"><ellipse cx="50" cy="72" rx="26" ry="21"/><circle cx="16" cy="46" r="12"/><circle cx="37" cy="24" r="14"/><circle cx="63" cy="24" r="14"/><circle cx="84" cy="46" r="12"/></svg>
 </div>
 <div class="container hero-grid">
-<div>
+<div class="reveal-left">
 <span class="pill">Boutique Grooming · Est. Sheffield</span>
 <h1>The Art of the Groom.</h1>
 <p class="sub">Elevated grooming experiences for your most cherished companions. We blend traditional artisanal care with modern wellness, in a boutique English countryside-inspired studio.</p>
@@ -426,7 +461,7 @@ padding:10px 14px;gap:10px}
 </div>
 <div class="trust"><span class="stars">★★★★★</span><span>4.9 out of 5 · 210+ Google reviews</span></div>
 </div>
-<div class="hero-photo-wrap">
+<div class="hero-photo-wrap floaty">
 <div class="paw-mosaic">
 <div class="pad" style="left:15.056%;top:44.145%;width:70.193%;height:55.855%">
   <div class="tile" style="clip-path:url(#padHeel);-webkit-clip-path:url(#padHeel)">
@@ -458,7 +493,7 @@ padding:10px 14px;gap:10px}
 </div>
 </section>
 
-<div class="stats-band"><div class="container stats reveal">
+<div class="stats-band"><div class="container stats reveal-scale">
 <div class="stat"><b>12+</b><span>Years Combined Craft</span></div>
 <div class="stat"><b>6,500+</b><span>Grooms Delivered</span></div>
 <div class="stat"><b>4.9★</b><span>Average Rating</span></div>
@@ -472,7 +507,7 @@ padding:10px 14px;gap:10px}
 <h2>Every Price. Every Minute. No Surprises.</h2>
 <p class="lead">Full transparency on price and duration — choose a service below to jump straight into booking.</p>
 </div>
-<div class="svc-list reveal" id="svcList"></div>
+<div class="svc-list reveal-left" id="svcList"></div>
 </div></section>
 
 <!-- ============ BOOKING WIZARD ============ -->
@@ -482,7 +517,7 @@ padding:10px 14px;gap:10px}
 <h2>Reserve Your Dog's Groom</h2>
 <p class="lead">Live availability, instant confirmation — takes less than a minute.</p>
 </div>
-<div class="card booking reveal" id="wizard">
+<div class="card booking reveal-right" id="wizard">
 <div class="steps" id="stepsBar"></div>
 <div id="panels"></div>
 </div>
@@ -495,11 +530,11 @@ padding:10px 14px;gap:10px}
 <h2>Skilled Hands, Gentle Care</h2>
 <p class="lead">Every groom at Willow &amp; Wag is held by a specialist with years of dedicated craft behind them.</p>
 </div>
-<div class="team reveal" id="teamList"></div>
+<div class="team reveal-scale" id="teamList"></div>
 </div></section>
 
 <!-- ============ WHY CHOOSE US ============ -->
-<div class="why-band"><div class="container why-grid reveal">
+<div class="why-band"><div class="container why-grid reveal-left">
 <div class="wi"><div class="ic">🐾</div><h3>Fear-Free Handling</h3><p>Patient, low-stress techniques so every dog — nervous or not — leaves calmer than they arrived.</p></div>
 <div class="wi"><div class="ic">🕰️</div><h3>Never Rushed</h3><p>Full time slots for every groom — no ten-minute conveyor-belt trims here.</p></div>
 <div class="wi"><div class="ic">🌿</div><h3>Natural Products Only</h3><p>Botanical shampoos and conditioners, chosen for sensitive skin and coat health.</p></div>
@@ -511,7 +546,7 @@ padding:10px 14px;gap:10px}
 <div class="kicker">The Transformation</div>
 <h2>See The Difference, Up Close</h2>
 </div>
-<div class="gallery reveal" id="galleryGrid"></div>
+<div class="gallery reveal-right" id="galleryGrid"></div>
 </div></section>
 
 <!-- ============ REVIEWS ============ -->
@@ -533,7 +568,7 @@ padding:10px 14px;gap:10px}
 <div class="kicker">Good To Know</div>
 <h2>Frequently Asked Questions</h2>
 </div>
-<div class="faq-list reveal">
+<div class="faq-list reveal-left">
 <details><summary>Do I need to book in advance?</summary><p>We recommend booking online to guarantee your preferred groomer and time — especially for full boutique experiences and weekends.</p></details>
 <details><summary>Can I request a specific groomer?</summary><p>Absolutely. Choose "Any available groomer" for the fastest slot, or pick a named groomer during booking if you have a preference.</p></details>
 <details><summary>What if I need to cancel or change my time?</summary><p>Use "Manage booking" in the top menu with your reference code and email to cancel any time before your appointment.</p></details>
@@ -548,7 +583,7 @@ padding:10px 14px;gap:10px}
 <div class="kicker">Visit Us</div>
 <h2>Find Willow &amp; Wag</h2>
 </div>
-<div class="contact-grid reveal">
+<div class="contact-grid reveal-right">
 <div class="contact-info">
 <div class="card pad"><h3>Address</h3><p>22 Hathersage Road, Sheffield S11 9QT</p></div>
 <div class="card pad"><h3>Phone</h3><p><a href="tel:01144960192" style="color:var(--forest)">0114 496 0192</a></p></div>
@@ -564,7 +599,7 @@ padding:10px 14px;gap:10px}
 </div></section>
 
 <!-- ============ FINAL CTA ============ -->
-<section class="final-cta reveal"><div class="container">
+<section class="final-cta reveal-scale"><div class="container">
 <h2>Your Dog's Best Look Is One Booking Away.</h2>
 <p>Join the pet parents who trust Willow &amp; Wag for every groom, trim and bath.</p>
 <a href="#book" class="btn primary big" style="background:#fff;color:var(--forest)">Book Appointment</a>
@@ -666,9 +701,9 @@ const state = { services:[], groomers:[], service:null, groomerId:"any", date:nu
 
 /* ================= reveal on scroll ================= */
 const io = new IntersectionObserver((entries) => {
-  entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add("in"); });
+  entries.forEach((e) => { if (e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
 }, { threshold:.12 });
-$$(".reveal").forEach((el) => io.observe(el));
+$$(".reveal,.reveal-left,.reveal-right,.reveal-scale,.paw-mosaic").forEach((el) => io.observe(el));
 
 /* ================= render services ================= */
 function renderServices(services){
