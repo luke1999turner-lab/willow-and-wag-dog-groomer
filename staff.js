@@ -185,7 +185,7 @@ function addDays(dateStr, n) {
 }
 function mondayOf(dateStr) {
   const dt = new Date(dateStr + 'T00:00');
-  const dow = dt.getUTCDay(); // 0=Sun..6=Sat
+  const dow = dt.getDay(); // 0=Sun..6=Sat
   const diff = dow === 0 ? -6 : 1 - dow;
   return addDays(dateStr, diff);
 }
@@ -298,7 +298,7 @@ function renderWeek(monday, appts, blocks) {
     const dt = new Date(d + 'T00:00');
     const dayName = dt.toLocaleDateString('en-GB', { weekday: 'short' });
     return `<div class="colhead weekcolhead ${d === today ? 'is-today' : ''}" data-date="${d}">
-      <div class="wk-dayname">${dayName}</div><div class="wk-daynum">${dt.getUTCDate()}</div></div>`;
+      <div class="wk-dayname">${dayName}</div><div class="wk-daynum">${dt.getDate()}</div></div>`;
   }).join('');
 
   html += `<div class="gutter" style="grid-column:1">` +
@@ -367,12 +367,12 @@ function renderMonth(dateStr, appts, blocks) {
   let html = dayNames.map((n) => `<div class="colhead monthcolhead">${n}</div>`).join('');
   for (let i = 0; i < 42; i++) {
     const d = addDays(gridStart, i);
-    const inMonth = new Date(d + 'T00:00').getUTCMonth() === monthIdx;
+    const inMonth = new Date(d + 'T00:00').getMonth() === monthIdx;
     const dayAppts = (apptsByDate.get(d) || []).sort((a, b) => a.start_ts - b.start_ts);
     const dayBlocks = blocksByDate.get(d) || [];
     const dayTs = toTs(d, 0);
     let cell = `<div class="monthcell ${inMonth ? '' : 'is-outside'} ${d === today ? 'is-today' : ''}" data-date="${d}">`;
-    cell += `<div class="mc-num">${new Date(d + 'T00:00').getUTCDate()}${dayBlocks.length ? ' <span class="mc-block-flag" title="' + dayBlocks.map((b) => b.reason).join(', ') + '">⛔</span>' : ''}</div>`;
+    cell += `<div class="mc-num">${new Date(d + 'T00:00').getDate()}${dayBlocks.length ? ' <span class="mc-block-flag" title="' + dayBlocks.map((b) => b.reason).join(', ') + '">⛔</span>' : ''}</div>`;
     dayAppts.slice(0, 3).forEach((a) => {
       const min = a.start_ts - dayTs;
       cell += `<div class="mc-chip" data-id="${a.id}" style="background:${staffColorFor(a)}">${fmt(min)} ${a.client_name}</div>`;
