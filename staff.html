@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Staff Calendar — Willow & Wag</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --forest:#1f3327; --forest-dark:#152219; --forest-soft:#2f4b3b;
+  --terracotta:#d97b4f; --terracotta-dark:#c2643a; --terracotta-soft:#f3d9c9;
+  --cream:#faf6ee; --cream-alt:#f3ecdf; --card:#ffffff; --card2:#fbf8f2;
+  --ink:#221c14; --slate:#5a5346; --muted:#8a8272; --line:#e7ddc9;
+  --ok:#4c8f6c; --danger:#c2564a;
+  --serif:'Playfair Display',Georgia,serif;
+  --sans:'Inter',ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--cream);line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--terracotta-dark);text-decoration:none}
+.hidden{display:none !important}
+.container{max-width:1400px;margin:0 auto;padding:0 24px}
+.site-header{position:sticky;top:0;z-index:30;background:rgba(250,246,238,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.site-header .container{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{font-family:var(--serif);font-weight:800;font-size:18px;display:flex;align-items:center;gap:10px;color:var(--forest)}
+.brand .logo{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--forest);display:grid;place-items:center;color:var(--forest);font-size:15px}
+.nav a{font-size:13.5px;font-weight:600;color:var(--slate);border:1px solid var(--line);border-radius:8px;padding:8px 14px}
+.nav a:hover{border-color:var(--terracotta);color:var(--terracotta-dark)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:999px;
+  padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:.15s}
+.btn.primary{background:var(--forest);color:#fff;box-shadow:0 10px 24px -10px rgba(31,51,39,.45)}
+.btn.primary:hover{background:var(--forest-dark);transform:translateY(-1px)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.ghost:hover{border-color:var(--terracotta);color:var(--terracotta-dark)}
+.iconbtn{border:1px solid var(--line);width:34px;height:34px;display:grid;place-items:center;background:var(--card2);border-radius:10px;cursor:pointer;font-size:16px;color:var(--slate)}
+.iconbtn:hover{border-color:var(--terracotta);color:var(--terracotta-dark)}
+.link-danger{background:none;border:none;color:var(--danger);font-weight:600;cursor:pointer;font:inherit;padding:0}
+
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:22px 0 16px}
+.toolbar .spacer{flex:1}
+.today-label{font-family:var(--serif);font-size:17px;color:var(--ink);font-weight:600}
+input[type=date],input[type=time],select,input[type=text],input[type=email],input[type=tel],input[type=password],textarea{
+  width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:8px;color:var(--ink);
+  padding:10px 12px;font-size:14px;font-family:var(--sans)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--terracotta)}
+
+.legend{display:flex;gap:16px;flex-wrap:wrap;padding-bottom:14px;font-size:12.5px;color:var(--muted)}
+.legend .lg{display:flex;align-items:center;gap:6px}
+.legend .sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+.cal{display:grid;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+.colhead{padding:12px 8px;border-bottom:1px solid var(--line);border-left:1px solid var(--line);background:var(--cream-alt);text-align:center}
+.colhead.gutterhead{border-left:none}
+.colhead .who{display:flex;align-items:center;gap:8px;justify-content:center;font-weight:700;font-size:13.5px}
+.avatar{border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800}
+.gutter{position:relative;border-left:none}
+.daycol{position:relative;border-left:1px solid var(--line)}
+.hourline{border-bottom:1px solid var(--line);position:relative}
+.hourline span{position:absolute;top:-8px;left:6px;font-size:11px;color:var(--muted)}
+.appt{position:absolute;left:3px;right:3px;border-radius:8px;padding:5px 7px;font-size:12px;color:#fff;
+  overflow:hidden;cursor:pointer;box-shadow:0 2px 8px rgba(31,51,39,.25)}
+.appt b{display:block;font-size:12.5px;line-height:1.2}
+.appt small{display:block;font-size:11px;opacity:.9}
+.arrived-toggle{position:absolute;top:4px;right:5px;width:16px;height:16px;border-radius:50%;
+  background:rgba(255,255,255,.35);display:grid;place-items:center;font-size:10px;font-weight:900;cursor:pointer;color:#fff}
+.arrived-toggle.on{background:#fff;color:var(--ok)}
+.blk{position:absolute;left:3px;right:3px;border-radius:8px;padding:5px 7px;font-size:12px;
+  background:repeating-linear-gradient(135deg,#e7ddc9,#e7ddc9 8px,#f3ecdf 8px,#f3ecdf 16px);
+  color:var(--slate);cursor:pointer;overflow:hidden;border:1px dashed var(--line)}
+.footer{color:var(--muted);font-size:13px;padding:16px 0 60px}
+
+.backdrop{position:fixed;inset:0;background:rgba(34,28,20,.55);display:grid;place-items:center;z-index:50;padding:20px}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:460px;width:100%;
+  box-shadow:0 24px 70px rgba(34,28,20,.35);max-height:90vh;overflow:auto}
+.modal.wide{max-width:600px}
+.modal header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--line)}
+.modal header h3{margin:0;font-family:var(--serif);font-size:19px;font-weight:700}
+.modal .body{padding:22px}
+.modal footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 22px;border-top:1px solid var(--line)}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--slate)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.notice{border-radius:8px;padding:10px 12px;font-size:13px;margin-top:6px}
+.notice.err{background:rgba(194,86,74,.1);color:var(--danger);border:1px solid rgba(194,86,74,.28)}
+.summary{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.summary .k{display:inline-block;width:74px;color:var(--muted);font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.summary .v{font-size:14px}
+.wl-row{display:flex;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.wl-row:last-child{border-bottom:none}
+.checkbox-row{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--slate);margin-bottom:14px}
+.checkbox-row input{width:auto}
+
+@media (max-width:640px){
+  .row{grid-template-columns:1fr}
+  .cal{overflow-x:auto}
+}
+</style>
+</head>
+<body>
+<header class="site-header"><div class="container">
+  <div class="brand"><span class="logo">🐾</span> Willow & Wag · <span style="color:var(--muted);font-weight:500">Staff</span></div>
+  <nav class="nav"><a href="/">Client site</a></nav>
+</div></header>
+
+<div class="backdrop" id="loginGate">
+  <div class="modal" style="max-width:320px">
+    <header><h3>Staff sign-in</h3></header>
+    <div class="body">
+      <div class="field"><label>PIN</label><input type="password" id="pinInput" inputmode="numeric" autocomplete="off" placeholder="Enter staff PIN"></div>
+      <div class="notice err hidden" id="pinErr">Incorrect PIN.</div>
+    </div>
+    <footer><span></span><button class="btn primary" id="pinSubmit">Unlock</button></footer>
+  </div>
+</div>
+
+<main class="container hidden" id="app">
+  <div class="toolbar">
+    <button class="iconbtn" id="prev">‹</button>
+    <button class="btn ghost" id="today">Today</button>
+    <button class="iconbtn" id="next">›</button>
+    <input type="date" id="date" style="max-width:180px">
+    <span class="today-label" id="dayLabel"></span>
+    <span class="spacer"></span>
+    <button class="btn ghost" id="briefBtn">Morning brief</button>
+    <button class="btn ghost" id="waitlistBtn">Waitlist</button>
+    <button class="btn primary" id="blockBtn">＋ Block out time</button>
+  </div>
+
+  <div class="legend" id="legend"></div>
+  <div class="cal" id="cal"></div>
+  <p class="footer">Appointments booked online appear here instantly. Click any appointment to reschedule or cancel.</p>
+</main>
+
+<!-- Appointment modal -->
+<div class="backdrop hidden" id="apptModal">
+  <div class="modal">
+    <header><h3>Appointment</h3><button class="iconbtn" data-close>✕</button></header>
+    <div class="body">
+      <div class="summary" id="apptInfo"></div>
+      <p style="font-size:13px;color:var(--muted);margin:14px 0 8px;font-weight:600">Reschedule / reassign</p>
+      <div class="row">
+        <div class="field"><label>Groomer</label><select id="rGroomer"></select></div>
+        <div class="field"><label>Date</label><input type="date" id="rDate"></div>
+      </div>
+      <div class="field"><label>Time</label><select id="rTime"></select></div>
+      <div class="notice err hidden" id="apptErr"></div>
+    </div>
+    <footer>
+      <button class="link-danger" id="cancelAppt">Cancel appointment</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn ghost" id="toggleArrived">Mark arrived</button>
+        <button class="btn primary" id="saveAppt">Save changes</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<!-- Block modal -->
+<div class="backdrop hidden" id="blockModal">
+  <div class="modal">
+    <header><h3>Block out time</h3><button class="iconbtn" data-close>✕</button></header>
+    <div class="body">
+      <div class="field"><label>Reason</label><input type="text" id="bReason" placeholder="e.g. Bank holiday, Training, Annual leave"></div>
+      <div class="field"><label>Applies to</label><select id="bGroomer"></select></div>
+      <div class="row">
+        <div class="field"><label>From date</label><input type="date" id="bStartDate"></div>
+        <div class="field"><label>From time</label><input type="time" id="bStartTime" value="09:00"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>To date</label><input type="date" id="bEndDate"></div>
+        <div class="field"><label>To time</label><input type="time" id="bEndTime" value="17:00"></div>
+      </div>
+      <div class="checkbox-row"><input type="checkbox" id="bAllDay"><label for="bAllDay" style="margin:0">All day (whole shop hours)</label></div>
+      <div class="notice err hidden" id="blockErr"></div>
+    </div>
+    <footer><span></span><button class="btn primary" id="saveBlock">Add block</button></footer>
+  </div>
+</div>
+
+<!-- Affected-appointments safety panel -->
+<div class="backdrop hidden" id="affectedModal">
+  <div class="modal wide">
+    <header><h3>⚠️ Appointments affected by this block</h3><button class="iconbtn" data-close>✕</button></header>
+    <div class="body">
+      <p style="font-size:13px;color:var(--muted);margin:0 0 14px">These clients were already booked in during the time you just blocked out. Nothing has been cancelled — reassign each one to a groomer who's free, or cancel and call them to rebook.</p>
+      <div id="affectedList"></div>
+    </div>
+    <footer><span></span><button class="btn ghost" data-close>Close</button></footer>
+  </div>
+</div>
+
+<!-- Waitlist modal -->
+<div class="backdrop hidden" id="waitlistModal">
+  <div class="modal wide">
+    <header><h3>Waitlist</h3><button class="iconbtn" data-close>✕</button></header>
+    <div class="body">
+      <p style="font-size:13px;color:var(--muted);margin:0 0 14px">Contact these clients if a slot frees up, then remove them once booked in or no longer interested.</p>
+      <div id="waitlistList"></div>
+    </div>
+    <footer><span></span><button class="btn ghost" data-close>Close</button></footer>
+  </div>
+</div>
+
+<!-- Morning brief modal -->
+<div class="backdrop hidden" id="briefModal">
+  <div class="modal wide">
+    <header><h3>Morning brief</h3><button class="iconbtn" data-close>✕</button></header>
+    <div class="body">
+      <p style="font-size:13px;color:var(--muted);margin:0 0 14px" id="briefSub">Appointments booked while the shop was closed.</p>
+      <div id="briefList"></div>
+    </div>
+    <footer><span></span><button class="btn ghost" data-close>Close</button></footer>
+  </div>
+</div>
+
+<script src="/staff.js"></script>
+</body>
+</html>
