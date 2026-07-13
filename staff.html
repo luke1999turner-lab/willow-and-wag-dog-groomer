@@ -38,6 +38,20 @@ a{color:var(--terracotta-dark);text-decoration:none}
 .iconbtn:hover{border-color:var(--terracotta);color:var(--terracotta-dark)}
 .link-danger{background:none;border:none;color:var(--danger);font-weight:600;cursor:pointer;font:inherit;padding:0}
 
+.hero-strip{padding:26px 0 4px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.hero-strip h1{font-family:var(--serif);font-size:25px;margin:0;font-weight:700;color:var(--forest)}
+.hero-strip .clock{font-family:var(--sans);font-size:13px;color:var(--muted);margin-top:6px}
+.hero-strip .clock b{color:var(--slate)}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0 6px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;transition:.18s}
+.stat:hover{border-color:var(--terracotta);transform:translateY(-2px);box-shadow:0 14px 30px -18px rgba(31,51,39,.3)}
+.stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px}
+.stat .k .ic{width:20px;height:20px;border-radius:6px;background:var(--terracotta-soft);border:1px solid var(--terracotta);display:grid;place-items:center;font-size:11px;color:var(--terracotta-dark);flex-shrink:0}
+.stat .v{font-family:var(--serif);font-size:27px;font-weight:700;margin-top:9px;color:var(--ink)}
+.stat .d{font-size:12px;color:var(--muted);margin-top:4px}
+.stat .d.up{color:var(--ok)}
+
 .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:22px 0 16px}
 .toolbar .spacer{flex:1}
 .today-label{font-family:var(--serif);font-size:17px;color:var(--ink);font-weight:600}
@@ -45,12 +59,13 @@ input[type=date],input[type=time],select,input[type=text],input[type=email],inpu
   width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:8px;color:var(--ink);
   padding:10px 12px;font-size:14px;font-family:var(--sans)}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--terracotta)}
+textarea{resize:vertical}
 
 .legend{display:flex;gap:16px;flex-wrap:wrap;padding-bottom:14px;font-size:12.5px;color:var(--muted)}
 .legend .lg{display:flex;align-items:center;gap:6px}
 .legend .sw{width:10px;height:10px;border-radius:3px;display:inline-block}
 
-.cal{display:grid;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+.cal{position:relative;display:grid;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
 .colhead{padding:12px 8px;border-bottom:1px solid var(--line);border-left:1px solid var(--line);background:var(--cream-alt);text-align:center}
 .colhead.gutterhead{border-left:none}
 .colhead .who{display:flex;align-items:center;gap:8px;justify-content:center;font-weight:700;font-size:13.5px}
@@ -69,6 +84,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--terracot
 .blk{position:absolute;left:3px;right:3px;border-radius:8px;padding:5px 7px;font-size:12px;
   background:repeating-linear-gradient(135deg,#e7ddc9,#e7ddc9 8px,#f3ecdf 8px,#f3ecdf 16px);
   color:var(--slate);cursor:pointer;overflow:hidden;border:1px dashed var(--line)}
+.now-line{position:absolute;left:56px;right:0;height:2px;background:var(--terracotta);z-index:5;pointer-events:none}
+.now-line::before{content:'';position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--terracotta)}
 .footer{color:var(--muted);font-size:13px;padding:16px 0 60px}
 
 .backdrop{position:fixed;inset:0;background:rgba(34,28,20,.55);display:grid;place-items:center;z-index:50;padding:20px}
@@ -91,7 +108,14 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--terracot
 .wl-row:last-child{border-bottom:none}
 .checkbox-row{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--slate);margin-bottom:14px}
 .checkbox-row input{width:auto}
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tab-btn{flex:1;padding:9px 12px;border-radius:8px;border:1.5px solid var(--line);background:var(--card2);
+  color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--sans)}
+.tab-btn.active{background:var(--forest);color:#fff;border-color:var(--forest)}
 
+@media (max-width:760px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
 @media (max-width:640px){
   .row{grid-template-columns:1fr}
   .cal{overflow-x:auto}
@@ -116,6 +140,36 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--terracot
 </div>
 
 <main class="container hidden" id="app">
+  <div class="hero-strip">
+    <div>
+      <h1 id="heroGreeting">Good morning, team.</h1>
+      <div class="clock" id="heroSub"></div>
+    </div>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat">
+      <div class="k"><span class="ic">📅</span>Bookings</div>
+      <div class="v" id="statBookings">0</div>
+      <div class="d" id="statBookingsSub">—</div>
+    </div>
+    <div class="stat">
+      <div class="k"><span class="ic">✓</span>Arrived</div>
+      <div class="v" id="statArrived">0</div>
+      <div class="d" id="statArrivedSub">—</div>
+    </div>
+    <div class="stat">
+      <div class="k"><span class="ic">⏰</span>Next up</div>
+      <div class="v" id="statNext">—</div>
+      <div class="d" id="statNextSub">—</div>
+    </div>
+    <div class="stat">
+      <div class="k"><span class="ic">£</span>Revenue</div>
+      <div class="v" id="statRevenue">£0</div>
+      <div class="d" id="statRevenueSub">—</div>
+    </div>
+  </div>
+
   <div class="toolbar">
     <button class="iconbtn" id="prev">‹</button>
     <button class="btn ghost" id="today">Today</button>
@@ -125,7 +179,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--terracot
     <span class="spacer"></span>
     <button class="btn ghost" id="briefBtn">Morning brief</button>
     <button class="btn ghost" id="waitlistBtn">Waitlist</button>
-    <button class="btn primary" id="blockBtn">＋ Block out time</button>
+    <button class="btn ghost" id="blockBtn">＋ Block out time</button>
+    <button class="btn primary" id="newBookingBtn">＋ New booking</button>
   </div>
 
   <div class="legend" id="legend"></div>
@@ -157,23 +212,58 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--terracot
   </div>
 </div>
 
+<!-- New booking modal (walk-in / phone) -->
+<div class="backdrop hidden" id="newBookingModal">
+  <div class="modal wide">
+    <header><h3>New booking</h3><button class="iconbtn" data-close>✕</button></header>
+    <div class="body">
+      <p style="font-size:13px;color:var(--muted);margin:0 0 14px">For walk-ins or phone bookings — this uses the same slots as the online booking page.</p>
+      <div class="row">
+        <div class="field"><label>Service</label><select id="nbService"></select></div>
+        <div class="field"><label>Groomer</label><select id="nbGroomer"></select></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Date</label><input type="date" id="nbDate"></div>
+        <div class="field"><label>Time</label><select id="nbTime"></select></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Client name</label><input type="text" id="nbName"></div>
+        <div class="field"><label>Phone</label><input type="tel" id="nbPhone"></div>
+      </div>
+      <div class="field"><label>Email</label><input type="email" id="nbEmail"></div>
+      <div class="field"><label>Notes</label><textarea id="nbNotes" rows="2"></textarea></div>
+      <div class="notice err hidden" id="nbErr"></div>
+    </div>
+    <footer><span></span><button class="btn primary" id="saveNewBooking">Book appointment</button></footer>
+  </div>
+</div>
+
 <!-- Block modal -->
 <div class="backdrop hidden" id="blockModal">
   <div class="modal">
     <header><h3>Block out time</h3><button class="iconbtn" data-close>✕</button></header>
     <div class="body">
-      <div class="field"><label>Reason</label><input type="text" id="bReason" placeholder="e.g. Bank holiday, Training, Annual leave"></div>
-      <div class="field"><label>Applies to</label><select id="bGroomer"></select></div>
-      <div class="row">
-        <div class="field"><label>From date</label><input type="date" id="bStartDate"></div>
-        <div class="field"><label>From time</label><input type="time" id="bStartTime" value="09:00"></div>
+      <div class="tabs">
+        <button class="tab-btn active" id="blockTabAdd">Add block</button>
+        <button class="tab-btn" id="blockTabRemove">Remove existing</button>
       </div>
-      <div class="row">
-        <div class="field"><label>To date</label><input type="date" id="bEndDate"></div>
-        <div class="field"><label>To time</label><input type="time" id="bEndTime" value="17:00"></div>
+      <div id="blockAddPanel">
+        <div class="field"><label>Reason</label><input type="text" id="bReason" placeholder="e.g. Bank holiday, Training, Annual leave"></div>
+        <div class="field"><label>Applies to</label><select id="bGroomer"></select></div>
+        <div class="row">
+          <div class="field"><label>From date</label><input type="date" id="bStartDate"></div>
+          <div class="field"><label>From time</label><input type="time" id="bStartTime" value="09:00"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>To date</label><input type="date" id="bEndDate"></div>
+          <div class="field"><label>To time</label><input type="time" id="bEndTime" value="17:00"></div>
+        </div>
+        <div class="checkbox-row"><input type="checkbox" id="bAllDay"><label for="bAllDay" style="margin:0">All day (whole shop hours)</label></div>
+        <div class="notice err hidden" id="blockErr"></div>
       </div>
-      <div class="checkbox-row"><input type="checkbox" id="bAllDay"><label for="bAllDay" style="margin:0">All day (whole shop hours)</label></div>
-      <div class="notice err hidden" id="blockErr"></div>
+      <div id="blockRemovePanel" class="hidden">
+        <div id="blockRemoveList"></div>
+      </div>
     </div>
     <footer><span></span><button class="btn primary" id="saveBlock">Add block</button></footer>
   </div>

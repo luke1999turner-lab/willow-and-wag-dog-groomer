@@ -1,6 +1,7 @@
 const API_BASE = 'https://willow-and-wag-api.luke1999-turner.workers.dev';
 // Staff calendar: day view across all groomers, reschedule, cancel, block out time,
-// waitlist, and a morning brief of bookings made while the shop was closed.
+// waitlist, walk-in/phone bookings, and a morning brief of bookings made while the
+// shop was closed.
 const $ = (s) => document.querySelector(s);
 let STAFF_KEY = '';
 const api = (u, o = {}) => {
@@ -28,7 +29,7 @@ function fmtFromTs(ts) {
 
 const DAY_START = 8 * 60, DAY_END = 20 * 60, PXH = 56;   // visible window 08:00-20:00
 const PXMIN = PXH / 60;
-const state = { date: null, groomers: [], services: [], editing: null, affected: [] };
+const state = { date: null, groomers: [], services: [], editing: null, affected: [], blocks: [] };
 
 async function init() {
   state.groomers = (await api('/api/groomers')).data;
@@ -42,22 +43,71 @@ async function init() {
   const opts = state.groomers.map((b) => `<option value="${b.id}">${b.name}</option>`).join('');
   $('#rGroomer').innerHTML = opts;
   $('#bGroomer').innerHTML = `<option value="all">Whole shop</option>` + opts;
+  $('#nbGroomer').innerHTML = `<option value="any">Any available</option>` + opts;
+  $('#nbService').innerHTML = state.services.map((s) => `<option value="${s.id}">${s.name} (${s.duration_min}min)</option>`).join('');
 
   $('#prev').onclick = () => shiftDay(-1);
   $('#next').onclick = () => shiftDay(1);
   $('#today').onclick = () => { state.date = new Date().toISOString().slice(0, 10); $('#date').value = state.date; load(); };
   $('#date').onchange = () => { state.date = $('#date').value; load(); };
-  $('#blockBtn').onclick = openBlock;
+  $('#blockBtn').onclick = () => openBlock('add');
   $('#waitlistBtn').onclick = openWaitlist;
   $('#briefBtn').onclick = openBrief;
+  $('#newBookingBtn').onclick = openNewBooking;
   document.querySelectorAll('[data-close]').forEach((b) => b.onclick = closeModals);
   $('#saveBlock').onclick = saveBlock;
   $('#saveAppt').onclick = saveAppt;
   $('#cancelAppt').onclick = cancelAppt;
   $('#toggleArrived').onclick = toggleArrivedFromModal;
   $('#rGroomer').onchange = $('#rDate').onchange = refreshRTimes;
+  $('#nbService').onchange = $('#nbGroomer').onchange = $('#nbDate').onchange = refreshNBTimes;
+  $('#saveNewBooking').onclick = saveNewBooking;
+  $('#blockTabAdd').onclick = () => switchBlockTab('add');
+  $('#blockTabRemove').onclick = () => switchBlockTab('remove');
+
+  updateHero();
+  setInterval(updateHero, 30000);
+  setInterval(() => { if (state.date === new Date().toISOString().slice(0, 10)) load(); }, 60000);
+
   load();
   refreshWaitlistCount();
+}
+
+// ---------- hero greeting + live clock ----------
+function updateHero() {
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Good morning, team.' : hour < 17 ? 'Good afternoon, team.' : 'Good evening, team.';
+  $('#heroGreeting').textContent = greeting;
+  const dateStr = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  $('#heroSub').innerHTML = `${dateStr} &middot; <b>${timeStr}</b>`;
+}
+
+// ---------- stats bar ----------
+function updateStats(appts) {
+  const booked = appts.filter((a) => a.status === 'booked');
+  $('#statBookings').textContent = booked.length;
+  const isToday = state.date === new Date().toISOString().slice(0, 10);
+  $('#statBookingsSub').textContent = isToday ? "Today's schedule" : prettyDate(state.date).split(',')[0];
+  const arrived = booked.filter((a) => a.arrived_at).length;
+  $('#statArrived').innerHTML = `${arrived} <span style="font-size:15px;color:var(--muted);font-weight:500">/ ${booked.length}</span>`;
+  $('#statArrivedSub').textContent = booked.length ? `${booked.length - arrived} still due in` : 'No bookings today';
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const dayTs = toTs(state.date, 0);
+  const upcoming = booked.filter((a) => !isToday || (a.start_ts - dayTs) >= nowMin).sort((a, b) => a.start_ts - b.start_ts)[0];
+  if (upcoming) {
+    $('#statNext').textContent = fmt(upcoming.start_ts - dayTs);
+    $('#statNextSub').textContent = `${upcoming.client_name} · ${upcoming.service_name} · ${upcoming.groomer_name}`;
+  } else {
+    $('#statNext').textContent = '—';
+    $('#statNextSub').textContent = isToday ? 'All done for today' : 'No bookings';
+  }
+  const serviceById = new Map(state.services.map((s) => [s.id, s]));
+  const pence = booked.reduce((sum, a) => sum + (serviceById.get(a.service_id)?.price_pence || 0), 0);
+  $('#statRevenue').textContent = `£${(pence / 100).toFixed(0)}`;
+  const groomerCount = new Set(booked.map((a) => a.groomer_id)).size;
+  $('#statRevenueSub').textContent = groomerCount ? `Across ${groomerCount} groomer${groomerCount === 1 ? '' : 's'}` : 'No bookings today';
 }
 
 async function refreshWaitlistCount() {
@@ -135,6 +185,8 @@ async function load() {
     api(`/api/appointments?from=${state.date}&to=${state.date}`),
     api(`/api/blocks?from=${state.date}&to=${state.date}`),
   ]);
+  state.blocks = blocks.data;
+  updateStats(appts.data);
   render(appts.data, blocks.data);
 }
 
@@ -181,9 +233,18 @@ function render(appts, blocks) {
     e.stopPropagation();
     toggleArrived(+el.dataset.id, !el.classList.contains('on'));
   });
-  cal.querySelectorAll('.blk').forEach((el) => el.onclick = () => {
-    removeBlock(blocks.find((bl) => bl.id === +el.dataset.id));
-  });
+  cal.querySelectorAll('.blk').forEach((el) => el.onclick = () => openBlock('remove'));
+
+  // now-line: only draw when viewing today, within the visible hour window
+  const now = new Date();
+  const isToday = state.date === now.toISOString().slice(0, 10);
+  if (isToday) {
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    if (nowMin >= DAY_START && nowMin <= DAY_END) {
+      const top = (nowMin - DAY_START) * PXMIN;
+      cal.insertAdjacentHTML('beforeend', `<div class="now-line" style="top:${top}px"></div>`);
+    }
+  }
 }
 
 async function toggleArrived(id, arrived) {
@@ -203,6 +264,7 @@ async function removeBlock(b) {
   if (!ok) return;
   await api(`/api/blocks/${b.id}`, { method: 'DELETE' });
   load();
+  if (!$('#blockModal').classList.contains('hidden')) loadBlockRemoveList();
 }
 
 // ---------- appointment modal ----------
@@ -260,21 +322,84 @@ async function toggleArrivedFromModal() {
   closeModals();
 }
 
-// ---------- block modal ----------
-function openBlock() {
+// ---------- new booking modal (walk-in / phone) ----------
+// Reuses the same public POST /api/appointments endpoint the client site uses,
+// so slot-conflict checking is identical for staff-entered bookings.
+function openNewBooking() {
+  $('#nbDate').value = state.date;
+  $('#nbName').value = ''; $('#nbEmail').value = ''; $('#nbPhone').value = ''; $('#nbNotes').value = '';
+  $('#nbErr').classList.add('hidden');
+  refreshNBTimes();
+  $('#newBookingModal').classList.remove('hidden');
+}
+async function refreshNBTimes() {
+  const serviceId = $('#nbService').value, groomerId = $('#nbGroomer').value, date = $('#nbDate').value;
+  if (!serviceId || !date) return;
+  const { data } = await api(`/api/availability?date=${date}&serviceId=${serviceId}&groomerId=${groomerId}`);
+  const slots = data.slots || [];
+  $('#nbTime').innerHTML = slots.length ? slots.map((s) => `<option value="${s.min}">${s.label}</option>`).join('') : `<option value="">No free times</option>`;
+}
+async function saveNewBooking() {
+  const body = {
+    serviceId: +$('#nbService').value, groomerId: $('#nbGroomer').value,
+    date: $('#nbDate').value, min: +$('#nbTime').value,
+    name: $('#nbName').value.trim(), email: $('#nbEmail').value.trim(),
+    phone: $('#nbPhone').value.trim(), notes: $('#nbNotes').value.trim(),
+  };
+  if (!body.name || !body.email) {
+    const e = $('#nbErr'); e.textContent = 'Client name and email are required.'; e.classList.remove('hidden'); return;
+  }
+  const { ok, data } = await api('/api/appointments',
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!ok) { const e = $('#nbErr'); e.textContent = data.error || 'Could not book that slot.'; e.classList.remove('hidden'); return; }
+  closeModals(); state.date = body.date; $('#date').value = state.date; load();
+}
+
+// ---------- block modal (Add / Remove tabs) ----------
+function openBlock(tab) {
   $('#bReason').value = ''; $('#bStartDate').value = state.date; $('#bEndDate').value = state.date;
   $('#bStartTime').value = '09:00'; $('#bEndTime').value = '17:00'; $('#bAllDay').checked = false;
   $('#blockErr').classList.add('hidden');
+  switchBlockTab(tab || 'add');
   $('#blockModal').classList.remove('hidden');
+}
+function switchBlockTab(tab) {
+  const addTab = tab === 'add';
+  $('#blockTabAdd').classList.toggle('active', addTab);
+  $('#blockTabRemove').classList.toggle('active', !addTab);
+  $('#blockAddPanel').classList.toggle('hidden', !addTab);
+  $('#blockRemovePanel').classList.toggle('hidden', addTab);
+  $('#saveBlock').classList.toggle('hidden', !addTab);
+  if (!addTab) loadBlockRemoveList();
+}
+function loadBlockRemoveList() {
+  const box = $('#blockRemoveList');
+  const list = state.blocks || [];
+  if (!list.length) {
+    box.innerHTML = `<p style="color:var(--muted);font-size:14px">No blocks on ${prettyDate(state.date)}.</p>`;
+    return;
+  }
+  box.innerHTML = list.map((bl) => `
+    <div class="wl-row">
+      <div>
+        <b>${bl.reason}</b>
+        <div style="font-size:13px;color:var(--muted)">${bl.groomer_name || 'Whole shop'} · ${fmtFromTs(bl.start_ts)} – ${fmt(fromTs(bl.end_ts).min)}</div>
+      </div>
+      <button class="link-danger" data-remove-block="${bl.id}">Remove</button>
+    </div>`).join('');
+  box.querySelectorAll('[data-remove-block]').forEach((btn) => btn.onclick = () => {
+    removeBlock(list.find((bl) => bl.id === +btn.dataset.removeBlock));
+  });
 }
 async function saveBlock() {
   const hm = (v) => { const [h, m] = v.split(':').map(Number); return h * 60 + m; };
   const allDay = $('#bAllDay').checked;
+  const multiDay = $('#bStartDate').value !== $('#bEndDate').value;
   const body = {
     reason: $('#bReason').value.trim() || 'Blocked', groomerId: $('#bGroomer').value,
     startDate: $('#bStartDate').value, endDate: $('#bEndDate').value,
-    startMin: allDay ? DAY_START : hm($('#bStartTime').value),
-    endMin: allDay ? DAY_END : hm($('#bEndTime').value),
+    startMin: (allDay || multiDay) ? 0 : hm($('#bStartTime').value),
+    endMin: (allDay || multiDay) ? 1440 : hm($('#bEndTime').value),
   };
   const { ok, status, data } = await api('/api/blocks',
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -289,7 +414,7 @@ async function saveBlock() {
   closeModals(); load();
 }
 function closeModals() {
-  ['apptModal', 'blockModal', 'waitlistModal', 'affectedModal', 'briefModal'].forEach((id) => $('#' + id).classList.add('hidden'));
+  ['apptModal', 'blockModal', 'waitlistModal', 'affectedModal', 'briefModal', 'newBookingModal'].forEach((id) => $('#' + id).classList.add('hidden'));
   state.editing = null;
 }
 
