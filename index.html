@@ -251,15 +251,27 @@ background:var(--card2);border:1px solid var(--line);padding:4px 12px;border-rad
 @media(max-width:560px){.reviews-mosaic .pad .tile .rv-quote{font-size:10.5px}.reviews-mosaic .pad .tile .rv-stars{font-size:9.5px}}
 
 .review-backdrop{position:fixed;inset:0;background:rgba(34,28,20,.6);z-index:60;display:grid;place-items:center;padding:30px}
-.review-modal{position:relative;width:min(560px,92vw);aspect-ratio:983/854;background:#f2e9d8;
-  clip-path:url(#pawClip);-webkit-clip-path:url(#pawClip);display:grid;place-items:center;
+.review-modal{position:relative;width:min(600px,92vw);aspect-ratio:983/854;background:#f2e9d8;
+  clip-path:url(#pawClip);-webkit-clip-path:url(#pawClip);
   box-shadow:0 30px 80px rgba(34,28,20,.4)}
-.review-modal .rm-inner{width:56%;text-align:center}
-.review-modal .rm-stars{color:var(--terracotta-dark);letter-spacing:3px;font-size:17px;margin-bottom:16px}
-.review-modal .rm-text{font-family:var(--serif);font-size:16.5px;line-height:1.55;color:var(--ink);margin:0 0 16px;font-weight:600}
-.review-modal .rm-who{font-size:13px;font-weight:700;color:var(--forest);letter-spacing:.02em}
+/* Text sits only inside the heel/base pad of the paw (the big lower lobe —
+   roughly y:60%-97%, x:28%-72% of the full silhouette's bounding box), never
+   spilling up into the toe pads or the gaps between pads where it would get
+   sliced off by the clip-path. line-clamp is a safety net for longer reviews. */
+.review-modal .rm-inner{position:absolute;left:28%;width:44%;top:59%;height:38%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;overflow:hidden}
+.review-modal .rm-stars{color:var(--terracotta-dark);letter-spacing:2.5px;font-size:15px;margin-bottom:9px;flex:none}
+.review-modal .rm-text{font-family:var(--serif);font-size:13.5px;line-height:1.42;color:var(--ink);margin:0 0 9px;font-weight:600;
+  display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+.review-modal .rm-who{font-size:11.5px;font-weight:700;color:var(--forest);letter-spacing:.02em;flex:none}
 .review-backdrop .lb-close{position:absolute;top:22px;right:26px;color:#fff;font-size:30px;cursor:pointer;line-height:1}
-@media(max-width:560px){.review-modal .rm-inner{width:66%}.review-modal .rm-text{font-size:14px}}
+@media(max-width:560px){
+  .review-modal .rm-inner{left:23%;width:54%;top:58%;height:39%}
+  .review-modal .rm-stars{font-size:12px}
+  .review-modal .rm-text{font-size:10.5px;-webkit-line-clamp:7}
+  .review-modal .rm-who{font-size:10px}
+}
 
 /* ---------- why-us band ---------- */
 .why-band{background:var(--cream-alt);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
