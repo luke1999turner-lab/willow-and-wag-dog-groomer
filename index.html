@@ -659,4 +659,367 @@ function renderTeam(groomers){
 
 /* ================= gallery ================= */
 function renderGallery(){
-  $("#galle
+  $("#galleryGrid").innerHTML = GALLERY.map((g, i) => `<figure data-i="${i}"><div class="paw-frame"><img src="${g.src}" alt="${esc(g.alt)}" loading="lazy"></div><figcaption>${esc(g.caption)}</figcaption></figure>`).join("");
+  $$("#galleryGrid figure").forEach((f) => f.addEventListener("click", () => openLightbox(GALLERY[+f.dataset.i])));
+}
+function openLightbox(g){
+  $("#lightboxRoot").innerHTML = `<div class="lightbox" id="lb"><span class="lb-close">&times;</span><img src="${g.src.replace("w=700","w=1600")}" alt="${esc(g.alt)}"></div>`;
+  const lb = $("#lb");
+  lb.addEventListener("click", () => { $("#lightboxRoot").innerHTML = ""; });
+}
+
+/* ================= reviews ================= */
+function renderReviews(){
+  $("#reviewsGrid").innerHTML = REVIEWS.map((r) => `
+    <div class="card review">
+      <div class="stars">${"★".repeat(r.stars)}</div>
+      <p>"${esc(r.text)}"</p>
+      <div class="who">${esc(r.name)} · Google review</div>
+    </div>`).join("");
+}
+
+/* ================= booking wizard ================= */
+function stepsHtml(active){
+  const labels = ["Service","Groomer","Time","Details"];
+  return labels.map((l, i) => {
+    const n = i + 1;
+    const cls = n < active ? "done" : n === active ? "active" : "";
+    return `<div class="step ${cls}"><span class="dot">${n < active ? "✓" : n}</span>${l}</div>${i < 3 ? '<span class="sep"></span>' : ""}`;
+  }).join("");
+}
+function renderStepsBar(active){ $("#stepsBar").innerHTML = stepsHtml(active); }
+
+function panel1(){
+  renderStepsBar(1);
+  $("#panels").innerHTML = `<div class="panel">
+    <h2>Choose a service</h2>
+    <p class="sub">Every price includes VAT. Select a service to continue.</p>
+    <div class="grid" id="svcGrid"></div>
+  </div>`;
+  $("#svcGrid").innerHTML = state.services.map((s) => `
+    <div class="choice" data-id="${s.id}">
+      <h3>${ICONS[s.icon] || "🐾"} ${esc(s.name)}</h3>
+      <p>${esc(s.description || "")}</p>
+      <div class="meta"><span class="dur">${s.duration_min} min</span><span class="price">${DB.money(s.price_pence)}</span></div>
+    </div>`).join("");
+  $$("#svcGrid .choice").forEach((el) => {
+    el.addEventListener("click", () => {
+      const svc = state.services.find((s) => s.id === +el.dataset.id);
+      selectService(svc);
+    });
+  });
+}
+function selectService(svc){
+  state.service = svc;
+  document.getElementById("book").scrollIntoView({ behavior:"smooth", block:"start" });
+  panel2();
+}
+
+function panel2(){
+  renderStepsBar(2);
+  $("#panels").innerHTML = `<div class="panel">
+    <h2>Choose a groomer</h2>
+    <p class="sub">Pick a specific groomer, or let us find you the fastest slot.</p>
+    <div class="grid" id="groomerGrid"></div>
+    <div class="actions"><a class="btn ghost" id="b2back">Back</a></div>
+  </div>`;
+  const cards = [`<div class="choice person" data-id="any">
+      <div class="avatar" style="background:var(--terracotta);color:#fff">★</div>
+      <div><h3>Any available groomer</h3><p>Fastest available time</p></div>
+    </div>`].concat(state.groomers.map((b) => `
+    <div class="choice person" data-id="${b.id}">
+      <img class="avatar" src="${b.photo}" alt="${esc(b.name)}">
+      <div><h3>${esc(b.name)}</h3><p>${esc(b.title)}</p></div>
+    </div>`));
+  $("#groomerGrid").innerHTML = cards.join("");
+  $$("#groomerGrid .choice").forEach((el) => el.addEventListener("click", () => {
+    state.groomerId = el.dataset.id;
+    panel3();
+  }));
+  $("#b2back").addEventListener("click", panel1);
+}
+
+function weekDates(startOffset){
+  const out = [];
+  const base = new Date();
+  base.setDate(base.getDate() + startOffset);
+  for (let i = 0; i < 7; i++){
+    const d = new Date(base); d.setDate(base.getDate() + i);
+    out.push(d.toISOString().slice(0,10));
+  }
+  return out;
+}
+let weekOffset = 0;
+async function panel3(){
+  renderStepsBar(3);
+  $("#panels").innerHTML = `<div class="panel">
+    <h2>Choose a date &amp; time</h2>
+    <p class="sub" id="slotContext"></p>
+    <div class="strip-nav">
+      <div class="iconbtn" id="weekPrev">‹</div>
+      <div class="label" id="weekLabel"></div>
+      <div class="iconbtn" id="weekNext">›</div>
+    </div>
+    <div class="datestrip" id="datestrip"></div>
+    <div id="periods"></div>
+    <div class="waitbox hidden" id="waitbox"><p id="waitboxText"></p><a class="btn ghost" id="joinWaitBtn">Join the waitlist</a></div>
+    <div class="actions"><a class="btn ghost" id="b3back">Back</a><a class="btn primary" id="s3next" disabled>Continue</a></div>
+  </div>`;
+  const who = state.groomerId === "any" ? "any available groomer" : state.groomers.find((b) => b.id === +state.groomerId).name;
+  $("#slotContext").textContent = `${state.service.name} (${state.service.duration_min} min) · ${who}`;
+  $("#b3back").addEventListener("click", panel2);
+  $("#weekPrev").addEventListener("click", () => { if (weekOffset > 0){ weekOffset -= 7; loadWeek(); } });
+  $("#weekNext").addEventListener("click", () => { weekOffset += 7; loadWeek(); });
+  $("#joinWaitBtn").addEventListener("click", openWaitlistModal);
+  $("#s3next").addEventListener("click", () => { if (state.slotMin != null) panel4(); });
+  weekOffset = 0;
+  await loadWeek(true);
+}
+async function loadWeek(autoPick){
+  const dates = weekDates(weekOffset);
+  $("#weekLabel").textContent = new Date(dates[0] + "T12:00:00Z").toLocaleDateString("en-GB", { month:"long", year:"numeric" });
+  $("#weekPrev").style.opacity = weekOffset === 0 ? .35 : 1;
+  const counts = await DB.dayCounts(state.service.id, state.groomerId, dates[0], dates[dates.length-1]);
+  $("#datestrip").innerHTML = dates.map((d) => {
+    const c = counts[d] || 0;
+    const dt = new Date(d + "T12:00:00Z");
+    return `<div class="day ${c === 0 ? "off" : ""}" data-date="${d}">
+      <div class="dw">${dt.toLocaleDateString("en-GB",{weekday:"short"})}</div>
+      <div class="dn">${dt.getDate()}</div>
+      <div class="cnt">${c === 0 ? "Full" : c + " slots"}</div>
+    </div>`;
+  }).join("");
+  $$("#datestrip .day").forEach((el) => el.addEventListener("click", () => {
+    if (el.classList.contains("off")) return;
+    $$("#datestrip .day").forEach((x) => x.classList.remove("sel"));
+    el.classList.add("sel");
+    state.date = el.dataset.date;
+    loadSlots();
+  }));
+  if (autoPick){
+    const first = Object.entries(counts).find(([,c]) => c > 0);
+    if (first){
+      state.date = first[0];
+      const el = $(`#datestrip .day[data-date="${first[0]}"]`);
+      if (el) el.classList.add("sel");
+      loadSlots();
+    } else {
+      $("#periods").innerHTML = `<div class="empty">No availability this week — try the arrows to look further ahead.</div>`;
+      setWaitbox(true);
+    }
+  }
+}
+function setWaitbox(empty){
+  $("#waitboxText").innerHTML = empty
+    ? `<b>Nothing free that day.</b> Join the waitlist and we'll be in touch the moment a slot opens up.`
+    : `<b>Want an earlier spot?</b> Join the waitlist in case something opens up sooner.`;
+  $("#waitbox").classList.remove("hidden");
+}
+async function loadSlots(){
+  state.slotMin = null; state.slotGroomerId = null;
+  $("#s3next").disabled = true;
+  const box = $("#periods");
+  box.innerHTML = `<div class="empty">Loading…</div>`;
+  const slots = await DB.availability(state.date, state.service.id, state.groomerId);
+  if (!slots.length){ box.innerHTML = ""; setWaitbox(true); return; }
+  setWaitbox(false);
+  const groups = { Morning:[], Afternoon:[], Evening:[] };
+  slots.forEach((s) => { const g = s.min < 720 ? "Morning" : s.min < 1020 ? "Afternoon" : "Evening"; groups[g].push(s); });
+  box.innerHTML = Object.entries(groups).filter(([,v]) => v.length).map(([g, v]) => `
+    <div class="period"><h4>${g}</h4><div class="slots">
+    ${v.map((s) => `<div class="slot" data-min="${s.min}" data-groomer="${s.groomerIds[0]}">${s.label}</div>`).join("")}
+    </div></div>`).join("");
+  $$("#periods .slot").forEach((el) => el.addEventListener("click", () => {
+    $$("#periods .slot").forEach((x) => x.classList.remove("sel"));
+    el.classList.add("sel");
+    state.slotMin = +el.dataset.min;
+    state.slotGroomerId = +el.dataset.groomer;
+    $("#s3next").disabled = false;
+  }));
+}
+
+function chosenGroomer(){
+  const id = state.groomerId === "any" ? state.slotGroomerId : +state.groomerId;
+  return state.groomers.find((b) => b.id === id);
+}
+const prettyDate = (s) => new Date(s + "T12:00:00Z").toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long" });
+function fillSummary(sel){
+  const b = chosenGroomer(), s = state.service;
+  $(sel).innerHTML = `
+    <div><span class="k">Service</span><span class="v">${esc(s.name)}</span></div>
+    <div><span class="k">Groomer</span><span class="v">${esc(b.name)}</span></div>
+    <div><span class="k">Date</span><span class="v">${prettyDate(state.date)}</span></div>
+    <div><span class="k">Time</span><span class="v">${DB.fmt(state.slotMin)} (${s.duration_min} min)</span></div>
+    <div><span class="k">Price</span><span class="v">${DB.money(s.price_pence)}</span></div>`;
+}
+function panel4(){
+  renderStepsBar(4);
+  $("#panels").innerHTML = `<div class="panel">
+    <h2>Your details</h2>
+    <p class="sub">We'll send your booking reference to this email.</p>
+    <div class="summary" id="summary4"></div>
+    <div class="field"><label>Full name</label><input type="text" id="pname" placeholder="John Smith"></div>
+    <div class="row">
+      <div class="field"><label>Email</label><input type="email" id="pemail" placeholder="john@email.com"></div>
+      <div class="field"><label>Phone</label><input type="tel" id="pphone" placeholder="07123 456789"></div>
+    </div>
+    <div class="field"><label>Notes for your groomer (optional)</label><textarea id="pnotes" rows="2" placeholder="e.g. nervous around the dryer, sensitive skin…"></textarea></div>
+    <div class="notice err hidden" id="err4"></div>
+    <div class="actions"><a class="btn ghost" id="b4back">Back</a><a class="btn primary" id="b4submit">Confirm booking</a></div>
+  </div>`;
+  fillSummary("#summary4");
+  $("#b4back").addEventListener("click", panel3);
+  $("#b4submit").addEventListener("click", submitBooking);
+}
+function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+async function submitBooking(){
+  const err = $("#err4");
+  err.classList.add("hidden");
+  ["#pname","#pemail","#pphone"].forEach((s) => $(s).classList.remove("invalid"));
+  const name = $("#pname").value.trim(), email = $("#pemail").value.trim(), phone = $("#pphone").value.trim();
+  const problems = [];
+  if (name.length < 2){ problems.push("your full name"); $("#pname").classList.add("invalid"); }
+  if (!validEmail(email)){ problems.push("a valid email"); $("#pemail").classList.add("invalid"); }
+  if (phone.replace(/\D/g,"").length < 7){ problems.push("a valid phone number"); $("#pphone").classList.add("invalid"); }
+  if (problems.length){
+    err.textContent = `Please check: ${problems.join(", ")}.`;
+    err.classList.remove("hidden");
+    return;
+  }
+  const btn = $("#b4submit");
+  btn.textContent = "Booking…"; btn.style.pointerEvents = "none";
+  try{
+    const result = await DB.book({
+      serviceId: state.service.id, groomerId: state.groomerId, date: state.date, min: state.slotMin,
+      name, email, phone, notes: $("#pnotes").value.trim()
+    });
+    panelConfirm(result);
+  } catch(e){
+    err.textContent = e.message;
+    err.classList.remove("hidden");
+    btn.textContent = "Confirm booking"; btn.style.pointerEvents = "auto";
+  }
+}
+function panelConfirm(result){
+  $("#stepsBar").innerHTML = "";
+  $("#panels").innerHTML = `<div class="panel confirm">
+    <div class="tick">✓</div>
+    <h2>You're booked in.</h2>
+    <p class="sub">${esc(result.when)} with ${esc(result.groomerName)}</p>
+    <div class="refbox">${esc(result.ref)}</div>
+    <p class="hint">Keep this reference and your email handy to manage your booking.</p>
+    <div class="confirm-actions">
+      <a class="btn ghost" href="#services">Book another</a>
+      <a class="btn primary" href="#" id="doneClose">Done</a>
+    </div>
+  </div>`;
+  $("#doneClose").addEventListener("click", (e) => { e.preventDefault(); document.getElementById("services").scrollIntoView({behavior:"smooth"}); });
+}
+
+/* ================= waitlist modal ================= */
+function openWaitlistModal(){
+  $("#modalRoot").innerHTML = `<div class="backdrop" id="waitBackdrop"><div class="modal">
+    <header><h3>Join the waitlist</h3><span class="iconbtn" id="waitClose">&times;</span></header>
+    <div class="body">
+      <p class="sub" style="margin-top:0">We'll contact you if a slot opens for ${esc(state.service?.name || "your service")} on ${state.date ? prettyDate(state.date) : "your preferred day"}.</p>
+      <div class="field"><label>Full name</label><input type="text" id="wname"></div>
+      <div class="field"><label>Email</label><input type="email" id="wemail"></div>
+      <div class="field"><label>Phone</label><input type="tel" id="wphone"></div>
+      <div class="notice err hidden" id="werr"></div>
+    </div>
+    <footer><a class="btn ghost" id="waitCancel">Cancel</a><a class="btn primary" id="waitSubmit">Join waitlist</a></footer>
+  </div></div>`;
+  $("#waitClose").addEventListener("click", closeWaitlistModal);
+  $("#waitCancel").addEventListener("click", closeWaitlistModal);
+  $("#waitBackdrop").addEventListener("click", (e) => { if (e.target.id === "waitBackdrop") closeWaitlistModal(); });
+  $("#waitSubmit").addEventListener("click", async () => {
+    const err = $("#werr");
+    const name = $("#wname").value.trim(), email = $("#wemail").value.trim(), phone = $("#wphone").value.trim();
+    if (name.length < 2 || !validEmail(email) || phone.replace(/\D/g,"").length < 7){
+      err.textContent = "Please fill in your name, a valid email and phone number.";
+      err.classList.remove("hidden");
+      return;
+    }
+    try{
+      await DB.waitlist({ serviceId: state.service?.id, groomerId: state.groomerId, date: state.date, name, email, phone });
+      $(".modal .body").innerHTML = `<div class="confirm"><div class="tick">✓</div><h2 style="font-size:18px">You're on the list</h2><p class="sub">We'll email you the moment a suitable slot opens up.</p></div>`;
+      $(".modal footer").innerHTML = `<a class="btn primary" style="width:100%" id="waitDone">Done</a>`;
+      $("#waitDone").addEventListener("click", closeWaitlistModal);
+    } catch(e){
+      err.textContent = e.message;
+      err.classList.remove("hidden");
+    }
+  });
+}
+function closeWaitlistModal(){ $("#modalRoot").innerHTML = ""; }
+
+/* ================= manage booking modal ================= */
+function openManageModal(){
+  $("#modalRoot").innerHTML = `<div class="backdrop" id="mgBackdrop"><div class="modal">
+    <header><h3>Manage your booking</h3><span class="iconbtn" id="mgClose">&times;</span></header>
+    <div class="body" id="mgBody">
+      <p class="sub" style="margin-top:0">Enter your booking reference and email to view or cancel your appointment.</p>
+      <div class="field"><label>Booking reference</label><input type="text" id="mgRef" placeholder="e.g. K7M2QX" style="text-transform:uppercase"></div>
+      <div class="field"><label>Email</label><input type="email" id="mgEmail"></div>
+      <div class="notice err hidden" id="mgErr"></div>
+    </div>
+    <footer id="mgFooter"><a class="btn ghost" id="mgCancelBtn">Close</a><a class="btn primary" id="mgLookup">Find booking</a></footer>
+  </div></div>`;
+  $("#mgClose").addEventListener("click", closeManageModal);
+  $("#mgCancelBtn").addEventListener("click", closeManageModal);
+  $("#mgBackdrop").addEventListener("click", (e) => { if (e.target.id === "mgBackdrop") closeManageModal(); });
+  $("#mgLookup").addEventListener("click", async () => {
+    const err = $("#mgErr");
+    const ref = $("#mgRef").value.trim(), email = $("#mgEmail").value.trim();
+    if (!ref || !validEmail(email)){ err.textContent = "Please enter your reference and a valid email."; err.classList.remove("hidden"); return; }
+    try{
+      const b = await DB.lookup(ref, email);
+      $("#mgBody").innerHTML = `
+        <div class="summary">
+          <div><span class="k">Service</span><span class="v">${esc(b.serviceName)}</span></div>
+          <div><span class="k">Groomer</span><span class="v">${esc(b.groomerName)}</span></div>
+          <div><span class="k">When</span><span class="v">${esc(b.when)}</span></div>
+          <div><span class="k">Reference</span><span class="v">${esc(b.ref)}</span></div>
+        </div>
+        <div class="notice err hidden" id="mgErr2"></div>`;
+      $("#mgFooter").innerHTML = `<a class="btn ghost" id="mgCancelBtn2">Close</a><a class="link-danger" id="mgCancelAppt">Cancel this booking</a>`;
+      $("#mgCancelBtn2").addEventListener("click", closeManageModal);
+      $("#mgCancelAppt").addEventListener("click", async () => {
+        if (!confirm("Cancel this appointment? This cannot be undone.")) return;
+        try{
+          await DB.cancel(ref, email);
+          $("#mgBody").innerHTML = `<div class="confirm"><div class="tick">✓</div><h2 style="font-size:18px">Booking cancelled</h2><p class="sub">Your appointment has been cancelled. We hope to see you again soon.</p></div>`;
+          $("#mgFooter").innerHTML = `<a class="btn primary" style="width:100%" id="mgDone">Done</a>`;
+          $("#mgDone").addEventListener("click", closeManageModal);
+        } catch(e){
+          $("#mgErr2").textContent = e.message;
+          $("#mgErr2").classList.remove("hidden");
+        }
+      });
+    } catch(e){
+      err.textContent = e.message;
+      err.classList.remove("hidden");
+    }
+  });
+}
+function closeManageModal(){ $("#modalRoot").innerHTML = ""; }
+$("#manageLink").addEventListener("click", (e) => { e.preventDefault(); openManageModal(); });
+
+/* ================= boot ================= */
+(async function boot(){
+  try{
+    const [services, groomers] = await Promise.all([DB.services(), DB.groomers()]);
+    state.services = services; state.groomers = groomers;
+    renderServices(services);
+    renderTeam(groomers);
+    renderGallery();
+    renderReviews();
+    panel1();
+  } catch(e){
+    $("#panels").innerHTML = `<div class="panel"><div class="notice err">Unable to load live booking data right now. Please call us on 0114 496 0192.</div></div>`;
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
