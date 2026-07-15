@@ -656,12 +656,7 @@ const DB = {
     if (!r.ok) throw new Error(data.error || "Not found.");
     return data;
   },
-  async cancel(ref, email){
-    const r = await fetch(`${API}/appointments/lookup`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ ref, email, status:"cancelled" }) });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || "Could not cancel.");
-    return data;
-  },
+  async cancel(ref, email){ const r = await fetch(`${API}/appointments/lookup`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ ref, email, status:"cancelled" }) }); const data = await r.json(); if (!r.ok) throw new Error(data.error || "Could not cancel."); return data; }, async reschedule(ref, email, date, min){ const r = await fetch(`${API}/appointments/lookup`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ ref, email, date, min }) }); const data = await r.json(); if (!r.ok) throw new Error(data.error || "Could not change your booking time."); return data; },
   async waitlist(payload){
     const r = await fetch(`${API}/waitlist`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
     const data = await r.json();
@@ -1059,41 +1054,12 @@ function openManageModal(){
   $("#mgClose").addEventListener("click", closeManageModal);
   $("#mgCancelBtn").addEventListener("click", closeManageModal);
   $("#mgBackdrop").addEventListener("click", (e) => { if (e.target.id === "mgBackdrop") closeManageModal(); });
-  $("#mgLookup").addEventListener("click", async () => {
+  function showBookingSummary(ref, email, b){ $("#mgBody").innerHTML = `<div class="summary"><div><span class="k">Service</span><span class="v">${esc(b.serviceName)}</span></div><div><span class="k">Groomer</span><span class="v">${esc(b.groomerName)}</span></div><div><span class="k">When</span><span class="v">${esc(b.when)}</span></div><div><span class="k">Reference</span><span class="v">${esc(b.ref)}</span></div></div><div class="notice err hidden" id="mgErr2"></div>`; $("#mgFooter").innerHTML = `<a class="btn ghost" id="mgCancelBtn2">Close</a><a class="btn ghost" id="mgRescheduleBtn">Change time</a><a class="link-danger" id="mgCancelAppt">Cancel this booking</a>`; $("#mgCancelBtn2").addEventListener("click", closeManageModal); $("#mgRescheduleBtn").addEventListener("click", () => { $("#mgBody").innerHTML = `<div class="notice err hidden" id="mgErr3"></div><div class="field"><label>New date</label><input type="date" id="mgNewDate"></div><div class="field"><label>New time</label><select id="mgNewTime"><option value="">Select a date first…</option></select></div>`; $("#mgFooter").innerHTML = `<a class="btn ghost" id="mgBackToSummary">Back</a><a class="btn primary" id="mgConfirmReschedule">Confirm new time</a>`; $("#mgBackToSummary").addEventListener("click", () => showBookingSummary(ref, email, b)); $("#mgNewDate").addEventListener("change", async () => { const sel = $("#mgNewTime"); sel.innerHTML = `<option value="">Loading…</option>`; try{ const slots = await DB.availability($("#mgNewDate").value, b.serviceId, b.groomerId); sel.innerHTML = slots.length ? slots.map((m) => `<option value="${m}">${DB.fmt(m)}</option>`).join("") : `<option value="">No availability that day</option>`; } catch(e){ sel.innerHTML = `<option value="">Could not load times</option>`; } }); $("#mgConfirmReschedule").addEventListener("click", async () => { const err3 = $("#mgErr3"); const newDate = $("#mgNewDate").value, newMin = $("#mgNewTime").value; if (!newDate || newMin === ""){ err3.textContent = "Please choose a new date and time."; err3.classList.remove("hidden"); return; } try{ const updated = await DB.reschedule(ref, email, newDate, Number(newMin)); b.when = updated.when || b.when; b.date = updated.date; b.startMin = updated.startMin; showBookingSummary(ref, email, b); } catch(e){ err3.textContent = e.message; err3.classList.remove("hidden"); } }); }); $("#mgCancelAppt").addEventListener("click", async () => { if (!confirm("Cancel this appointment? This cannot be undone.")) return; try{ await DB.cancel(ref, email); $("#mgBody").innerHTML = `<div class="confirm"><div class="tick">✓</div><h2 style="font-size:18px">Booking cancelled</h2><p class="sub">Your appointment has been cancelled. We hope to see you again soon.</p></div>`; $("#mgFooter").innerHTML = `<a class="btn primary" style="width:100%" id="mgDone">Done</a>`; $("#mgDone").addEventListener("click", closeManageModal); } catch(e){ $("#mgErr2").textContent = e.message; $("#mgErr2").classList.remove("hidden"); } }); } $("#mgLookup").addEventListener("click", async () => {
     const err = $("#mgErr");
     const ref = $("#mgRef").value.trim(), email = $("#mgEmail").value.trim();
     if (!ref || !validEmail(email)){ err.textContent = "Please enter your reference and a valid email."; err.classList.remove("hidden"); return; }
     try{
-      const b = await DB.lookup(ref, email);
-      $("#mgBody").innerHTML = `
-        <div class="summary">
-          <div><span class="k">Service</span><span class="v">${esc(b.serviceName)}</span></div>
-          <div><span class="k">Groomer</span><span class="v">${esc(b.groomerName)}</span></div>
-          <div><span class="k">When</span><span class="v">${esc(b.when)}</span></div>
-          <div><span class="k">Reference</span><span class="v">${esc(b.ref)}</span></div>
-        </div>
-        <div class="notice err hidden" id="mgErr2"></div>`;
-      $("#mgFooter").innerHTML = `<a class="btn ghost" id="mgCancelBtn2">Close</a><a class="link-danger" id="mgCancelAppt">Cancel this booking</a>`;
-      $("#mgCancelBtn2").addEventListener("click", closeManageModal);
-      $("#mgCancelAppt").addEventListener("click", async () => {
-        if (!confirm("Cancel this appointment? This cannot be undone.")) return;
-        try{
-          await DB.cancel(ref, email);
-          $("#mgBody").innerHTML = `<div class="confirm"><div class="tick">✓</div><h2 style="font-size:18px">Booking cancelled</h2><p class="sub">Your appointment has been cancelled. We hope to see you again soon.</p></div>`;
-          $("#mgFooter").innerHTML = `<a class="btn primary" style="width:100%" id="mgDone">Done</a>`;
-          $("#mgDone").addEventListener("click", closeManageModal);
-        } catch(e){
-          $("#mgErr2").textContent = e.message;
-          $("#mgErr2").classList.remove("hidden");
-        }
-      });
-    } catch(e){
-      err.textContent = e.message;
-      err.classList.remove("hidden");
-    }
-  });
-}
-function closeManageModal(){ $("#modalRoot").innerHTML = ""; }
+      const b = await DB.lookup(ref, email); showBookingSummary(ref, email, b); } catch(e){ err.textContent = e.message; err.classList.remove("hidden"); } }); } function closeManageModal(){ $("#modalRoot").innerHTML = ""; }
 $("#manageLink").addEventListener("click", (e) => { e.preventDefault(); openManageModal(); });
 
 /* ================= boot ================= */
