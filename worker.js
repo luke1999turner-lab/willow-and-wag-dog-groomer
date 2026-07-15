@@ -217,6 +217,13 @@ export default {
         return json(rows.results);
       }
 
+      // ---- GET /api/hours ---- (public — lets the calendar derive its day/week
+      // grid window from real opening hours instead of a hardcoded window)
+      if (segments.length === 1 && segments[0] === 'hours' && method === 'GET') {
+        const rows = await DB.prepare('SELECT dow, open_min, close_min FROM opening_hours ORDER BY dow').all();
+        return json(rows.results);
+      }
+
       // ---- GET /api/availability?date=&serviceId=&groomerId=(optional|any) ----
       if (segments.length === 1 && segments[0] === 'availability' && method === 'GET') {
         const q = url.searchParams;
