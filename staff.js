@@ -74,6 +74,7 @@ async function init() {
 
   load();
   refreshWaitlistCount();
+  refreshMorningBrief();
 }
 
 // ---------- hero greeting + live clock ----------
@@ -123,6 +124,12 @@ async function refreshTodayStats() {
 async function refreshWaitlistCount() {
   const { data } = await api('/api/waitlist');
   $('#waitlistBtn').textContent = data.length ? `Waitlist (${data.length})` : 'Waitlist';
+}
+
+async function refreshMorningBrief() {
+  const { data } = await api('/api/staff/morning-brief');
+  const n = (data.appointments || []).length;
+  $('#briefBtn').textContent = n ? `Morning brief (${n})` : 'Morning brief';
 }
 
 // ---------- waitlist modal ----------
