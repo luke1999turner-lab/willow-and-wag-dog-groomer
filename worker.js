@@ -406,6 +406,10 @@ export default {
           });
           return json({ ok: true });
         }
+        if (b.status === 'no-show' || b.status === 'completed') {
+          await DB.prepare('UPDATE appointments SET status = ? WHERE id = ?').bind(b.status, id).run();
+          return json({ ok: true });
+        }
         if (typeof b.arrived === 'boolean') {
           await DB.prepare('UPDATE appointments SET arrived_at = ? WHERE id = ?')
             .bind(b.arrived ? new Date().toISOString() : null, id).run();
