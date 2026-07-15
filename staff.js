@@ -2,7 +2,7 @@ const API_BASE = 'https://willow-and-wag-api.luke1999-turner.workers.dev';
 // Staff calendar: day view across all groomers, reschedule, cancel, block out time,
 // waitlist, walk-in/phone bookings, and a morning brief of bookings made while the
 // shop was closed.
-const $ = (s) => document.querySelector(s);
+const $ = (s) => document.querySelector(s); function parseDogInfo(notes){ if (!notes) return null; const m = notes.match(/^Dog:\s*([^·\n]+?)\s*·\s*Breed:\s*([^·\n]+?)\s*·\s*Size:\s*([^\n]+)/); if (!m) return null; const rest = notes.slice(m[0].length).replace(/^\n/, '').trim(); return { dog: m[1].trim(), breed: m[2].trim(), size: m[3].trim(), rest }; } function dogTileLabel(a){ const info = parseDogInfo(a.notes); if (!info) return a.client_name; const firstName = (a.client_name || '').split(' ')[0]; return `${info.dog} (${firstName})`; }
 let STAFF_KEY = '';
 const api = (u, o = {}) => {
   o.headers = { ...(o.headers || {}), 'X-Staff-Key': STAFF_KEY };
@@ -324,7 +324,7 @@ function renderWeek(monday, appts, blocks) {
     dayAppts.forEach((a) => {
       const min = a.start_ts - dayTs;
       col += `<div class="wk-chip wk-appt" data-id="${a.id}" style="border-left-color:${staffColorFor(a)}">
-        <b>${fmt(min)}</b> ${a.client_name}<span class="wk-who">${a.groomer_name} · ${a.service_name}</span></div>`;
+        <b>${fmt(min)}</b> ${dogTileLabel(a)}<span class="wk-who">${a.groomer_name} · ${a.service_name}</span></div>`;
     });
     col += `</div>`;
     html += col;
@@ -382,7 +382,7 @@ function renderMonth(dateStr, appts, blocks) {
     cell += `<div class="mc-num">${new Date(d + 'T00:00').getDate()}${dayBlocks.length ? ' <span class="mc-block-flag" title="' + dayBlocks.map((b) => b.reason).join(', ') + '">⛔</span>' : ''}</div>`;
     dayAppts.slice(0, 3).forEach((a) => {
       const min = a.start_ts - dayTs;
-      cell += `<div class="mc-chip" data-id="${a.id}" style="background:${staffColorFor(a)}">${fmt(min)} ${a.client_name}</div>`;
+      cell += `<div class="mc-chip" data-id="${a.id}" style="background:${staffColorFor(a)}">${fmt(min)} ${dogTileLabel(a)}</div>`;
     });
     if (dayAppts.length > 3) cell += `<div class="mc-more">+${dayAppts.length - 3} more</div>`;
     cell += `</div>`;
@@ -428,7 +428,7 @@ function renderDay(appts, blocks) {
       const s = a.start_ts - dayTs, dur = a.end_ts - a.start_ts;
       col += `<div class="appt" data-id="${a.id}" style="top:${(s - DAY_START) * PXMIN}px;height:${dur * PXMIN - 2}px;background:${b.color}">
         <span class="arrived-toggle ${a.arrived_at ? 'on' : ''}" data-id="${a.id}" title="${a.arrived_at ? 'Arrived - click to undo' : 'Mark arrived'}">✓</span>
-        <b>${a.client_name}</b><small>${fmt(s)} · ${a.service_name}</small></div>`;
+        <b>${dogTileLabel(a)}</b><small>${fmt(s)} · ${a.service_name}</small></div>`;
     });
     col += `</div>`;
     html += col;
@@ -488,7 +488,7 @@ async function openAppt(id, forDate) {
     <div><span class="k">Service</span><span class="v">${a.service_name} (${a.duration_min} min)</span></div>
     <div><span class="k">With</span><span class="v">${a.groomer_name}</span></div>
     <div><span class="k">When</span><span class="v">${fmt(a.start_ts - dayTs)}, ${prettyDate(d)}</span></div>
-    ${a.notes ? `<div><span class="k">Notes</span><span class="v">${a.notes}</span></div>` : ''}`;
+    ${(() => { const info = parseDogInfo(a.notes); if (info) { return `<div><span class="k">Dog</span><span class="v">${info.dog}</span></div><div><span class="k">Breed</span><span class="v">${info.breed}</span></div><div><span class="k">Size</span><span class="v">${info.size}</span></div>${info.rest ? `<div><span class="k">Notes</span><span class="v">${info.rest}</span></div>` : ''}`; } return a.notes ? `<div><span class="k">Notes</span><span class="v">${a.notes}</span></div>` : ''; })()}`;
   $('#rGroomer').value = a.groomer_id;
   $('#rDate').value = d;
   $('#apptErr').classList.add('hidden');
