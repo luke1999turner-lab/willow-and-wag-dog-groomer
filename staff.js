@@ -95,6 +95,8 @@ $('#dpBrief').onclick = openBrief;
   $('#saveBlock').onclick = saveBlock;
   $('#saveAppt').onclick = saveAppt;
   $('#cancelAppt').onclick = cancelAppt;
+  $('#noShowAppt').onclick = noShowAppt;
+  $('#completeAppt').onclick = completeAppt;
   $('#toggleArrived').onclick = toggleArrivedFromModal;
   $('#rGroomer').onchange = $('#rDate').onchange = refreshRTimes;
   $('#nbService').onchange = $('#nbGroomer').onchange = $('#nbDate').onchange = refreshNBTimes;
@@ -134,7 +136,8 @@ function updateStats(appts) {
   $('#statBookingsSub').textContent = "Today's schedule";
   const arrived = booked.filter((a) => a.arrived_at).length;
   $('#statArrived').innerHTML = `${arrived} <span style="font-size:15px;color:var(--muted);font-weight:500">/ ${booked.length}</span>`;
-  $('#statArrivedSub').textContent = booked.length ? `${booked.length - arrived} still due in` : 'No bookings today';
+  const noShowCount = appts.filter((a) => a.status === 'no-show').length;
+  $('#statArrivedSub').textContent = booked.length ? `${booked.length - arrived} still due in${noShowCount ? ` · ${noShowCount} no-show` : ''}` : 'No bookings today';
   const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
   const dayTs = toTs(today, 0);
   renderPanelNowNext(booked, dayTs, nowMin);
@@ -419,7 +422,7 @@ function renderWeek(monday, appts, blocks) {
 
   days.forEach((d) => {
     const dayTs = toTs(d, 0);
-    const dayAppts = appts.filter((a) => a.status === 'booked' && fromTs(a.start_ts).date === d)
+    const dayAppts = appts.filter((a) => (a.status === 'booked' || a.status === 'no-show' || a.status === 'completed') && fromTs(a.start_ts).date === d)
       .sort((a, b) => a.start_ts - b.start_ts);
     const dayBlocks = blocks.filter((bl) => fromTs(bl.start_ts).date <= d && fromTs(bl.end_ts - 1).date >= d);
     let col = `<div class="daycol week-daycol" data-date="${d}">`;
@@ -429,8 +432,10 @@ function renderWeek(monday, appts, blocks) {
     if (!dayAppts.length && !dayBlocks.length) col += `<div class="wk-empty">No bookings</div>`;
     dayAppts.forEach((a) => {
       const min = a.start_ts - dayTs;
-      col += `<div class="wk-chip wk-appt" data-id="${a.id}" style="border-left-color:${staffColorFor(a)}">
-        <b>${fmt(min)}</b> ${dogTileLabel(a)}<span class="wk-who">${a.groomer_name} · ${a.service_name}</span></div>`;
+      const dimmed = a.status === 'no-show' || a.status === 'completed';
+      const label = a.status === 'no-show' ? ' · NO-SHOW' : a.status === 'completed' ? ' · DONE' : '';
+      col += `<div class="wk-chip wk-appt${dimmed ? ' appt-dimmed' : ''}" data-id="${a.id}" style="border-left-color:${staffColorFor(a)}">
+        <b>${fmt(min)}</b> ${dogTileLabel(a)}<span class="wk-who">${a.groomer_name} · ${a.service_name}${label}</span></div>`;
     });
     col += `</div>`;
     html += col;
@@ -461,7 +466,7 @@ function renderMonth(dateStr, appts, blocks) {
   const today = new Date().toISOString().slice(0, 10);
 
   const apptsByDate = new Map();
-  appts.filter((a) => a.status === 'booked').forEach((a) => {
+  appts.filter((a) => a.status === 'booked' || a.status === 'no-show' || a.status === 'completed').forEach((a) => {
     const d = fromTs(a.start_ts).date;
     if (!apptsByDate.has(d)) apptsByDate.set(d, []);
     apptsByDate.get(d).push(a);
@@ -488,7 +493,8 @@ function renderMonth(dateStr, appts, blocks) {
     cell += `<div class="mc-num">${new Date(d + 'T00:00').getDate()}${dayBlocks.length ? ' <span class="mc-block-flag" title="' + dayBlocks.map((b) => b.reason).join(', ') + '">⛔</span>' : ''}</div>`;
     dayAppts.slice(0, 3).forEach((a) => {
       const min = a.start_ts - dayTs;
-      cell += `<div class="mc-chip" data-id="${a.id}" style="background:${staffColorFor(a)}">${fmt(min)} ${dogTileLabel(a)}</div>`;
+      const dimmed = a.status === 'no-show' || a.status === 'completed';
+      cell += `<div class="mc-chip${dimmed ? ' appt-dimmed' : ''}" data-id="${a.id}" style="background:${staffColorFor(a)}">${fmt(min)} ${dogTileLabel(a)}</div>`;
     });
     if (dayAppts.length > 3) cell += `<div class="mc-more">+${dayAppts.length - 3} more</div>`;
     cell += `</div>`;
@@ -513,7 +519,7 @@ function renderDay(appts, blocks) {
     let closedHtml = `<div class="closed-card">Closed — ${weekday}</div>`;
     const strayItems = [];
     blocks.forEach((bl) => strayItems.push({ type: 'block', bl }));
-    appts.filter((a) => a.status === 'booked').forEach((a) => strayItems.push({ type: 'appt', a }));
+    appts.filter((a) => a.status === 'booked' || a.status === 'no-show' || a.status === 'completed').forEach((a) => strayItems.push({ type: 'appt', a }));
     if (strayItems.length) {
       closedHtml += `<div class="closed-extra">` + strayItems.map((x) => {
         if (x.type === 'block') return `<div class="wk-chip wk-block">${x.bl.reason}${x.bl.groomer_name ? ' · ' + x.bl.groomer_name : ''}</div>`;
@@ -551,11 +557,13 @@ function renderDay(appts, blocks) {
       col += `<div class="blk" data-id="${bl.id}" style="top:${(s - DAY_START) * PXMIN}px;height:${(e - s) * PXMIN - 2}px" title="Click to remove this block">${bl.reason}</div>`;
     });
     // appointments
-    appts.filter((a) => a.groomer_id === b.id && a.status === 'booked').forEach((a) => {
+    appts.filter((a) => a.groomer_id === b.id && (a.status === 'booked' || a.status === 'no-show' || a.status === 'completed')).forEach((a) => {
       const s = a.start_ts - dayTs, dur = a.end_ts - a.start_ts;
-      col += `<div class="appt" data-id="${a.id}" style="top:${(s - DAY_START) * PXMIN}px;height:${dur * PXMIN - 2}px;background:${b.color}">
+      const dimmed = a.status === 'no-show' || a.status === 'completed';
+      const label = a.status === 'no-show' ? '<span class="status-label">NO-SHOW</span>' : a.status === 'completed' ? '<span class="status-label">DONE</span>' : '';
+      col += `<div class="appt${dimmed ? ' appt-dimmed' : ''}" data-id="${a.id}" style="top:${(s - DAY_START) * PXMIN}px;height:${dur * PXMIN - 2}px;background:${b.color}">
         <span class="arrived-toggle ${a.arrived_at ? 'on' : ''}" data-id="${a.id}" title="${a.arrived_at ? 'Arrived - click to undo' : 'Mark arrived'}">✓</span>
-        <b>${dogTileLabel(a)}</b><small>${fmt(s)} · ${a.service_name}</small></div>`;
+        <b>${dogTileLabel(a)}</b><small>${fmt(s)} · ${a.service_name}</small>${label}</div>`;
     });
     col += `</div>`;
     html += col;
@@ -620,6 +628,7 @@ async function openAppt(id, forDate) {
   $('#rDate').value = d;
   $('#apptErr').classList.add('hidden');
   $('#toggleArrived').textContent = a.arrived_at ? 'Undo arrived' : 'Mark arrived';
+  $('#noShowAppt').style.display = (a.start_ts <= Math.floor(Date.now() / 60000)) ? '' : 'none';
   await refreshRTimes();
   $('#apptModal').classList.remove('hidden');
 }
@@ -650,6 +659,17 @@ async function cancelAppt() {
   if (!confirm('Cancel this appointment? The slot will be freed for other clients.')) return;
   await api(`/api/appointments/${state.editing.id}`,
     { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'cancelled' }) });
+  closeModals(); load();
+}
+async function noShowAppt() {
+  if (!confirm('Mark this appointment as a no-show? The slot will be freed for other clients.')) return;
+  await api(`/api/appointments/${state.editing.id}`,
+    { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'no-show' }) });
+  closeModals(); load();
+}
+async function completeAppt() {
+  await api(`/api/appointments/${state.editing.id}`,
+    { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'completed' }) });
   closeModals(); load();
 }
 async function toggleArrivedFromModal() {
