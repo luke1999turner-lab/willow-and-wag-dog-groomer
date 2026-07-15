@@ -669,7 +669,7 @@ const DB = {
     return data;
   },
   fmt(min){ return `${String(Math.floor(min/60)).padStart(2,"0")}:${String(min%60).padStart(2,"0")}`; },
-  money(pence){ return `£${(pence/100).toFixed(2)}`; }
+  money(pence){ const p = pence / 100; return `£${Number.isInteger(p) ? p : p.toFixed(2)}`; }
 };
 
 /* ================= static content (not stored in D1 — same pattern as Vanguard/Riverside) ================= */
