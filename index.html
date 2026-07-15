@@ -958,7 +958,7 @@ function panel4(){
       <div class="field"><label>Email</label><input type="email" id="pemail" placeholder="john@email.com"></div>
       <div class="field"><label>Phone</label><input type="tel" id="pphone" placeholder="07123 456789"></div>
     </div>
-    <div class="field"><label>Notes for your groomer (optional)</label><textarea id="pnotes" rows="2" placeholder="e.g. nervous around the dryer, sensitive skin…"></textarea></div>
+    <div class="row"><div class="field"><label>Dog's name</label><input type="text" id="pdogname" placeholder="Bella"></div><div class="field"><label>Breed / mix</label><input type="text" id="pbreed" placeholder="Cockapoo"></div></div><div class="field"><label>Size</label><select id="psize"><option value="">Select size…</option><option value="Small (under 10kg)">Small (under 10kg)</option><option value="Medium (10–25kg)">Medium (10–25kg)</option><option value="Large (over 25kg)">Large (over 25kg)</option></select></div><div class="field"><label>Anything we should know? (coat condition, temperament, first groom…)</label><textarea id="pnotes" rows="2" placeholder="e.g. nervous around the dryer, sensitive skin…"></textarea></div>
     <div class="notice err hidden" id="err4"></div>
     <div class="actions"><a class="btn ghost" id="b4back">Back</a><a class="btn primary" id="b4submit">Confirm booking</a></div>
   </div>`;
@@ -970,12 +970,12 @@ function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
 async function submitBooking(){
   const err = $("#err4");
   err.classList.add("hidden");
-  ["#pname","#pemail","#pphone"].forEach((s) => $(s).classList.remove("invalid"));
-  const name = $("#pname").value.trim(), email = $("#pemail").value.trim(), phone = $("#pphone").value.trim();
+  ["#pname","#pemail","#pphone","#pdogname","#pbreed","#psize"].forEach((s) => $(s).classList.remove("invalid"));
+  const name = $("#pname").value.trim(), email = $("#pemail").value.trim(), phone = $("#pphone").value.trim(), dogName = $("#pdogname").value.trim(), breed = $("#pbreed").value.trim(), size = $("#psize").value;
   const problems = [];
   if (name.length < 2){ problems.push("your full name"); $("#pname").classList.add("invalid"); }
   if (!validEmail(email)){ problems.push("a valid email"); $("#pemail").classList.add("invalid"); }
-  if (phone.replace(/\D/g,"").length < 7){ problems.push("a valid phone number"); $("#pphone").classList.add("invalid"); }
+  if (phone.replace(/\D/g,"").length < 7){ problems.push("a valid phone number"); $("#pphone").classList.add("invalid"); } if (dogName.length < 2){ problems.push("your dog's name"); $("#pdogname").classList.add("invalid"); } if (breed.length < 2){ problems.push("your dog's breed"); $("#pbreed").classList.add("invalid"); } if (!size){ problems.push("your dog's size"); $("#psize").classList.add("invalid"); }
   if (problems.length){
     err.textContent = `Please check: ${problems.join(", ")}.`;
     err.classList.remove("hidden");
@@ -984,11 +984,7 @@ async function submitBooking(){
   const btn = $("#b4submit");
   btn.textContent = "Booking…"; btn.style.pointerEvents = "none";
   try{
-    const result = await DB.book({
-      serviceId: state.service.id, groomerId: state.groomerId, date: state.date, min: state.slotMin,
-      name, email, phone, notes: $("#pnotes").value.trim()
-    });
-    panelConfirm(result);
+    const dogLine = `Dog: ${dogName} · Breed: ${breed} · Size: ${size}`; const extraNotes = $("#pnotes").value.trim(); const composedNotes = extraNotes ? `${dogLine}\n${extraNotes}` : dogLine; const result = await DB.book({ serviceId: state.service.id, groomerId: state.groomerId, date: state.date, min: state.slotMin, name, email, phone, notes: composedNotes }); result.dogName = dogName; panelConfirm(result);
   } catch(e){
     err.textContent = e.message;
     err.classList.remove("hidden");
@@ -1000,7 +996,7 @@ function panelConfirm(result){
   $("#panels").innerHTML = `<div class="panel confirm">
     <div class="tick">✓</div>
     <h2>You're booked in.</h2>
-    <p class="sub">${esc(result.when)} with ${esc(result.groomerName)}</p>
+    <p class="sub">${esc(result.when)} with ${esc(result.groomerName)}${result.dogName ? ` for ${esc(result.dogName)}` : ""}</p>
     <div class="refbox">${esc(result.ref)}</div>
     <p class="hint">Keep this reference and your email handy to manage your booking.</p>
     <div class="confirm-actions">
