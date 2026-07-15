@@ -122,6 +122,10 @@ textarea{resize:vertical}
 .cal-closed{display:block !important}
 .closed-card{padding:60px 20px;text-align:center;color:var(--muted);font-family:var(--serif);font-size:18px;font-weight:600}
 .closed-extra{padding:0 20px 20px;display:flex;flex-direction:column;gap:8px}
+.appt-dimmed{opacity:.45}
+.status-label{display:inline-block;margin-left:6px;padding:0 4px;font-size:9px;font-weight:700;letter-spacing:.04em;background:rgba(0,0,0,.35);border-radius:3px;vertical-align:middle}
+.mc-chip.appt-dimmed{opacity:.5}
+.modal footer{flex-wrap:wrap;row-gap:8px}
 .backdrop{position:fixed;inset:0;background:rgba(34,28,20,.55);display:grid;place-items:center;z-index:50;padding:20px}
 .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:460px;width:100%;
   box-shadow:0 24px 70px rgba(34,28,20,.35);max-height:90vh;overflow:auto}
@@ -276,7 +280,11 @@ textarea{resize:vertical}
       <div class="notice err hidden" id="apptErr"></div>
     </div>
     <footer>
-      <button class="link-danger" id="cancelAppt">Cancel appointment</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="link-danger" id="cancelAppt">Cancel appointment</button>
+        <button class="btn ghost" id="noShowAppt">No-show</button>
+        <button class="btn ghost" id="completeAppt">Completed</button>
+      </div>
       <div style="display:flex;gap:10px">
         <button class="btn ghost" id="toggleArrived">Mark arrived</button>
         <button class="btn primary" id="saveAppt">Save changes</button>
