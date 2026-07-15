@@ -278,15 +278,7 @@ export default {
         const appt = await findByRefEmail(DB, q.get('ref'), q.get('email'));
         if (!appt) return json({ error: 'No live booking found for that reference and email.' }, 404);
         const { date, min } = fromTs(appt.start_ts);
-        return json({
-          ref: appt.ref,
-          serviceName: appt.service_name,
-          groomerName: appt.groomer_name,
-          date,
-          startMin: min,
-          email: appt.client_email,
-          when: `${fmtDate(date)} at ${fmtMin(min)}`,
-        });
+        return json({ ref: appt.ref, serviceName: appt.service_name, groomerName: appt.groomer_name, date, startMin: min, email: appt.client_email, when: `${fmtDate(date)} at ${fmtMin(min)}`, serviceId: appt.service_id, groomerId: appt.groomer_id, });
       }
 
       // ---- PATCH /api/appointments/lookup ---- (public — cancel via ref+email) ----
@@ -305,10 +297,7 @@ export default {
               when: `${fmtDate(pDate)} at ${fmtMin(pMin)}`, ref: appt.ref,
             }),
           });
-          return json({ ok: true });
-        }
-        return json({ error: 'Unsupported update.' }, 400);
-      }
+          return json({ ok: true }); } if (b.date != null && b.min != null) { const start = toTs(b.date, Number(b.min)); const end = start + appt.duration_min; const result = await DB.prepare( `UPDATE appointments SET start_ts = ?, end_ts = ? WHERE id = ? AND NOT EXISTS ( SELECT 1 FROM appointments WHERE groomer_id = ? AND status = 'booked' AND id != ? AND start_ts < ? AND end_ts > ? ) AND NOT EXISTS ( SELECT 1 FROM blocks WHERE (groomer_id = ? OR groomer_id IS NULL) AND start_ts < ? AND end_ts > ? )` ).bind( start, end, appt.id, appt.groomer_id, appt.id, end, start, appt.groomer_id, end, start ).run(); if (!result.meta.changes) return json({ error: 'That new time conflicts with another appointment or block.' }, 409); const { date: rDate, min: rMin } = fromTs(start); await sendEmail(env, { to: appt.client_email, subject: `Your appointment time has changed — ${appt.service_name}`, html: reassignEmailHtml({ name: appt.client_name, serviceName: appt.service_name, groomerName: appt.groomer_name, when: `${fmtDate(rDate)} at ${fmtMin(rMin)}`, ref: appt.ref, }), }); return json({ ok: true, date: rDate, startMin: rMin, when: `${fmtDate(rDate)} at ${fmtMin(rMin)}` }); } return json({ error: 'Unsupported update.' }, 400); }
 
       // ---- GET /api/appointments ---- (staff only)
       if (segments.length === 1 && segments[0] === 'appointments' && method === 'GET') {
