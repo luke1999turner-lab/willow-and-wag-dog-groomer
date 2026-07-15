@@ -31,9 +31,40 @@ const DAY_START = 8 * 60, DAY_END = 20 * 60, PXH = 56;   // visible window 08:00
 const PXMIN = PXH / 60;
 const state = { date: null, view: 'day', groomers: [], services: [], editing: null, affected: [], blocks: [], editingDate: null };
 
+function hoursForDow(dow) {
+  const h = (state.hours || []).find((x) => x.dow === dow);
+  return (h && h.open_min != null && h.close_min != null) ? h : null;
+}
+function dowOf(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+// Derive the visible day-grid window from real opening hours, rounded
+// outward to whole hours. Returns null when the shop is closed all day.
+function dayWindowFor(dateStr) {
+  const h = hoursForDow(dowOf(dateStr));
+  if (!h) return null;
+  return { start: Math.floor(h.open_min / 60) * 60, end: Math.ceil(h.close_min / 60) * 60 };
+}
+// Week view shows all 7 days in one grid, so its window has to cover
+// whichever days are open; closed days within the week just render empty.
+function weekWindowFor(dateStrs) {
+  let lo = null, hi = null;
+  dateStrs.forEach((ds) => {
+    const h = hoursForDow(dowOf(ds));
+    if (!h) return;
+    const s = Math.floor(h.open_min / 60) * 60, e = Math.ceil(h.close_min / 60) * 60;
+    if (lo == null || s < lo) lo = s;
+    if (hi == null || e > hi) hi = e;
+  });
+  if (lo == null) return { start: DAY_START, end: DAY_END };
+  return { start: lo, end: hi };
+}
+
 async function init() {
   state.groomers = (await api('/api/groomers')).data;
   state.services = (await api('/api/services')).data;
+  state.hours = (await api('/api/hours')).data;
   const t = new Date(); state.date = t.toISOString().slice(0, 10);
   $('#date').value = state.date;
   $('#legend').innerHTML = state.groomers.map((b) =>
@@ -369,6 +400,8 @@ function renderWeek(monday, appts, blocks) {
   cal.className = 'cal';
   cal.style.gridTemplateColumns = `56px repeat(7, 1fr)`;
   const days = [...Array(7)].map((_, i) => addDays(monday, i));
+  const winW = weekWindowFor(days);
+  const DAY_START = winW.start, DAY_END = winW.end;
   const today = new Date().toISOString().slice(0, 10);
   const hours = [];
   for (let h = DAY_START; h < DAY_END; h += 60) hours.push(h);
@@ -471,6 +504,27 @@ function renderMonth(dateStr, appts, blocks) {
 }
 
 function renderDay(appts, blocks) {
+  const win = dayWindowFor(state.date);
+  if (!win) {
+    const cal0 = $('#cal');
+    cal0.className = 'cal cal-closed';
+    cal0.style.gridTemplateColumns = '1fr';
+    const weekday = new Date(state.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long' });
+    let closedHtml = `<div class="closed-card">Closed — ${weekday}</div>`;
+    const strayItems = [];
+    blocks.forEach((bl) => strayItems.push({ type: 'block', bl }));
+    appts.filter((a) => a.status === 'booked').forEach((a) => strayItems.push({ type: 'appt', a }));
+    if (strayItems.length) {
+      closedHtml += `<div class="closed-extra">` + strayItems.map((x) => {
+        if (x.type === 'block') return `<div class="wk-chip wk-block">${x.bl.reason}${x.bl.groomer_name ? ' · ' + x.bl.groomer_name : ''}</div>`;
+        return `<div class="wk-chip wk-appt" data-id="${x.a.id}" style="border-left-color:${staffColorFor(x.a)}"><b>${fmt(x.a.start_ts - toTs(state.date, 0))}</b> ${dogTileLabel(x.a)}<span class="wk-who">${x.a.groomer_name} · ${x.a.service_name}</span></div>`;
+      }).join('') + `</div>`;
+    }
+    cal0.innerHTML = closedHtml;
+    cal0.querySelectorAll('.wk-appt').forEach((el) => el.onclick = () => openAppt(+el.dataset.id));
+    return;
+  }
+  const DAY_START = win.start, DAY_END = win.end;
   const cal = $('#cal');
   const N = state.groomers.length;
   cal.style.gridTemplateColumns = `56px repeat(${N}, 1fr)`;
