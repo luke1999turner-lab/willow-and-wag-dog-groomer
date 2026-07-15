@@ -35,7 +35,7 @@ function fromTs(ts) {
 const dayStartTs = (dateStr) => toTs(dateStr, 0);
 const overlaps = (aS, aE, bS, bE) => aS < bE && bS < aE;
 const fmtMin = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
-const fmtDate = (dateStr) => new Date(dateStr + 'T12:00:00Z').toLocaleDateString('en-US', {
+const fmtDate = (dateStr) => new Date(dateStr + 'T12:00:00Z').toLocaleDateString('en-GB', {
   weekday: 'long', day: 'numeric', month: 'long',
 });
 const fmtMoney = (pence) => `£${(pence / 100).toFixed(2)}`;
@@ -586,4 +586,3 @@ export default {
     }
   },
 };
-      
