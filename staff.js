@@ -57,6 +57,9 @@ async function init() {
   $('#waitlistBtn').onclick = openWaitlist;
   $('#briefBtn').onclick = openBrief;
   $('#newBookingBtn').onclick = openNewBooking;
+$('#panelToggleBtn').onclick = togglePanel;
+$('#panelCloseBtn').onclick = closePanel;
+$('#dpBrief').onclick = openBrief;
   document.querySelectorAll('[data-close]').forEach((b) => b.onclick = closeModals);
   $('#saveBlock').onclick = saveBlock;
   $('#saveAppt').onclick = saveAppt;
@@ -75,6 +78,8 @@ async function init() {
   load();
   refreshWaitlistCount();
   refreshMorningBrief();
+  applyPanelState();
+  window.addEventListener('resize', applyPanelState);
 }
 
 // ---------- hero greeting + live clock ----------
@@ -101,14 +106,7 @@ function updateStats(appts) {
   $('#statArrivedSub').textContent = booked.length ? `${booked.length - arrived} still due in` : 'No bookings today';
   const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
   const dayTs = toTs(today, 0);
-  const upcoming = booked.filter((a) => (a.start_ts - dayTs) >= nowMin).sort((a, b) => a.start_ts - b.start_ts)[0];
-  if (upcoming) {
-    $('#statNext').textContent = fmt(upcoming.start_ts - dayTs);
-    $('#statNextSub').textContent = `${upcoming.client_name} · ${upcoming.service_name} · ${upcoming.groomer_name}`;
-  } else {
-    $('#statNext').textContent = '—';
-    $('#statNextSub').textContent = 'All done for today';
-  }
+  renderPanelNowNext(booked, dayTs, nowMin);
   const serviceById = new Map(state.services.map((s) => [s.id, s]));
   const pence = booked.reduce((sum, a) => sum + (serviceById.get(a.service_id)?.price_pence || 0), 0);
   $('#statRevenue').textContent = `£${(pence / 100).toFixed(0)}`;
@@ -124,12 +122,87 @@ async function refreshTodayStats() {
 async function refreshWaitlistCount() {
   const { data } = await api('/api/waitlist');
   $('#waitlistBtn').textContent = data.length ? `Waitlist (${data.length})` : 'Waitlist';
+  renderPanelWaitlist(data);
 }
 
 async function refreshMorningBrief() {
   const { data } = await api('/api/staff/morning-brief');
   const n = (data.appointments || []).length;
   $('#briefBtn').textContent = n ? `Morning brief (${n})` : 'Morning brief';
+  renderPanelBrief(n);
+}
+
+// ---------- Today panel (collapsible right-side panel) ----------
+const PANEL_KEY = 'willowPanelCollapsed';
+function isMobilePanel() { return window.innerWidth <= 1100; }
+function applyPanelState() {
+  const panel = $('#dayPanel'); if (!panel) return;
+  if (isMobilePanel()) {
+    panel.classList.remove('panel-collapsed');
+  } else {
+    panel.classList.remove('panel-open-mobile');
+    const collapsed = localStorage.getItem(PANEL_KEY) === '1';
+    panel.classList.toggle('panel-collapsed', collapsed);
+  }
+}
+function togglePanel() {
+  const panel = $('#dayPanel'); if (!panel) return;
+  if (isMobilePanel()) {
+    panel.classList.toggle('panel-open-mobile');
+  } else {
+    const collapsed = panel.classList.toggle('panel-collapsed');
+    localStorage.setItem(PANEL_KEY, collapsed ? '1' : '0');
+  }
+}
+function closePanel() {
+  const panel = $('#dayPanel'); if (!panel) return;
+  if (isMobilePanel()) {
+    panel.classList.remove('panel-open-mobile');
+  } else {
+    panel.classList.add('panel-collapsed');
+    localStorage.setItem(PANEL_KEY, '1');
+  }
+}
+// Per-groomer Now/Next glance: what each groomer is doing right now and who's
+// next, derived entirely from today's already-fetched appointments — no new
+// endpoints needed. Shows the dog's name (via the existing dogTileLabel
+// helper from the staff-calendar dog-info parsing) instead of just the owner.
+function renderPanelNowNext(booked, dayTs, nowMin) {
+  const box = $('#dpNowNext'); if (!box) return;
+  box.innerHTML = state.groomers.map((b) => {
+    const mine = booked.filter((a) => a.groomer_id === b.id).sort((a, c) => a.start_ts - c.start_ts);
+    const nowAppt = mine.find((a) => (a.start_ts - dayTs) <= nowMin && nowMin < (a.end_ts - dayTs));
+    const nextAppt = mine.find((a) => (a.start_ts - dayTs) > nowMin);
+    let line;
+    if (nowAppt) {
+      const lateBit = nowAppt.arrived_at ? '' : ` <span class="dp-late">· due ${fmt(nowAppt.start_ts - dayTs)} — not arrived</span>`;
+      line = `<div class="dp-now"><b>${dogTileLabel(nowAppt)}</b> — ${nowAppt.service_name} until ${fmt(nowAppt.end_ts - dayTs)}${lateBit}</div>`;
+    } else if (nextAppt) {
+      line = `<div class="dp-free">Free until ${fmt(nextAppt.start_ts - dayTs)} <span class="dp-next-who">(${dogTileLabel(nextAppt)} · ${nextAppt.service_name})</span></div>`;
+    } else {
+      line = `<div class="dp-free">Free until end of day</div>`;
+    }
+    return `<div class="dp-staff-row">
+      <div class="dp-staff-name"><span class="sw" style="background:${b.color}"></span>${b.name}</div>
+      ${line}
+    </div>`;
+  }).join('');
+}
+function renderPanelWaitlist(data) {
+  const box = $('#dpWaitlist'); if (!box) return;
+  if (!data.length) { box.innerHTML = `<div class="dp-empty">No one waiting.</div>`; return; }
+  box.innerHTML = data.slice(0, 3).map((w) => `
+    <div class="dp-wl-row" data-open-wl="1">
+      <b>${w.client_name}</b>
+      <div class="dp-wl-meta">${w.service_name || 'Any service'} · Preferred: ${w.preferred_date || 'Any date'}</div>
+    </div>`).join('') + (data.length > 3 ? `<div class="dp-wl-more">+${data.length - 3} more</div>` : '');
+  box.querySelectorAll('[data-open-wl]').forEach((el) => el.onclick = openWaitlist);
+}
+function renderPanelBrief(n) {
+  const el = $('#dpBrief'); if (!el) return;
+  const countEl = el.querySelector('.dp-brief-count');
+  if (countEl) countEl.textContent = n ? `${n} new` : 'None';
+  el.classList.toggle('has-items', n > 0);
 }
 
 // ---------- waitlist modal ----------
