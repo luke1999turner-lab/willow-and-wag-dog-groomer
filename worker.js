@@ -187,6 +187,39 @@ function cancellationEmailHtml({ name, serviceName, when, ref }) {
 <p>${SHOP_NAME}</p>`;
 }
 
+function waitlistEmailHtml({ name, serviceName, when }) {
+  return `<p>Hi ${name},</p>
+<p>Good news — a slot has just opened up at ${SHOP_NAME} that matches what you're after:</p>
+<p><b>${serviceName}</b><br>${when}</p>
+<p>These go quickly — call us on ${SHOP_PHONE} to grab it, or book online.</p>
+<p>${SHOP_NAME}</p>`;
+}
+
+// After any cancellation, tell waiting clients whose service/groomer/date
+// preference matches the slot that just freed up. Best-effort, marks each
+// notified row so nobody gets double-emailed on a later cancellation.
+async function notifyWaitlist(env, DB, freedAppt) {
+  const { date, min } = fromTs(freedAppt.start_ts);
+  const when = `${fmtDate(date)} at ${fmtMin(min)}`;
+  const svc = await DB.prepare('SELECT name FROM services WHERE id = ?').bind(freedAppt.service_id).first();
+  const rows = (await DB.prepare(
+    `SELECT * FROM waitlist WHERE notified_at IS NULL
+     AND (service_id IS NULL OR service_id = ?)
+     AND (groomer_id IS NULL OR groomer_id = ?)
+     AND (preferred_date IS NULL OR preferred_date = ?)`
+  ).bind(freedAppt.service_id, freedAppt.groomer_id, date).all()).results;
+
+  for (const w of rows) {
+    await sendEmail(env, {
+      to: w.client_email,
+      subject: `A slot just opened up — ${svc ? svc.name : 'your service'}`,
+      html: waitlistEmailHtml({ name: w.client_name, serviceName: svc ? svc.name : 'your service', when }),
+    });
+    await DB.prepare('UPDATE waitlist SET notified_at = ? WHERE id = ?')
+      .bind(new Date().toISOString(), w.id).run();
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -304,6 +337,7 @@ export default {
               when: `${fmtDate(pDate)} at ${fmtMin(pMin)}`, ref: appt.ref,
             }),
           });
+          await notifyWaitlist(env, DB, appt);
           return json({ ok: true }); } if (b.date != null && b.min != null) { const start = toTs(b.date, Number(b.min)); const end = start + appt.duration_min; const result = await DB.prepare( `UPDATE appointments SET start_ts = ?, end_ts = ? WHERE id = ? AND NOT EXISTS ( SELECT 1 FROM appointments WHERE groomer_id = ? AND status = 'booked' AND id != ? AND start_ts < ? AND end_ts > ? ) AND NOT EXISTS ( SELECT 1 FROM blocks WHERE (groomer_id = ? OR groomer_id IS NULL) AND start_ts < ? AND end_ts > ? )` ).bind( start, end, appt.id, appt.groomer_id, appt.id, end, start, appt.groomer_id, end, start ).run(); if (!result.meta.changes) return json({ error: 'That new time conflicts with another appointment or block.' }, 409); const { date: rDate, min: rMin } = fromTs(start); await sendEmail(env, { to: appt.client_email, subject: `Your appointment time has changed — ${appt.service_name}`, html: reassignEmailHtml({ name: appt.client_name, serviceName: appt.service_name, groomerName: appt.groomer_name, when: `${fmtDate(rDate)} at ${fmtMin(rMin)}`, ref: appt.ref, }), }); return json({ ok: true, date: rDate, startMin: rMin, when: `${fmtDate(rDate)} at ${fmtMin(rMin)}` }); } return json({ error: 'Unsupported update.' }, 400); }
 
       // ---- GET /api/appointments ---- (staff only)
@@ -404,6 +438,7 @@ export default {
               when: `${fmtDate(cDate)} at ${fmtMin(cMin)}`, ref: appt.ref,
             }),
           });
+          await notifyWaitlist(env, DB, appt);
           return json({ ok: true });
         }
         if (b.status === 'no-show' || b.status === 'completed') {
