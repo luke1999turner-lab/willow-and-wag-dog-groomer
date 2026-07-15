@@ -43,7 +43,7 @@ a{color:var(--terracotta-dark);text-decoration:none}
 .hero-strip .clock{font-family:var(--sans);font-size:13px;color:var(--muted);margin-top:6px}
 .hero-strip .clock b{color:var(--slate)}
 
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0 6px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 6px}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;transition:.18s}
 .stat:hover{border-color:var(--terracotta);transform:translateY(-2px);box-shadow:0 14px 30px -18px rgba(31,51,39,.3)}
 .stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px}
@@ -87,6 +87,37 @@ textarea{resize:vertical}
 .now-line{position:absolute;left:56px;right:0;height:2px;background:var(--terracotta);z-index:5;pointer-events:none}
 .now-line::before{content:'';position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--terracotta)}
 .footer{color:var(--muted);font-size:13px;padding:16px 0 60px}
+
+.cal-row{display:flex;gap:18px;align-items:flex-start}
+.cal-main{flex:1;min-width:0}
+.day-panel{width:300px;flex-shrink:0;position:sticky;top:80px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;max-height:calc(100vh - 100px);overflow:auto;box-shadow:0 14px 30px -18px rgba(31,51,39,.2)}
+.day-panel.panel-collapsed{display:none}
+.day-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.day-panel-head h3{font-family:var(--serif);font-size:16px;margin:0;font-weight:700;color:var(--forest)}
+.dp-section{margin-bottom:18px}
+.dp-section:last-child{margin-bottom:0}
+.dp-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:8px}
+.dp-staff-row{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.dp-staff-row:last-child{margin-bottom:0}
+.dp-staff-name{font-weight:700;font-size:13px;display:flex;align-items:center;gap:7px;margin-bottom:6px;color:var(--ink)}
+.dp-staff-name .sw{width:9px;height:9px;border-radius:3px}
+.dp-now,.dp-free{font-size:12.5px;color:var(--slate);line-height:1.4}
+.dp-now b{color:var(--ink)}
+.dp-late{color:var(--danger);font-weight:700}
+.dp-next-who{color:var(--muted)}
+.dp-empty{font-size:12.5px;color:var(--muted)}
+.dp-wl-row{font-size:12.5px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.dp-wl-row:last-child{border-bottom:none}
+.dp-wl-meta{color:var(--muted);font-size:11.5px;margin-top:2px}
+.dp-wl-more{font-size:11.5px;color:var(--muted);padding-top:6px}
+.dp-brief{font-size:13px;padding:10px 12px;background:var(--card2);border:1px solid var(--line);border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:600;color:var(--ink)}
+.dp-brief.has-items{border-color:var(--terracotta);color:var(--terracotta-dark)}
+@media (max-width:1100px){
+.cal-row{display:block}
+.day-panel{position:fixed;top:0;right:0;bottom:0;width:320px;max-width:88vw;z-index:70;border-radius:0;transform:translateX(100%);transition:transform .25s ease;box-shadow:-24px 0 60px rgba(34,28,20,.35);display:flex !important;flex-direction:column}
+.day-panel.panel-collapsed{display:flex !important;transform:translateX(100%)}
+.day-panel.panel-open-mobile{transform:translateX(0)}
+}
 
 .backdrop{position:fixed;inset:0;background:rgba(34,28,20,.55);display:grid;place-items:center;z-index:50;padding:20px}
 .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:460px;width:100%;
@@ -179,11 +210,6 @@ textarea{resize:vertical}
       <div class="d" id="statArrivedSub">—</div>
     </div>
     <div class="stat">
-      <div class="k"><span class="ic">⏰</span>Next up</div>
-      <div class="v" id="statNext">—</div>
-      <div class="d" id="statNextSub">—</div>
-    </div>
-    <div class="stat">
       <div class="k"><span class="ic">£</span>Revenue</div>
       <div class="v" id="statRevenue">£0</div>
       <div class="d" id="statRevenueSub">—</div>
@@ -199,14 +225,36 @@ textarea{resize:vertical}
     <input type="date" id="date" style="max-width:180px">
     <span class="today-label" id="dayLabel"></span>
     <span class="spacer"></span>
-    <button class="btn ghost" id="briefBtn">Morning brief</button>
+    <button class="btn ghost" id="panelToggleBtn">Today panel</button>
+<button class="btn ghost" id="briefBtn">Morning brief</button>
     <button class="btn ghost" id="waitlistBtn">Waitlist</button>
     <button class="btn ghost" id="blockBtn">＋ Block out time</button>
     <button class="btn primary" id="newBookingBtn">＋ New booking</button>
   </div>
 
+  <div class="cal-row" id="calRow">
+  <div class="cal-main">
   <div class="legend" id="legend"></div>
   <div class="cal" id="cal"></div>
+  </div>
+  <aside class="day-panel" id="dayPanel">
+  <div class="day-panel-head">
+  <h3>Today panel</h3>
+  <button class="iconbtn" id="panelCloseBtn" title="Collapse">✕</button>
+  </div>
+  <div class="dp-section">
+  <div class="dp-section-title">Now / next</div>
+  <div id="dpNowNext"></div>
+  </div>
+  <div class="dp-section">
+  <div class="dp-section-title">Waitlist</div>
+  <div id="dpWaitlist"></div>
+  </div>
+  <div class="dp-section">
+  <div class="dp-brief" id="dpBrief"><span>Morning brief</span><span class="dp-brief-count">&ndash;</span></div>
+  </div>
+  </aside>
+  </div>
   <p class="footer">Appointments booked online appear here instantly. Click any appointment to reschedule or cancel.</p>
 </main>
 
