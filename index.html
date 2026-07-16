@@ -233,19 +233,30 @@ background:var(--card2);border:1px solid var(--line);padding:4px 12px;border-rad
 .card.member .bio{font-size:13.5px;color:var(--slate);margin:14px 0 0}
 
 /* ---------- gallery (The Transformation) ---------- */
-.gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:28px}
 .gallery figure{margin:0;cursor:pointer;position:relative;text-align:center}
-.gallery .photo-frame{width:100%;aspect-ratio:4/5;margin:0 auto 14px;border-radius:26px 26px 10px 26px;overflow:hidden;
+.gallery .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
+.gallery .photo-frame{width:100%;aspect-ratio:4/5;margin:0;position:relative;border-radius:26px 26px 10px 26px;overflow:hidden;
   box-shadow:var(--shadow);transition:.25s ease;border:1px solid var(--line)}
+.gallery .photo-frame:last-child{border-radius:10px 26px 26px 26px}
 .gallery .photo-frame img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
+.tag{position:absolute;top:10px;left:10px;z-index:2;background:rgba(20,16,12,.72);color:#fff;font-size:11px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;padding:4px 10px;border-radius:999px}
+.tag-after{left:auto;right:10px;background:var(--terracotta)}
 .gallery figure:hover .photo-frame{transform:translateY(-4px);box-shadow:0 1px 3px rgba(40,30,10,.08),0 26px 48px -18px rgba(40,30,10,.28)}
 .gallery figure:hover .photo-frame img{transform:scale(1.05)}
 .gallery figcaption{font-size:13px;font-weight:600;color:var(--slate)}
-@media(max-width:760px){.gallery{grid-template-columns:repeat(2,1fr);gap:28px}}
+@media(max-width:760px){.gallery{grid-template-columns:1fr}
+.gallery .pair{gap:6px}}
 
 .lightbox{position:fixed;inset:0;background:rgba(34,28,20,.92);z-index:60;display:grid;place-items:center;padding:30px}
 .lightbox img{max-width:100%;max-height:85vh;border-radius:14px}
 .lightbox .lb-close{position:absolute;top:22px;right:26px;color:#fff;font-size:30px;cursor:pointer;line-height:1}
+.lightbox .lb-pair{display:flex;gap:20px;max-width:94vw;max-height:85vh;align-items:center}
+.lightbox .lb-item{position:relative;flex:1;min-width:0}
+.lightbox .lb-item img{max-width:100%;max-height:80vh;border-radius:14px;display:block;margin:0 auto}
+@media(max-width:700px){.lightbox .lb-pair{flex-direction:column;max-height:none}
+.lightbox .lb-item img{max-height:40vh}}
 
 /* ---------- reviews (same paw-print mosaic structure as the hero) ---------- */
 .rev-head{display:flex;align-items:center;justify-content:space-between;gap:20px;max-width:1140px;margin:0 auto 8px;flex-wrap:wrap}
@@ -668,11 +679,14 @@ const DB = {
 };
 
 /* ================= static content (not stored in D1 — same pattern as Vanguard/Riverside) ================= */
+/* PLACEHOLDER GALLERY PHOTOS — before/after pairs currently use temporary stock
+   images, not this client's real dogs. Replace src fields with the client's own
+   before/after grooming photos before launch. */
 const GALLERY = [
-  { src:"https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=700&q=75", alt:"Groomed Bichon Frise", caption:"Chloe · Bichon Frise" },
-  { src:"https://images.unsplash.com/photo-1591160690555-5debfba289f0?auto=format&fit=crop&w=700&q=75", alt:"Groomed Poodle mix", caption:"Max · Cockapoo" },
-  { src:"https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=700&q=75", alt:"Groomed Golden Retriever", caption:"Bella · Golden Retriever" },
-  { src:"https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=700&q=75", alt:"Groomed Schnauzer", caption:"Rocky · Schnauzer" },
+  { before:"https://images.unsplash.com/photo-1594149929911-78975a43d4f5?auto=format&fit=crop&w=700&q=75", after:"https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=700&q=75", caption:"Chloe · Bichon Frise" },
+  { before:"https://images.unsplash.com/photo-1528846104175-4fd300ee59da?auto=format&fit=crop&w=700&q=75", after:"https://images.unsplash.com/photo-1591160690555-5debfba289f0?auto=format&fit=crop&w=700&q=75", caption:"Max · Cockapoo" },
+  { before:"https://images.unsplash.com/photo-1611173622933-91942d394b04?auto=format&fit=crop&w=700&q=75", after:"https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=700&q=75", caption:"Bella · Golden Retriever" },
+  { before:"https://images.unsplash.com/photo-1719464454959-9cf304ef4774?auto=format&fit=crop&w=700&q=75", after:"https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=700&q=75", caption:"Rocky · Schnauzer" },
 ];
 const REVIEWS = [
   { name:"Amelia R.", summary:"Patient with nervous dogs — booking took seconds.", text:"Sarah is incredible with nervous dogs — my rescue actually enjoys her grooms now. Booking online took thirty seconds.", stars:5 },
@@ -731,11 +745,11 @@ function renderTeam(groomers){
 
 /* ================= gallery ================= */
 function renderGallery(){
-  $("#galleryGrid").innerHTML = GALLERY.map((g, i) => `<figure data-i="${i}"><div class="photo-frame"><img src="${g.src}" alt="${esc(g.alt)}" loading="lazy"></div><figcaption>${esc(g.caption)}</figcaption></figure>`).join("");
-  $$("#galleryGrid figure").forEach((f) => f.addEventListener("click", () => openLightbox(GALLERY[+f.dataset.i])));
+  $("#galleryGrid").innerHTML = GALLERY.map((g, i) => `<figure data-i="${i}"><div class="pair"><div class="photo-frame"><span class="tag">Before</span><img src="${g.before}" alt="${esc(g.caption)} before grooming" loading="lazy"></div><div class="photo-frame"><span class="tag tag-after">After</span><img src="${g.after}" alt="${esc(g.caption)} after grooming" loading="lazy"></div></div><figcaption>${esc(g.caption)}</figcaption></figure>`).join("");
+  $("#galleryGrid figure").forEach((f) => f.addEventListener("click", () => openLightbox(GALLERY[+f.dataset.i])));
 }
 function openLightbox(g){
-  $("#lightboxRoot").innerHTML = `<div class="lightbox" id="lb"><span class="lb-close">&times;</span><img src="${g.src.replace("w=700","w=1600")}" alt="${esc(g.alt)}"></div>`;
+  $("#lightboxRoot").innerHTML = `<div class="lightbox" id="lb"><span class="lb-close">&times;</span><div class="lb-pair"><div class="lb-item"><span class="tag">Before</span><img src="${g.before.replace("w=700","w=1600")}" alt="${esc(g.caption)} before grooming"></div><div class="lb-item"><span class="tag tag-after">After</span><img src="${g.after.replace("w=700","w=1600")}" alt="${esc(g.caption)} after grooming"></div></div></div>`;
   const lb = $("#lb");
   lb.addEventListener("click", () => { $("#lightboxRoot").innerHTML = ""; });
 }
