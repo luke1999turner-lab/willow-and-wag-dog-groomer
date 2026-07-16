@@ -1009,6 +1009,7 @@ async function submitBooking(){
   }
 }
 function panelConfirm(result){
+  state.lastBooking = result;
   $("#stepsBar").innerHTML = "";
   $("#panels").innerHTML = `<div class="panel confirm">
     <div class="tick">✓</div>
@@ -1017,11 +1018,35 @@ function panelConfirm(result){
     <div class="refbox">${esc(result.ref)}</div>
     <p class="hint">Keep this reference and your email handy to manage your booking.</p>
     <div class="confirm-actions">
+      <a class="btn ghost" href="#" id="icsBtn">Add to calendar</a>
       <a class="btn ghost" href="#services">Book another</a>
       <a class="btn primary" href="#" id="doneClose">Done</a>
     </div>
   </div>`;
+  $("#icsBtn").addEventListener("click", (e) => { e.preventDefault(); downloadICS(result); });
   $("#doneClose").addEventListener("click", (e) => { e.preventDefault(); document.getElementById("services").scrollIntoView({behavior:"smooth"}); });
+}
+
+/* ---------------- add to calendar (.ics) ---------------- */
+function downloadICS(result){
+  const s = state.service;
+  const dt = (min) => state.date.replace(/-/g, "") + "T" + DB.fmt(min).replace(":", "") + "00";
+  const endMin = state.slotMin + s.duration_min;
+  const ics = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Willow \u0026 Wag//EN",
+    "BEGIN:VEVENT",
+    "UID:" + result.ref + "@" + location.hostname,
+    "DTSTART:" + dt(state.slotMin),
+    "DTEND:" + dt(endMin),
+    "SUMMARY:" + s.name + " \u2014 Willow \u0026 Wag" + (result.dogName ? " (" + result.dogName + ")" : ""),
+    "DESCRIPTION:With " + result.groomerName + ". Ref " + result.ref + ". Need to change your time? Use Manage booking with your reference and email.",
+    "LOCATION:22 Hathersage Road, Sheffield S11 9QT",
+    "END:VEVENT", "END:VCALENDAR",
+  ].join("\r\n");
+  const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+  const link = Object.assign(document.createElement("a"), { href: url, download: "appointment.ics" });
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 /* ================= waitlist modal ================= */
