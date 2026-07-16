@@ -220,6 +220,14 @@ async function notifyWaitlist(env, DB, freedAppt) {
   }
 }
 
+function reminderEmailHtml({ name, serviceName, groomerName, when, ref }) {
+  return `<p>Hi ${name},</p>
+<p>Just a reminder — you're booked in tomorrow at ${SHOP_NAME}:</p>
+<p><b>${serviceName}</b> with ${groomerName}<br>${when}</p>
+<p>Ref <b>${ref}</b>. Need to change it? Call ${SHOP_PHONE}.</p>
+<p>See you soon!<br>${SHOP_NAME}</p>`;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -618,6 +626,34 @@ export default {
       return json({ error: 'Unknown endpoint.' }, 404);
     } catch (err) {
       return json({ error: 'Server error: ' + (err && err.message ? err.message : String(err)) }, 500);
+    }
+  },
+
+  // Cloudflare Cron Trigger — configure a schedule (e.g. hourly) in the
+  // Worker's Triggers tab. Finds bookings ~24h out that haven't had a
+  // reminder yet and sends one, marking reminder_sent_at so it never repeats.
+  async scheduled(event, env, ctx) {
+    const DB = env.DB;
+    const nowTs = Date.now() / 60000;
+    const windowStart = nowTs + 23.5 * 60;
+    const windowEnd = nowTs + 24.5 * 60;
+    const rows = (await DB.prepare(
+      `SELECT a.*, g.name AS groomer_name, s.name AS service_name FROM appointments a
+       JOIN groomers g ON g.id = a.groomer_id JOIN services s ON s.id = a.service_id
+       WHERE a.status = 'booked' AND a.reminder_sent_at IS NULL
+       AND a.start_ts >= ? AND a.start_ts < ?`
+    ).bind(windowStart, windowEnd).all()).results;
+
+    for (const a of rows) {
+      const { date, min } = fromTs(a.start_ts);
+      const when = `${fmtDate(date)} at ${fmtMin(min)}`;
+      await sendEmail(env, {
+        to: a.client_email,
+        subject: `Reminder: your appointment tomorrow — ${a.service_name}`,
+        html: reminderEmailHtml({ name: a.client_name, serviceName: a.service_name, groomerName: a.groomer_name, when, ref: a.ref }),
+      });
+      await DB.prepare('UPDATE appointments SET reminder_sent_at = ? WHERE id = ?')
+        .bind(new Date().toISOString(), a.id).run();
     }
   },
 };
