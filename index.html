@@ -746,7 +746,7 @@ function renderTeam(groomers){
 /* ================= gallery ================= */
 function renderGallery(){
   $("#galleryGrid").innerHTML = GALLERY.map((g, i) => `<figure data-i="${i}"><div class="pair"><div class="photo-frame"><span class="tag">Before</span><img src="${g.before}" alt="${esc(g.caption)} before grooming" loading="lazy"></div><div class="photo-frame"><span class="tag tag-after">After</span><img src="${g.after}" alt="${esc(g.caption)} after grooming" loading="lazy"></div></div><figcaption>${esc(g.caption)}</figcaption></figure>`).join("");
-  $("#galleryGrid figure").forEach((f) => f.addEventListener("click", () => openLightbox(GALLERY[+f.dataset.i])));
+  $$("#galleryGrid figure").forEach((f) => f.addEventListener("click", () => openLightbox(GALLERY[+f.dataset.i])));
 }
 function openLightbox(g){
   $("#lightboxRoot").innerHTML = `<div class="lightbox" id="lb"><span class="lb-close">&times;</span><div class="lb-pair"><div class="lb-item"><span class="tag">Before</span><img src="${g.before.replace("w=700","w=1600")}" alt="${esc(g.caption)} before grooming"></div><div class="lb-item"><span class="tag tag-after">After</span><img src="${g.after.replace("w=700","w=1600")}" alt="${esc(g.caption)} after grooming"></div></div></div>`;
