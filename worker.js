@@ -74,8 +74,10 @@ async function busyFor(DB, groomerId, dateStr) {
 async function slotsFor(DB, groomerId, dateStr, duration) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-  const hours = await DB.prepare('SELECT open_min, close_min FROM opening_hours WHERE dow = ?').bind(dow).first();
-  if (!hours || hours.open_min == null) return [];
+  const shopHours = await DB.prepare('SELECT open_min, close_min FROM opening_hours WHERE dow = ?').bind(dow).first();
+  const staffHours = await DB.prepare('SELECT open_min, close_min FROM staff_hours WHERE groomer_id = ? AND dow = ?').bind(groomerId, dow).first();
+  const hours = mergeHours(shopHours, staffHours);
+  if (!hours) return [];
   const busy = await busyFor(DB, groomerId, dateStr);
   const nowTs = Date.now() / 60000;
   const out = [];
@@ -92,6 +94,19 @@ async function slotsFor(DB, groomerId, dateStr, duration) {
 async function hoursFor(DB, dow) {
   const hours = await DB.prepare('SELECT open_min, close_min FROM opening_hours WHERE dow = ?').bind(dow).first();
   return (hours && hours.open_min != null && hours.close_min != null) ? hours : null;
+}
+
+// Combine shop opening hours with an optional staff-specific override for
+// the same day. A staff row with open_min = null means that staff member
+// doesn't work that day at all (independent of the shop being open).
+// Where both are set, the working window is the overlap of the two.
+function mergeHours(shopHours, staffHours) {
+  if (!shopHours || shopHours.open_min == null || shopHours.close_min == null) return null;
+  if (staffHours && staffHours.open_min == null) return null;
+  const open_min = staffHours && staffHours.open_min != null ? Math.max(shopHours.open_min, staffHours.open_min) : shopHours.open_min;
+  const close_min = staffHours && staffHours.close_min != null ? Math.min(shopHours.close_min, staffHours.close_min) : shopHours.close_min;
+  if (open_min >= close_min) return null;
+  return { open_min, close_min };
 }
 
 // Work out the most recently completed "closed" window: from the last time
@@ -261,9 +276,17 @@ export default {
       // ---- GET /api/hours ---- (public — lets the calendar derive its day/week
       // grid window from real opening hours instead of a hardcoded window)
       if (segments.length === 1 && segments[0] === 'hours' && method === 'GET') {
-        const rows = await DB.prepare('SELECT dow, open_min, close_min FROM opening_hours ORDER BY dow').all();
-        return json(rows.results);
-      }
+      const shopRows = (await DB.prepare('SELECT dow, open_min, close_min FROM opening_hours ORDER BY dow').all()).results;
+      const staffId = url.searchParams.get('staffId');
+      if (!staffId) return json(shopRows);
+      const staffRows = (await DB.prepare('SELECT dow, open_min, close_min FROM staff_hours WHERE groomer_id = ? ORDER BY dow').bind(Number(staffId)).all()).results;
+      const staffByDow = new Map(staffRows.map((r) => [r.dow, r]));
+      const merged = shopRows.map((shop) => {
+        const eff = mergeHours(shop, staffByDow.get(shop.dow));
+        return { dow: shop.dow, open_min: eff ? eff.open_min : null, close_min: eff ? eff.close_min : null };
+      });
+      return json(merged);
+    }
 
       // ---- GET /api/availability?date=&serviceId=&groomerId=(optional|any) ----
       if (segments.length === 1 && segments[0] === 'availability' && method === 'GET') {
