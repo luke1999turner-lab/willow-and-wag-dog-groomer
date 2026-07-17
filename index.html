@@ -233,30 +233,19 @@ background:var(--card2);border:1px solid var(--line);padding:4px 12px;border-rad
 .card.member .bio{font-size:13.5px;color:var(--slate);margin:14px 0 0}
 
 /* ---------- gallery (The Transformation) ---------- */
-.gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:28px}
+.gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
 .gallery figure{margin:0;cursor:pointer;position:relative;text-align:center}
-.gallery .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
-.gallery .photo-frame{width:100%;aspect-ratio:4/5;margin:0;position:relative;border-radius:26px 26px 10px 26px;overflow:hidden;
+.gallery .photo-frame{width:100%;aspect-ratio:4/5;margin:0 auto 14px;border-radius:26px 26px 10px 26px;overflow:hidden;
   box-shadow:var(--shadow);transition:.25s ease;border:1px solid var(--line)}
-.gallery .photo-frame:last-child{border-radius:10px 26px 26px 26px}
 .gallery .photo-frame img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
-.tag{position:absolute;top:10px;left:10px;z-index:2;background:rgba(20,16,12,.72);color:#fff;font-size:11px;font-weight:700;
-  letter-spacing:.04em;text-transform:uppercase;padding:4px 10px;border-radius:999px}
-.tag-after{left:auto;right:10px;background:var(--terracotta)}
 .gallery figure:hover .photo-frame{transform:translateY(-4px);box-shadow:0 1px 3px rgba(40,30,10,.08),0 26px 48px -18px rgba(40,30,10,.28)}
 .gallery figure:hover .photo-frame img{transform:scale(1.05)}
 .gallery figcaption{font-size:13px;font-weight:600;color:var(--slate)}
-@media(max-width:760px){.gallery{grid-template-columns:1fr}
-.gallery .pair{gap:6px}}
+@media(max-width:760px){.gallery{grid-template-columns:repeat(2,1fr);gap:28px}}
 
 .lightbox{position:fixed;inset:0;background:rgba(34,28,20,.92);z-index:60;display:grid;place-items:center;padding:30px}
 .lightbox img{max-width:100%;max-height:85vh;border-radius:14px}
 .lightbox .lb-close{position:absolute;top:22px;right:26px;color:#fff;font-size:30px;cursor:pointer;line-height:1}
-.lightbox .lb-pair{display:flex;gap:20px;max-width:94vw;max-height:85vh;align-items:center}
-.lightbox .lb-item{position:relative;flex:1;min-width:0}
-.lightbox .lb-item img{max-width:100%;max-height:80vh;border-radius:14px;display:block;margin:0 auto}
-@media(max-width:700px){.lightbox .lb-pair{flex-direction:column;max-height:none}
-.lightbox .lb-item img{max-height:40vh}}
 
 /* ---------- reviews (same paw-print mosaic structure as the hero) ---------- */
 .rev-head{display:flex;align-items:center;justify-content:space-between;gap:20px;max-width:1140px;margin:0 auto 8px;flex-wrap:wrap}
@@ -470,11 +459,6 @@ padding:10px 14px;gap:10px}
 <a href="#book" class="btn primary big">Book Appointment</a>
 <a href="#gallery" class="btn ghost big">Explore Gallery</a>
 </div>
-<!-- PLACEHOLDER SOCIAL PROOF -- rating, review count, years-of-craft and
-     grooms-delivered figures below (this line and the stats band underneath)
-     are temporary placeholders. Replace with the client's real Google rating
-     and verified volume stats before launch. Fabricated reviews/stats breach
-     UK CMA fake-review rules. -->
 <div class="trust"><span class="stars">★★★★★</span><span>4.9 out of 5 · 210+ Google reviews</span></div>
 </div>
 <div class="hero-photo-wrap floaty">
@@ -672,7 +656,12 @@ const DB = {
     if (!r.ok) throw new Error(data.error || "Not found.");
     return data;
   },
-  async cancel(ref, email){ const r = await fetch(`${API}/appointments/lookup`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ ref, email, status:"cancelled" }) }); const data = await r.json(); if (!r.ok) throw new Error(data.error || "Could not cancel."); return data; }, async reschedule(ref, email, date, min){ const r = await fetch(`${API}/appointments/lookup`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ ref, email, date, min }) }); const data = await r.json(); if (!r.ok) throw new Error(data.error || "Could not change your booking time."); return data; },
+  async cancel(ref, email){
+    const r = await fetch(`${API}/appointments/lookup`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ ref, email, status:"cancelled" }) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Could not cancel.");
+    return data;
+  },
   async waitlist(payload){
     const r = await fetch(`${API}/waitlist`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
     const data = await r.json();
@@ -680,22 +669,16 @@ const DB = {
     return data;
   },
   fmt(min){ return `${String(Math.floor(min/60)).padStart(2,"0")}:${String(min%60).padStart(2,"0")}`; },
-  money(pence){ const p = pence / 100; return `£${Number.isInteger(p) ? p : p.toFixed(2)}`; }
+  money(pence){ return `£${(pence/100).toFixed(2)}`; }
 };
 
 /* ================= static content (not stored in D1 — same pattern as Vanguard/Riverside) ================= */
-/* PLACEHOLDER GALLERY PHOTOS — before/after pairs currently use temporary stock
-   images, not this client's real dogs. Replace src fields with the client's own
-   before/after grooming photos before launch. */
 const GALLERY = [
-  { before:"https://images.unsplash.com/photo-1594149929911-78975a43d4f5?auto=format&fit=crop&w=700&q=75", after:"https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=700&q=75", caption:"Chloe · Bichon Frise" },
-  { before:"https://images.unsplash.com/photo-1528846104175-4fd300ee59da?auto=format&fit=crop&w=700&q=75", after:"https://images.unsplash.com/photo-1591160690555-5debfba289f0?auto=format&fit=crop&w=700&q=75", caption:"Max · Cockapoo" },
-  { before:"https://images.unsplash.com/photo-1611173622933-91942d394b04?auto=format&fit=crop&w=700&q=75", after:"https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=700&q=75", caption:"Bella · Golden Retriever" },
-  { before:"https://images.unsplash.com/photo-1719464454959-9cf304ef4774?auto=format&fit=crop&w=700&q=75", after:"https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=700&q=75", caption:"Rocky · Schnauzer" },
+  { src:"https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=700&q=75", alt:"Groomed Bichon Frise", caption:"Chloe · Bichon Frise" },
+  { src:"https://images.unsplash.com/photo-1591160690555-5debfba289f0?auto=format&fit=crop&w=700&q=75", alt:"Groomed Poodle mix", caption:"Max · Cockapoo" },
+  { src:"https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=700&q=75", alt:"Groomed Golden Retriever", caption:"Bella · Golden Retriever" },
+  { src:"https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=700&q=75", alt:"Groomed Schnauzer", caption:"Rocky · Schnauzer" },
 ];
-/* PLACEHOLDER SOCIAL PROOF -- replace with the client's real Google review
-   quotes (with permission) before launch. Fabricated reviews breach UK CMA
-   fake-review rules. */
 const REVIEWS = [
   { name:"Amelia R.", summary:"Patient with nervous dogs — booking took seconds.", text:"Sarah is incredible with nervous dogs — my rescue actually enjoys her grooms now. Booking online took thirty seconds.", stars:5 },
   { name:"Tom W.", summary:"De-shedding treatment is worth every penny.", text:"The de-shedding treatment for our Husky is worth every penny. House has never had less fur in it.", stars:5 },
@@ -753,11 +736,11 @@ function renderTeam(groomers){
 
 /* ================= gallery ================= */
 function renderGallery(){
-  $("#galleryGrid").innerHTML = GALLERY.map((g, i) => `<figure data-i="${i}"><div class="pair"><div class="photo-frame"><span class="tag">Before</span><img src="${g.before}" alt="${esc(g.caption)} before grooming" loading="lazy"></div><div class="photo-frame"><span class="tag tag-after">After</span><img src="${g.after}" alt="${esc(g.caption)} after grooming" loading="lazy"></div></div><figcaption>${esc(g.caption)}</figcaption></figure>`).join("");
+  $("#galleryGrid").innerHTML = GALLERY.map((g, i) => `<figure data-i="${i}"><div class="photo-frame"><img src="${g.src}" alt="${esc(g.alt)}" loading="lazy"></div><figcaption>${esc(g.caption)}</figcaption></figure>`).join("");
   $$("#galleryGrid figure").forEach((f) => f.addEventListener("click", () => openLightbox(GALLERY[+f.dataset.i])));
 }
 function openLightbox(g){
-  $("#lightboxRoot").innerHTML = `<div class="lightbox" id="lb"><span class="lb-close">&times;</span><div class="lb-pair"><div class="lb-item"><span class="tag">Before</span><img src="${g.before.replace("w=700","w=1600")}" alt="${esc(g.caption)} before grooming"></div><div class="lb-item"><span class="tag tag-after">After</span><img src="${g.after.replace("w=700","w=1600")}" alt="${esc(g.caption)} after grooming"></div></div></div>`;
+  $("#lightboxRoot").innerHTML = `<div class="lightbox" id="lb"><span class="lb-close">&times;</span><img src="${g.src.replace("w=700","w=1600")}" alt="${esc(g.alt)}"></div>`;
   const lb = $("#lb");
   lb.addEventListener("click", () => { $("#lightboxRoot").innerHTML = ""; });
 }
@@ -975,7 +958,7 @@ function panel4(){
       <div class="field"><label>Email</label><input type="email" id="pemail" placeholder="john@email.com"></div>
       <div class="field"><label>Phone</label><input type="tel" id="pphone" placeholder="07123 456789"></div>
     </div>
-    <div class="row"><div class="field"><label>Dog's name</label><input type="text" id="pdogname" placeholder="Bella"></div><div class="field"><label>Breed / mix</label><input type="text" id="pbreed" placeholder="Cockapoo"></div></div><div class="field"><label>Size</label><select id="psize"><option value="">Select size…</option><option value="Small (under 10kg)">Small (under 10kg)</option><option value="Medium (10–25kg)">Medium (10–25kg)</option><option value="Large (over 25kg)">Large (over 25kg)</option></select></div><div class="field"><label>Anything we should know? (coat condition, temperament, first groom…)</label><textarea id="pnotes" rows="2" placeholder="e.g. nervous around the dryer, sensitive skin…"></textarea></div>
+    <div class="field"><label>Notes for your groomer (optional)</label><textarea id="pnotes" rows="2" placeholder="e.g. nervous around the dryer, sensitive skin…"></textarea></div>
     <div class="notice err hidden" id="err4"></div>
     <div class="actions"><a class="btn ghost" id="b4back">Back</a><a class="btn primary" id="b4submit">Confirm booking</a></div>
   </div>`;
@@ -987,12 +970,12 @@ function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
 async function submitBooking(){
   const err = $("#err4");
   err.classList.add("hidden");
-  ["#pname","#pemail","#pphone","#pdogname","#pbreed","#psize"].forEach((s) => $(s).classList.remove("invalid"));
-  const name = $("#pname").value.trim(), email = $("#pemail").value.trim(), phone = $("#pphone").value.trim(), dogName = $("#pdogname").value.trim(), breed = $("#pbreed").value.trim(), size = $("#psize").value;
+  ["#pname","#pemail","#pphone"].forEach((s) => $(s).classList.remove("invalid"));
+  const name = $("#pname").value.trim(), email = $("#pemail").value.trim(), phone = $("#pphone").value.trim();
   const problems = [];
   if (name.length < 2){ problems.push("your full name"); $("#pname").classList.add("invalid"); }
   if (!validEmail(email)){ problems.push("a valid email"); $("#pemail").classList.add("invalid"); }
-  if (phone.replace(/\D/g,"").length < 7){ problems.push("a valid phone number"); $("#pphone").classList.add("invalid"); } if (dogName.length < 2){ problems.push("your dog's name"); $("#pdogname").classList.add("invalid"); } if (breed.length < 2){ problems.push("your dog's breed"); $("#pbreed").classList.add("invalid"); } if (!size){ problems.push("your dog's size"); $("#psize").classList.add("invalid"); }
+  if (phone.replace(/\D/g,"").length < 7){ problems.push("a valid phone number"); $("#pphone").classList.add("invalid"); }
   if (problems.length){
     err.textContent = `Please check: ${problems.join(", ")}.`;
     err.classList.remove("hidden");
@@ -1001,7 +984,11 @@ async function submitBooking(){
   const btn = $("#b4submit");
   btn.textContent = "Booking…"; btn.style.pointerEvents = "none";
   try{
-    const dogLine = `Dog: ${dogName} · Breed: ${breed} · Size: ${size}`; const extraNotes = $("#pnotes").value.trim(); const composedNotes = extraNotes ? `${dogLine}\n${extraNotes}` : dogLine; const result = await DB.book({ serviceId: state.service.id, groomerId: state.groomerId, date: state.date, min: state.slotMin, name, email, phone, notes: composedNotes }); result.dogName = dogName; panelConfirm(result);
+    const result = await DB.book({
+      serviceId: state.service.id, groomerId: state.groomerId, date: state.date, min: state.slotMin,
+      name, email, phone, notes: $("#pnotes").value.trim()
+    });
+    panelConfirm(result);
   } catch(e){
     err.textContent = e.message;
     err.classList.remove("hidden");
@@ -1009,44 +996,19 @@ async function submitBooking(){
   }
 }
 function panelConfirm(result){
-  state.lastBooking = result;
   $("#stepsBar").innerHTML = "";
   $("#panels").innerHTML = `<div class="panel confirm">
     <div class="tick">✓</div>
     <h2>You're booked in.</h2>
-    <p class="sub">${esc(result.when)} with ${esc(result.groomerName)}${result.dogName ? ` for ${esc(result.dogName)}` : ""}</p>
+    <p class="sub">${esc(result.when)} with ${esc(result.groomerName)}</p>
     <div class="refbox">${esc(result.ref)}</div>
     <p class="hint">Keep this reference and your email handy to manage your booking.</p>
     <div class="confirm-actions">
-      <a class="btn ghost" href="#" id="icsBtn">Add to calendar</a>
       <a class="btn ghost" href="#services">Book another</a>
       <a class="btn primary" href="#" id="doneClose">Done</a>
     </div>
   </div>`;
-  $("#icsBtn").addEventListener("click", (e) => { e.preventDefault(); downloadICS(result); });
   $("#doneClose").addEventListener("click", (e) => { e.preventDefault(); document.getElementById("services").scrollIntoView({behavior:"smooth"}); });
-}
-
-/* ---------------- add to calendar (.ics) ---------------- */
-function downloadICS(result){
-  const s = state.service;
-  const dt = (min) => state.date.replace(/-/g, "") + "T" + DB.fmt(min).replace(":", "") + "00";
-  const endMin = state.slotMin + s.duration_min;
-  const ics = [
-    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Willow \u0026 Wag//EN",
-    "BEGIN:VEVENT",
-    "UID:" + result.ref + "@" + location.hostname,
-    "DTSTART:" + dt(state.slotMin),
-    "DTEND:" + dt(endMin),
-    "SUMMARY:" + s.name + " \u2014 Willow \u0026 Wag" + (result.dogName ? " (" + result.dogName + ")" : ""),
-    "DESCRIPTION:With " + result.groomerName + ". Ref " + result.ref + ". Need to change your time? Use Manage booking with your reference and email.",
-    "LOCATION:22 Hathersage Road, Sheffield S11 9QT",
-    "END:VEVENT", "END:VCALENDAR",
-  ].join("\r\n");
-  const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
-  const link = Object.assign(document.createElement("a"), { href: url, download: "appointment.ics" });
-  link.click();
-  URL.revokeObjectURL(url);
 }
 
 /* ================= waitlist modal ================= */
@@ -1101,12 +1063,41 @@ function openManageModal(){
   $("#mgClose").addEventListener("click", closeManageModal);
   $("#mgCancelBtn").addEventListener("click", closeManageModal);
   $("#mgBackdrop").addEventListener("click", (e) => { if (e.target.id === "mgBackdrop") closeManageModal(); });
-  function showBookingSummary(ref, email, b){ $("#mgBody").innerHTML = `<div class="summary"><div><span class="k">Service</span><span class="v">${esc(b.serviceName)}</span></div><div><span class="k">Groomer</span><span class="v">${esc(b.groomerName)}</span></div><div><span class="k">When</span><span class="v">${esc(b.when)}</span></div><div><span class="k">Reference</span><span class="v">${esc(b.ref)}</span></div></div><div class="notice err hidden" id="mgErr2"></div>`; $("#mgFooter").innerHTML = `<a class="btn ghost" id="mgCancelBtn2">Close</a><a class="btn ghost" id="mgRescheduleBtn">Change time</a><a class="link-danger" id="mgCancelAppt">Cancel this booking</a>`; $("#mgCancelBtn2").addEventListener("click", closeManageModal); $("#mgRescheduleBtn").addEventListener("click", () => { $("#mgBody").innerHTML = `<div class="notice err hidden" id="mgErr3"></div><div class="field"><label>New date</label><input type="date" id="mgNewDate"></div><div class="field"><label>New time</label><select id="mgNewTime"><option value="">Select a date first…</option></select></div>`; $("#mgFooter").innerHTML = `<a class="btn ghost" id="mgBackToSummary">Back</a><a class="btn primary" id="mgConfirmReschedule">Confirm new time</a>`; $("#mgBackToSummary").addEventListener("click", () => showBookingSummary(ref, email, b)); $("#mgNewDate").addEventListener("change", async () => { const sel = $("#mgNewTime"); sel.innerHTML = `<option value="">Loading…</option>`; try{ const slots = await DB.availability($("#mgNewDate").value, b.serviceId, b.groomerId); sel.innerHTML = slots.length ? slots.map((m) => `<option value="${m}">${DB.fmt(m)}</option>`).join("") : `<option value="">No availability that day</option>`; } catch(e){ sel.innerHTML = `<option value="">Could not load times</option>`; } }); $("#mgConfirmReschedule").addEventListener("click", async () => { const err3 = $("#mgErr3"); const newDate = $("#mgNewDate").value, newMin = $("#mgNewTime").value; if (!newDate || newMin === ""){ err3.textContent = "Please choose a new date and time."; err3.classList.remove("hidden"); return; } try{ const updated = await DB.reschedule(ref, email, newDate, Number(newMin)); b.when = updated.when || b.when; b.date = updated.date; b.startMin = updated.startMin; showBookingSummary(ref, email, b); } catch(e){ err3.textContent = e.message; err3.classList.remove("hidden"); } }); }); $("#mgCancelAppt").addEventListener("click", async () => { if (!confirm("Cancel this appointment? This cannot be undone.")) return; try{ await DB.cancel(ref, email); $("#mgBody").innerHTML = `<div class="confirm"><div class="tick">✓</div><h2 style="font-size:18px">Booking cancelled</h2><p class="sub">Your appointment has been cancelled. We hope to see you again soon.</p></div>`; $("#mgFooter").innerHTML = `<a class="btn primary" style="width:100%" id="mgDone">Done</a>`; $("#mgDone").addEventListener("click", closeManageModal); } catch(e){ $("#mgErr2").textContent = e.message; $("#mgErr2").classList.remove("hidden"); } }); } $("#mgLookup").addEventListener("click", async () => {
+  $("#mgLookup").addEventListener("click", async () => {
     const err = $("#mgErr");
     const ref = $("#mgRef").value.trim(), email = $("#mgEmail").value.trim();
     if (!ref || !validEmail(email)){ err.textContent = "Please enter your reference and a valid email."; err.classList.remove("hidden"); return; }
     try{
-      const b = await DB.lookup(ref, email); showBookingSummary(ref, email, b); } catch(e){ err.textContent = e.message; err.classList.remove("hidden"); } }); } function closeManageModal(){ $("#modalRoot").innerHTML = ""; }
+      const b = await DB.lookup(ref, email);
+      $("#mgBody").innerHTML = `
+        <div class="summary">
+          <div><span class="k">Service</span><span class="v">${esc(b.serviceName)}</span></div>
+          <div><span class="k">Groomer</span><span class="v">${esc(b.groomerName)}</span></div>
+          <div><span class="k">When</span><span class="v">${esc(b.when)}</span></div>
+          <div><span class="k">Reference</span><span class="v">${esc(b.ref)}</span></div>
+        </div>
+        <div class="notice err hidden" id="mgErr2"></div>`;
+      $("#mgFooter").innerHTML = `<a class="btn ghost" id="mgCancelBtn2">Close</a><a class="link-danger" id="mgCancelAppt">Cancel this booking</a>`;
+      $("#mgCancelBtn2").addEventListener("click", closeManageModal);
+      $("#mgCancelAppt").addEventListener("click", async () => {
+        if (!confirm("Cancel this appointment? This cannot be undone.")) return;
+        try{
+          await DB.cancel(ref, email);
+          $("#mgBody").innerHTML = `<div class="confirm"><div class="tick">✓</div><h2 style="font-size:18px">Booking cancelled</h2><p class="sub">Your appointment has been cancelled. We hope to see you again soon.</p></div>`;
+          $("#mgFooter").innerHTML = `<a class="btn primary" style="width:100%" id="mgDone">Done</a>`;
+          $("#mgDone").addEventListener("click", closeManageModal);
+        } catch(e){
+          $("#mgErr2").textContent = e.message;
+          $("#mgErr2").classList.remove("hidden");
+        }
+      });
+    } catch(e){
+      err.textContent = e.message;
+      err.classList.remove("hidden");
+    }
+  });
+}
+function closeManageModal(){ $("#modalRoot").innerHTML = ""; }
 $("#manageLink").addEventListener("click", (e) => { e.preventDefault(); openManageModal(); });
 
 /* ================= boot ================= */
@@ -1122,6 +1113,135 @@ $("#manageLink").addEventListener("click", (e) => { e.preventDefault(); openMana
   } catch(e){
     $("#panels").innerHTML = `<div class="panel"><div class="notice err">Unable to load live booking data right now. Please call us on 0114 496 0192.</div></div>`;
     console.error(e);
+  }
+})();
+</script>
+<!-- Sorted Sites lead-capture chatbot -->
+<script>
+window.SS_CHAT = {
+  business: "Willow & Wag",
+  phone: "0114 496 0192",
+  accent: "#2f4b3b",
+  accent2: "#1f3327",
+  greeting: "Hi! 👋 Thanks for stopping by Willow & Wag. Want to book your dog in, or have a quick question first?",
+  bookHref: "#book"
+};
+</script>
+<style>
+.ssc-launch{position:fixed;right:20px;bottom:20px;z-index:99998;display:flex;align-items:center;gap:10px;cursor:pointer;font-family:'Inter',system-ui,sans-serif}
+.ssc-launch .b{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--ssc-acc2,#6fd6ff),var(--ssc-acc,#33c2ff));box-shadow:0 12px 30px -8px rgba(0,0,0,.55);transition:.25s}
+.ssc-launch .b:hover{transform:translateY(-3px) scale(1.05)}
+.ssc-launch .b svg{width:28px;height:28px;stroke:#fff;fill:none}
+.ssc-launch .lab{background:#fff;color:#0b1118;font-weight:600;font-size:.88rem;padding:9px 14px;border-radius:999px;box-shadow:0 8px 22px -8px rgba(0,0,0,.4)}
+@media(max-width:560px){.ssc-launch .lab{display:none}}
+.ssc-panel{position:fixed;right:20px;bottom:20px;z-index:99999;width:372px;max-width:calc(100vw - 32px);height:566px;max-height:calc(100vh - 40px);background:#0b1118;border:1px solid rgba(255,255,255,.12);border-radius:18px;box-shadow:0 30px 80px -20px rgba(0,0,0,.75);display:none;flex-direction:column;overflow:hidden;font-family:'Inter',system-ui,sans-serif}
+.ssc-panel.open{display:flex}
+.ssc-head{padding:15px 18px;background:linear-gradient(135deg,var(--ssc-acc,#33c2ff),var(--ssc-acc2,#5b8cff));color:#fff;display:flex;align-items:center;justify-content:space-between}
+.ssc-head .t{font-weight:800;font-size:1.02rem;line-height:1.1}
+.ssc-head .s{font-size:.74rem;opacity:.9;font-weight:600;margin-top:2px}
+.ssc-head .x{cursor:pointer;font-size:1.5rem;font-weight:700;line-height:1;padding:0 4px}
+.ssc-body{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:10px}
+.ssc-msg{max-width:84%;padding:11px 14px;border-radius:15px;font-size:.92rem;line-height:1.45;animation:sscIn .25s ease}
+@keyframes sscIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.ssc-bot{align-self:flex-start;background:#1a2230;color:#eaf1f8;border-bottom-left-radius:5px}
+.ssc-user{align-self:flex-end;background:linear-gradient(135deg,var(--ssc-acc,#33c2ff),var(--ssc-acc2,#5b8cff));color:#fff;font-weight:600;border-bottom-right-radius:5px}
+.ssc-qr{display:flex;flex-wrap:wrap;gap:8px;align-self:flex-start;max-width:100%}
+.ssc-qr button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);color:#eaf1f8;font:inherit;font-size:.85rem;padding:8px 13px;border-radius:999px;cursor:pointer;transition:.2s}
+.ssc-qr button:hover{background:rgba(255,255,255,.12);border-color:var(--ssc-acc,#33c2ff);transform:translateY(-1px)}
+.ssc-cta{display:flex;flex-direction:column;gap:8px;align-self:stretch;margin-top:2px}
+.ssc-cta a{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;font-weight:700;padding:13px;border-radius:12px;font-size:.92rem}
+.ssc-wa{background:#25d366;color:#04210f}
+.ssc-call{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff}
+.ssc-foot{padding:11px 14px;border-top:1px solid rgba(255,255,255,.08);display:none;gap:8px}
+.ssc-foot input{flex:1;background:#121a26;border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:10px 15px;font:inherit;font-size:.9rem;outline:none}
+.ssc-foot input:focus{border-color:var(--ssc-acc,#33c2ff)}
+.ssc-foot .send{width:42px;height:42px;flex:none;border-radius:50%;border:none;background:linear-gradient(135deg,var(--ssc-acc,#33c2ff),var(--ssc-acc2,#5b8cff));color:#fff;font-size:1.05rem;cursor:pointer}
+.ssc-brand{text-align:center;font-size:.66rem;color:#5f6b7c;padding:8px}
+.ssc-msg a{color:var(--ssc-acc,#33c2ff);font-weight:600}
+</style>
+<script>
+(function(){
+  var C=window.SS_CHAT||{};
+  var LEAD_ENDPOINT=C.leadEndpoint||"https://sorted-leads.luke1999-turner.workers.dev";
+  var business=C.business||"us";
+  var telRaw=C.phone||"";
+  var tel=telRaw.replace(/[^0-9+]/g,"");
+  var disp=C.phoneDisplay||C.phone||tel;
+  var wa=tel.replace(/[^0-9]/g,"");
+  if(wa.charAt(0)==='0')wa='44'+wa.slice(1);
+  var acc=C.accent||'#33c2ff', acc2=C.accent2||acc;
+  var greeting=C.greeting||("Hi! 👋 Thanks for stopping by "+business+". Want to book, or have a quick question first?");
+  var bookHref=C.bookHref||"#book";
+  var JUNK=['help','test','testing','tester','asdf','asdfgh','asdfghjkl','qwerty','qwe','none','na','n/a','nonsense','idk','dunno','hi','hiya','hello','hey','yes','no','ok','okay','abc','abcd','aaa','aaaa','xxx','blah','stuff','thing','whatever'];
+  var de=document.documentElement;
+  de.style.setProperty('--ssc-acc',acc);
+  de.style.setProperty('--ssc-acc2',acc2);
+  function vPhone(v){var d=v.replace(/[^\d+]/g,'');if(/^(?:0\d{9,10}|\+44\d{9,10})$/.test(d))return v.trim();return false;}
+  function vName(v){var t=v.trim();if(t.length<2)return false;if(/^\d+$/.test(t))return false;if(!/^[a-zA-Z][a-zA-Z '\-]*$/.test(t))return false;if(JUNK.indexOf(t.toLowerCase())>=0)return false;if(t.length>3&&!/[aeiouAEIOU]/.test(t))return false;return t;}
+  function vFree(v){var t=v.trim();if(t.length<2)return false;if(JUNK.indexOf(t.toLowerCase())>=0)return false;return t;}
+  var launch=document.createElement('div');launch.className='ssc-launch';
+  launch.innerHTML='<span class="lab">💬 Quick question?</span><span class="b"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.4 8.6 8.6 0 0 1-3.9-.9L3 20l1.1-4.1A8.3 8.3 0 0 1 3 11.5 8.4 8.4 0 0 1 11.5 3 8.4 8.4 0 0 1 21 11.5Z"/></svg></span>';
+  var panel=document.createElement('div');panel.className='ssc-panel';
+  panel.innerHTML='<div class="ssc-head"><div><div class="t">'+business+'</div><div class="s">⚡ Typically replies in minutes</div></div><div class="x" id="sscx">×</div></div><div class="ssc-body" id="sscbody"></div><div class="ssc-foot" id="sscfoot"><input id="sscin" placeholder="Type your answer…" autocomplete="off"><button class="send" id="sscsend">➤</button></div><div class="ssc-brand">Powered by Sorted Sites</div>';
+  document.body.appendChild(launch);document.body.appendChild(panel);
+  var body=panel.querySelector('#sscbody'), foot=panel.querySelector('#sscfoot'), input=panel.querySelector('#sscin');
+  var data={reason:'',question:'',name:'',phone:''}, started=false, current=null;
+  function scroll(){body.scrollTop=body.scrollHeight;}
+  function open(){panel.classList.add('open');launch.style.display='none';if(!started){started=true;begin();}}
+  function close(){panel.classList.remove('open');launch.style.display='flex';}
+  launch.onclick=open; panel.querySelector('#sscx').onclick=close;
+  function bot(html,cb){var m=document.createElement('div');m.className='ssc-msg ssc-bot';m.textContent='…';body.appendChild(m);scroll();setTimeout(function(){m.innerHTML=html;scroll();if(cb)cb();},550);}
+  function user(text){var m=document.createElement('div');m.className='ssc-msg ssc-user';m.textContent=text;body.appendChild(m);scroll();}
+  function quick(options,onPick){setTimeout(function(){var wrap=document.createElement('div');wrap.className='ssc-qr';options.forEach(function(o){var b=document.createElement('button');b.textContent=o;b.onclick=function(){wrap.remove();user(o);onPick(o);};wrap.appendChild(b);});body.appendChild(wrap);scroll();},650);}
+  function ask(promptHtml,key,validator,hint,next){bot(promptHtml,function(){foot.style.display='flex';input.focus();current={key:key,validator:validator,hint:hint,next:next,tries:0};});}
+  function submitInput(){
+    var v=input.value.trim();if(!v||!current)return;input.value='';user(v);
+    var res=current.validator?current.validator(v):v;
+    if(res===false){
+      current.tries++;
+      var extra=(current.tries>=2&&tel)?' If it’s easier, just give us a ring 👉 <a href="tel:'+tel+'">'+(disp||'call us')+'</a>':'';
+      bot(current.hint+extra,function(){input.focus();});
+      return;
+    }
+    data[current.key]=(res===true?v:res);
+    var n=current.next;current=null;foot.style.display='none';n();
+  }
+  panel.querySelector('#sscsend').onclick=submitInput;
+  input.addEventListener('keydown',function(e){if(e.key==='Enter')submitInput();});
+  function goBook(){
+    bot("Great — you can book straight away just below 👇",function(){
+      var cta=document.createElement('div');cta.className='ssc-cta';var h='';
+      h+='<a style="background:linear-gradient(135deg,var(--ssc-acc,#33c2ff),var(--ssc-acc2,#5b8cff));color:#04120f" href="'+bookHref+'" id="sscbooklink">📅 Go to booking</a>';
+      if(tel)h+='<a class="ssc-call" href="tel:'+tel+'">📞 Call '+(disp||'')+'</a>';
+      cta.innerHTML=h;body.appendChild(cta);scroll();
+      var bl=document.getElementById('sscbooklink');
+      if(bl)bl.addEventListener('click',function(){close();});
+    });
+  }
+  function begin(){
+    bot(greeting,function(){
+      quick(['Book an appointment','Ask a question','Something else'],function(pick){
+        if(pick==='Book an appointment'){goBook();}
+        else{data.reason=pick;askQuestion();}
+      });
+    });
+  }
+  function askQuestion(){ask("No problem — what’s your question, in a few words?","question",vFree,"Just pop in a quick line about what you need and I’ll pass it straight on.",askName);}
+  function askName(){ask("Thanks! And what’s your name?","name",vName,"Sorry, I didn’t quite catch that — what’s your first name?",askPhone);}
+  function askPhone(){ask("Great, "+data.name+"! What’s the best number to reach you on?","phone",vPhone,"That doesn’t look like a phone number 📞 — could you pop it in, e.g. 07700 900123?",finish);}
+  function sendLead(){
+    if(!LEAD_ENDPOINT)return;
+    try{fetch(LEAD_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:business,service:data.reason+' — '+data.question,postcode:'',name:data.name,phone:data.phone,site:location.hostname,time:new Date().toISOString()})});}catch(e){}
+  }
+  function finish(){
+    sendLead();
+    bot("Perfect — got everything I need:<br><br>💬 <b>"+data.question+"</b><br>👤 "+data.name+"<br>📞 "+data.phone+"<br><br>"+business+" has your details and will be straight in touch 👍 Want to reach us now?",function(){
+      var msg=encodeURIComponent("Hi "+business+"! "+data.question+"\nName: "+data.name+"\nNumber: "+data.phone);
+      var cta=document.createElement('div');cta.className='ssc-cta';var h='';
+      if(wa)h+='<a class="ssc-wa" href="https://wa.me/'+wa+'?text='+msg+'" target="_blank" rel="noopener">💬 Message on WhatsApp</a>';
+      if(tel)h+='<a class="ssc-call" href="tel:'+tel+'">📞 Call '+(disp||'')+'</a>';
+      cta.innerHTML=h;body.appendChild(cta);scroll();
+    });
   }
 })();
 </script>
