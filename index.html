@@ -1123,6 +1123,17 @@ window.SS_CHAT = {
   phone: "0114 496 0192",
   accent: "#2f4b3b",
   accent2: "#1f3327",
+  area: "Sheffield",
+  services: ["Dog grooming", "Bath & brush", "Full boutique groom", "Nail trims"],
+  knowledge: [
+    "We recommend booking online to guarantee your preferred groomer and time, especially for full boutique experiences and weekends.",
+    "You can choose 'Any available groomer' for the fastest slot, or pick a named groomer if you have a preference.",
+    "To cancel or change a booking, use 'Manage booking' in the top menu with the booking reference and email, any time before the appointment.",
+    "All groomers are fully insured, trained in fear-free handling, and every dog is supervised throughout their visit.",
+    "Please arrive 5 minutes before the slot with the dog on a secure lead; more than 10 minutes late may mean rescheduling.",
+    "Opening hours: Monday-Friday 8:30am-6pm, Saturday 9am-4pm, closed Sunday.",
+    "Address: 22 Hathersage Road, Sheffield S11 9QT."
+  ],
   greeting: "Hi! 👋 Thanks for stopping by Willow & Wag. Want to book your dog in, or have a quick question first?",
   bookHref: "#book"
 };
@@ -1172,6 +1183,11 @@ window.SS_CHAT = {
   var acc=C.accent||'#33c2ff', acc2=C.accent2||acc;
   var greeting=C.greeting||("Hi! 👋 Thanks for stopping by "+business+". Want to book, or have a quick question first?");
   var bookHref=C.bookHref||"#book";
+  var knowledge=C.knowledge||[];
+  var areaText=C.area||"";
+  var servicesForAI=C.services||[];
+  var AI_ENDPOINT=LEAD_ENDPOINT.replace(/\/$/,"")+"/ai-chat";
+  var history=[];
   var JUNK=['help','test','testing','tester','asdf','asdfgh','asdfghjkl','qwerty','qwe','none','na','n/a','nonsense','idk','dunno','hi','hiya','hello','hey','yes','no','ok','okay','abc','abcd','aaa','aaaa','xxx','blah','stuff','thing','whatever'];
   var de=document.documentElement;
   de.style.setProperty('--ssc-acc',acc);
@@ -1226,7 +1242,31 @@ window.SS_CHAT = {
       });
     });
   }
-  function askQuestion(){ask("No problem — what’s your question, in a few words?","question",vFree,"Just pop in a quick line about what you need and I’ll pass it straight on.",askName);}
+  function askQuestion(){ask("No problem — what’s your question, in a few words?","question",vFree,"Just pop in a quick line about what you need and I’ll pass it straight on.",function(){callAI(data.question);});}
+  function callAI(q){
+    var m=document.createElement('div');m.className='ssc-msg ssc-bot';m.textContent='…';body.appendChild(m);scroll();
+    var reqHistory=history.slice();
+    history.push({role:'user',content:q});
+    fetch(AI_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:business,services:servicesForAI,area:areaText,message:q,history:reqHistory,knowledge:knowledge})})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var reply=(d&&d.reply)?d.reply:aiFallback();
+        history.push({role:'assistant',content:reply});
+        m.innerHTML=reply;scroll();
+        quick(["Leave my number","Ask another question","No thanks, I’m done"],handleAIPick);
+      })
+      .catch(function(){
+        var reply=aiFallback();
+        m.innerHTML=reply;scroll();
+        quick(["Leave my number","No thanks, I’m done"],handleAIPick);
+      });
+  }
+  function aiFallback(){return "Good question — best to leave your number and "+business+" can confirm that for you personally.";}
+  function handleAIPick(pick){
+    if(pick==='Leave my number'){askName();}
+    else if(pick==='Ask another question'){askQuestion();}
+    else{bot("No worries — "+business+" is just a message away if you change your mind 👍");}
+  }
   function askName(){ask("Thanks! And what’s your name?","name",vName,"Sorry, I didn’t quite catch that — what’s your first name?",askPhone);}
   function askPhone(){ask("Great, "+data.name+"! What’s the best number to reach you on?","phone",vPhone,"That doesn’t look like a phone number 📞 — could you pop it in, e.g. 07700 900123?",finish);}
   function sendLead(){
