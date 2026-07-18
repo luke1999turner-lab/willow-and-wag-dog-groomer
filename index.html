@@ -1120,6 +1120,7 @@ $("#manageLink").addEventListener("click", (e) => { e.preventDefault(); openMana
 <script>
 window.SS_CHAT = {
   business: "Willow & Wag",
+     crmEndpoint: "https://willow-and-wag-api.luke1999-turner.workers.dev",
   phone: "0114 496 0192",
   accent: "#2f4b3b",
   accent2: "#1f3327",
@@ -1174,6 +1175,7 @@ window.SS_CHAT = {
 (function(){
   var C=window.SS_CHAT||{};
   var LEAD_ENDPOINT=C.leadEndpoint||"https://sorted-leads.luke1999-turner.workers.dev";
+   var CRM_ENDPOINT=C.crmEndpoint||"";
   var business=C.business||"us";
   var telRaw=C.phone||"";
   var tel=telRaw.replace(/[^0-9+]/g,"");
@@ -1272,7 +1274,8 @@ window.SS_CHAT = {
   function sendLead(){
     if(!LEAD_ENDPOINT)return;
     try{fetch(LEAD_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:business,service:data.reason+' — '+data.question,postcode:'',name:data.name,phone:data.phone,site:location.hostname,time:new Date().toISOString()})});}catch(e){}
-  }
+     if(CRM_ENDPOINT){try{fetch(CRM_ENDPOINT.replace(/\/$/,'')+'/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contactName:data.name,phone:data.phone,source:'chatbot',intent:(data.reason?data.reason+' — ':'')+data.question})});}catch(e){}}
+  }  }
   function finish(){
     sendLead();
     bot("Perfect — got everything I need:<br><br>💬 <b>"+data.question+"</b><br>👤 "+data.name+"<br>📞 "+data.phone+"<br><br>"+business+" has your details and will be straight in touch 👍 Want to reach us now?",function(){
