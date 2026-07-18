@@ -33,9 +33,15 @@ function fromTs(ts) {
   return { date, min };
 }
 const dayStartTs = (dateStr) => toTs(dateStr, 0);
+function weekStartTs(dateStr) {
+  const ts = dayStartTs(dateStr);
+  const dow = new Date(ts * 60000).getUTCDay();
+  const back = dow === 0 ? 6 : dow - 1;
+  return ts - back * 1440;
+}
 const overlaps = (aS, aE, bS, bE) => aS < bE && bS < aE;
 const fmtMin = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
-const fmtDate = (dateStr) => new Date(dateStr + 'T12:00:00Z').toLocaleDateString('en-GB', {
+const fmtDate = (dateStr) => new Date(dateStr + 'T12:00:00Z').toLocaleDateString('en-US', {
   weekday: 'long', day: 'numeric', month: 'long',
 });
 const fmtMoney = (pence) => `£${(pence / 100).toFixed(2)}`;
@@ -74,10 +80,8 @@ async function busyFor(DB, groomerId, dateStr) {
 async function slotsFor(DB, groomerId, dateStr, duration) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-  const shopHours = await DB.prepare('SELECT open_min, close_min FROM opening_hours WHERE dow = ?').bind(dow).first();
-  const staffHours = await DB.prepare('SELECT open_min, close_min FROM staff_hours WHERE groomer_id = ? AND dow = ?').bind(groomerId, dow).first();
-  const hours = mergeHours(shopHours, staffHours);
-  if (!hours) return [];
+  const hours = await DB.prepare('SELECT open_min, close_min FROM opening_hours WHERE dow = ?').bind(dow).first();
+  if (!hours || hours.open_min == null) return [];
   const busy = await busyFor(DB, groomerId, dateStr);
   const nowTs = Date.now() / 60000;
   const out = [];
@@ -94,19 +98,6 @@ async function slotsFor(DB, groomerId, dateStr, duration) {
 async function hoursFor(DB, dow) {
   const hours = await DB.prepare('SELECT open_min, close_min FROM opening_hours WHERE dow = ?').bind(dow).first();
   return (hours && hours.open_min != null && hours.close_min != null) ? hours : null;
-}
-
-// Combine shop opening hours with an optional staff-specific override for
-// the same day. A staff row with open_min = null means that staff member
-// doesn't work that day at all (independent of the shop being open).
-// Where both are set, the working window is the overlap of the two.
-function mergeHours(shopHours, staffHours) {
-  if (!shopHours || shopHours.open_min == null || shopHours.close_min == null) return null;
-  if (staffHours && staffHours.open_min == null) return null;
-  const open_min = staffHours && staffHours.open_min != null ? Math.max(shopHours.open_min, staffHours.open_min) : shopHours.open_min;
-  const close_min = staffHours && staffHours.close_min != null ? Math.min(shopHours.close_min, staffHours.close_min) : shopHours.close_min;
-  if (open_min >= close_min) return null;
-  return { open_min, close_min };
 }
 
 // Work out the most recently completed "closed" window: from the last time
@@ -154,7 +145,7 @@ async function findByRefEmail(DB, ref, email) {
 }
 
 function validEmail(e) {
-  return typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+  return typeof e === 'string' && /^[^s@]+@[^s@]+.[^s@]+$/.test(e.trim());
 }
 
 /* ======================================================================
@@ -202,47 +193,6 @@ function cancellationEmailHtml({ name, serviceName, when, ref }) {
 <p>${SHOP_NAME}</p>`;
 }
 
-function waitlistEmailHtml({ name, serviceName, when }) {
-  return `<p>Hi ${name},</p>
-<p>Good news — a slot has just opened up at ${SHOP_NAME} that matches what you're after:</p>
-<p><b>${serviceName}</b><br>${when}</p>
-<p>These go quickly — call us on ${SHOP_PHONE} to grab it, or book online.</p>
-<p>${SHOP_NAME}</p>`;
-}
-
-// After any cancellation, tell waiting clients whose service/groomer/date
-// preference matches the slot that just freed up. Best-effort, marks each
-// notified row so nobody gets double-emailed on a later cancellation.
-async function notifyWaitlist(env, DB, freedAppt) {
-  const { date, min } = fromTs(freedAppt.start_ts);
-  const when = `${fmtDate(date)} at ${fmtMin(min)}`;
-  const svc = await DB.prepare('SELECT name FROM services WHERE id = ?').bind(freedAppt.service_id).first();
-  const rows = (await DB.prepare(
-    `SELECT * FROM waitlist WHERE notified_at IS NULL
-     AND (service_id IS NULL OR service_id = ?)
-     AND (groomer_id IS NULL OR groomer_id = ?)
-     AND (preferred_date IS NULL OR preferred_date = ?)`
-  ).bind(freedAppt.service_id, freedAppt.groomer_id, date).all()).results;
-
-  for (const w of rows) {
-    await sendEmail(env, {
-      to: w.client_email,
-      subject: `A slot just opened up — ${svc ? svc.name : 'your service'}`,
-      html: waitlistEmailHtml({ name: w.client_name, serviceName: svc ? svc.name : 'your service', when }),
-    });
-    await DB.prepare('UPDATE waitlist SET notified_at = ? WHERE id = ?')
-      .bind(new Date().toISOString(), w.id).run();
-  }
-}
-
-function reminderEmailHtml({ name, serviceName, groomerName, when, ref }) {
-  return `<p>Hi ${name},</p>
-<p>Just a reminder — you're booked in tomorrow at ${SHOP_NAME}:</p>
-<p><b>${serviceName}</b> with ${groomerName}<br>${when}</p>
-<p>Ref <b>${ref}</b>. Need to change it? Call ${SHOP_PHONE}.</p>
-<p>See you soon!<br>${SHOP_NAME}</p>`;
-}
-
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -251,7 +201,7 @@ export default {
 
     if (method === 'OPTIONS') return new Response(null, { headers: CORS_HEADERS });
     if (!url.pathname.startsWith('/api/')) return json({ error: 'Not found.' }, 404);
-    const segments = url.pathname.replace(/^\/api\//, '').split('/').filter(Boolean);
+    const segments = url.pathname.replace(/^/api//, '').split('/').filter(Boolean);
 
     try {
       // ---- POST /api/staff/verify ----
@@ -272,21 +222,6 @@ export default {
         const rows = await DB.prepare('SELECT * FROM groomers ORDER BY id').all();
         return json(rows.results);
       }
-
-      // ---- GET /api/hours ---- (public — lets the calendar derive its day/week
-      // grid window from real opening hours instead of a hardcoded window)
-      if (segments.length === 1 && segments[0] === 'hours' && method === 'GET') {
-      const shopRows = (await DB.prepare('SELECT dow, open_min, close_min FROM opening_hours ORDER BY dow').all()).results;
-      const staffId = url.searchParams.get('staffId');
-      if (!staffId) return json(shopRows);
-      const staffRows = (await DB.prepare('SELECT dow, open_min, close_min FROM staff_hours WHERE groomer_id = ? ORDER BY dow').bind(Number(staffId)).all()).results;
-      const staffByDow = new Map(staffRows.map((r) => [r.dow, r]));
-      const merged = shopRows.map((shop) => {
-        const eff = mergeHours(shop, staffByDow.get(shop.dow));
-        return { dow: shop.dow, open_min: eff ? eff.open_min : null, close_min: eff ? eff.close_min : null };
-      });
-      return json(merged);
-    }
 
       // ---- GET /api/availability?date=&serviceId=&groomerId=(optional|any) ----
       if (segments.length === 1 && segments[0] === 'availability' && method === 'GET') {
@@ -349,7 +284,15 @@ export default {
         const appt = await findByRefEmail(DB, q.get('ref'), q.get('email'));
         if (!appt) return json({ error: 'No live booking found for that reference and email.' }, 404);
         const { date, min } = fromTs(appt.start_ts);
-        return json({ ref: appt.ref, serviceName: appt.service_name, groomerName: appt.groomer_name, date, startMin: min, email: appt.client_email, when: `${fmtDate(date)} at ${fmtMin(min)}`, serviceId: appt.service_id, groomerId: appt.groomer_id, });
+        return json({
+          ref: appt.ref,
+          serviceName: appt.service_name,
+          groomerName: appt.groomer_name,
+          date,
+          startMin: min,
+          email: appt.client_email,
+          when: `${fmtDate(date)} at ${fmtMin(min)}`,
+        });
       }
 
       // ---- PATCH /api/appointments/lookup ---- (public — cancel via ref+email) ----
@@ -368,8 +311,10 @@ export default {
               when: `${fmtDate(pDate)} at ${fmtMin(pMin)}`, ref: appt.ref,
             }),
           });
-          await notifyWaitlist(env, DB, appt);
-          return json({ ok: true }); } if (b.date != null && b.min != null) { const start = toTs(b.date, Number(b.min)); const end = start + appt.duration_min; const result = await DB.prepare( `UPDATE appointments SET start_ts = ?, end_ts = ? WHERE id = ? AND NOT EXISTS ( SELECT 1 FROM appointments WHERE groomer_id = ? AND status = 'booked' AND id != ? AND start_ts < ? AND end_ts > ? ) AND NOT EXISTS ( SELECT 1 FROM blocks WHERE (groomer_id = ? OR groomer_id IS NULL) AND start_ts < ? AND end_ts > ? )` ).bind( start, end, appt.id, appt.groomer_id, appt.id, end, start, appt.groomer_id, end, start ).run(); if (!result.meta.changes) return json({ error: 'That new time conflicts with another appointment or block.' }, 409); const { date: rDate, min: rMin } = fromTs(start); await sendEmail(env, { to: appt.client_email, subject: `Your appointment time has changed — ${appt.service_name}`, html: reassignEmailHtml({ name: appt.client_name, serviceName: appt.service_name, groomerName: appt.groomer_name, when: `${fmtDate(rDate)} at ${fmtMin(rMin)}`, ref: appt.ref, }), }); return json({ ok: true, date: rDate, startMin: rMin, when: `${fmtDate(rDate)} at ${fmtMin(rMin)}` }); } return json({ error: 'Unsupported update.' }, 400); }
+          return json({ ok: true });
+        }
+        return json({ error: 'Unsupported update.' }, 400);
+      }
 
       // ---- GET /api/appointments ---- (staff only)
       if (segments.length === 1 && segments[0] === 'appointments' && method === 'GET') {
@@ -469,11 +414,6 @@ export default {
               when: `${fmtDate(cDate)} at ${fmtMin(cMin)}`, ref: appt.ref,
             }),
           });
-          await notifyWaitlist(env, DB, appt);
-          return json({ ok: true });
-        }
-        if (b.status === 'no-show' || b.status === 'completed') {
-          await DB.prepare('UPDATE appointments SET status = ? WHERE id = ?').bind(b.status, id).run();
           return json({ ok: true });
         }
         if (typeof b.arrived === 'boolean') {
@@ -646,37 +586,385 @@ export default {
         return json({ windowStart: Math.round(win.windowStart), windowEnd: Math.round(win.windowEnd), appointments: rows.results });
       }
 
+      // ==================== CRM: leads ====================
+
+      // ---- GET /api/leads ---- (staff only; ?status=)
+      if (segments.length === 1 && segments[0] === 'leads' && method === 'GET') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const status = url.searchParams.get('status');
+        const r = status
+          ? await DB.prepare('SELECT * FROM leads WHERE status = ? ORDER BY pipeline_position').bind(status).all()
+          : await DB.prepare('SELECT * FROM leads ORDER BY status, pipeline_position').all();
+        return json(r.results);
+      }
+
+      // ---- POST /api/leads ---- (public — chatbot/manual capture)
+      if (segments.length === 1 && segments[0] === 'leads' && method === 'POST') {
+        const b = await request.json().catch(() => ({}));
+        if (!b.contactName || !String(b.contactName).trim())
+          return json({ error: 'Name is required.' }, 400);
+        const now = Math.floor(Date.now() / 60000);
+        const result = await DB.prepare(
+          `INSERT INTO leads (contact_name,email,phone,source,intent,status,pipeline_position,last_activity_at,created_at)
+           VALUES (?,?,?,?,?,'new',0,?,?)`
+        ).bind(
+          String(b.contactName).trim(), (b.email || '').trim().toLowerCase() || null, (b.phone || '').trim() || null,
+          b.source || 'manual', (b.intent || '').trim() || null, now, now
+        ).run();
+        await DB.prepare(
+          `INSERT INTO interaction_log (entity_type,entity_id,verb,actor_label,payload,occurred_at)
+           VALUES ('lead',?,?,?,?,?)`
+        ).bind(result.meta.last_row_id, 'lead.created', b.source === 'chatbot' ? 'Chatbot' : 'Manual', '{}', now).run();
+        return json({ id: result.meta.last_row_id }, 201);
+      }
+
+      // ---- PATCH /api/leads/:id ---- (staff only — edit fields)
+      if (segments.length === 2 && segments[0] === 'leads' && method === 'PATCH') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const id = Number(segments[1]);
+        const b = await request.json().catch(() => ({}));
+        const map = { contactName: 'contact_name', email: 'email', phone: 'phone', intent: 'intent' };
+        const sets = [], vals = [];
+        for (const [camel, col] of Object.entries(map)) {
+          if (b[camel] !== undefined) { sets.push(`${col} = ?`); vals.push(b[camel]); }
+        }
+        if (!sets.length) return json({ error: 'Nothing to update.' }, 400);
+        vals.push(id);
+        await DB.prepare(`UPDATE leads SET ${sets.join(', ')} WHERE id = ?`).bind(...vals).run();
+        return json({ ok: true });
+      }
+
+      // ---- POST /api/leads/:id/move ---- (staff only — kanban drag) ----
+      if (segments.length === 3 && segments[0] === 'leads' && segments[2] === 'move' && method === 'POST') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const id = Number(segments[1]);
+        const b = await request.json().catch(() => ({}));
+        const lead = await DB.prepare('SELECT * FROM leads WHERE id = ?').bind(id).first();
+        if (!lead) return json({ error: 'Not found.' }, 404);
+        const now = Math.floor(Date.now() / 60000);
+        await DB.prepare('UPDATE leads SET status = ?, pipeline_position = ?, last_activity_at = ? WHERE id = ?')
+          .bind(b.status, b.position ?? 0, now, id).run();
+        if (b.status !== lead.status) {
+          await DB.prepare(
+            `INSERT INTO interaction_log (entity_type,entity_id,verb,payload,occurred_at) VALUES ('lead',?,?,?,?)`
+          ).bind(id, 'lead.stage_changed', JSON.stringify({ from: lead.status, to: b.status }), now).run();
+        }
+        return json({ ok: true });
+      }
+
+      // ---- POST /api/leads/:id/convert ---- (staff only — promote to client) ----
+      if (segments.length === 3 && segments[0] === 'leads' && segments[2] === 'convert' && method === 'POST') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const id = Number(segments[1]);
+        const lead = await DB.prepare('SELECT * FROM leads WHERE id = ?').bind(id).first();
+        if (!lead) return json({ error: 'Not found.' }, 404);
+        const now = Math.floor(Date.now() / 60000);
+        let client = null;
+        if (lead.email) client = await DB.prepare('SELECT * FROM clients WHERE lower(email) = lower(?)').bind(lead.email).first();
+        if (!client && lead.phone) client = await DB.prepare('SELECT * FROM clients WHERE phone = ?').bind(lead.phone).first();
+        if (!client) {
+          const result = await DB.prepare(
+            `INSERT INTO clients (full_name,email,phone,last_activity_at,created_at) VALUES (?,?,?,?,?)`
+          ).bind(lead.contact_name, lead.email, lead.phone, now, now).run();
+          client = { id: result.meta.last_row_id };
+        }
+        await DB.prepare("UPDATE leads SET client_id = ?, status = 'won', last_activity_at = ? WHERE id = ?")
+          .bind(client.id, now, id).run();
+        await DB.prepare(
+          `INSERT INTO interaction_log (entity_type,entity_id,verb,payload,occurred_at) VALUES ('client',?,?,?,?)`
+        ).bind(client.id, 'lead.converted', JSON.stringify({ leadId: id }), now).run();
+        return json({ clientId: client.id }, 200);
+      }
+
+      // ==================== CRM: clients ====================
+
+      // ---- GET /api/clients ---- (staff only; ?q=)
+      if (segments.length === 1 && segments[0] === 'clients' && method === 'GET') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const q = url.searchParams.get('q');
+        const r = q
+          ? await DB.prepare(
+              `SELECT * FROM clients WHERE full_name LIKE ? OR email LIKE ? OR phone LIKE ? ORDER BY full_name`
+            ).bind(`%${q}%`, `%${q}%`, `%${q}%`).all()
+          : await DB.prepare('SELECT * FROM clients ORDER BY full_name').all();
+        return json(r.results);
+      }
+
+      // ---- GET /api/clients/:id ---- (staff only)
+      if (segments.length === 2 && segments[0] === 'clients' && method === 'GET') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const client = await DB.prepare('SELECT * FROM clients WHERE id = ?').bind(Number(segments[1])).first();
+        if (!client) return json({ error: 'Not found.' }, 404);
+        return json(client);
+      }
+
+      // ---- GET /api/clients/:id/timeline ---- (staff only)
+      if (segments.length === 3 && segments[0] === 'clients' && segments[2] === 'timeline' && method === 'GET') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const r = await DB.prepare(
+          `SELECT * FROM interaction_log WHERE entity_type = 'client' AND entity_id = ? ORDER BY occurred_at DESC LIMIT 100`
+        ).bind(Number(segments[1])).all();
+        return json(r.results);
+      }
+
+      // ---- POST /api/clients/:id/notes ---- (staff only)
+      if (segments.length === 3 && segments[0] === 'clients' && segments[2] === 'notes' && method === 'POST') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const b = await request.json().catch(() => ({}));
+        if (!b.body || !String(b.body).trim()) return json({ error: 'Note body required.' }, 400);
+        const now = Math.floor(Date.now() / 60000);
+        await DB.prepare(
+          `INSERT INTO interaction_log (entity_type,entity_id,verb,payload,occurred_at) VALUES ('client',?,?,?,?)`
+        ).bind(Number(segments[1]), 'client.note', JSON.stringify({ body: String(b.body).trim() }), now).run();
+        await DB.prepare('UPDATE clients SET last_activity_at = ? WHERE id = ?').bind(now, Number(segments[1])).run();
+        return json({ ok: true }, 201);
+      }
+
+      // ==================== CRM: tasks ====================
+
+      // ---- GET /api/tasks ---- (staff only; ?status=, default open)
+      if (segments.length === 1 && segments[0] === 'tasks' && method === 'GET') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const status = url.searchParams.get('status') || 'open';
+        const r = await DB.prepare('SELECT * FROM tasks WHERE status = ? ORDER BY due_at').bind(status).all();
+        return json(r.results);
+      }
+
+      // ---- POST /api/tasks ---- (staff only)
+      if (segments.length === 1 && segments[0] === 'tasks' && method === 'POST') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const b = await request.json().catch(() => ({}));
+        if (!b.title || !b.entityType || b.entityId == null)
+          return json({ error: 'title, entityType and entityId are required.' }, 400);
+        const now = Math.floor(Date.now() / 60000);
+        const result = await DB.prepare(
+          `INSERT INTO tasks (entity_type,entity_id,title,due_at,status,created_at) VALUES (?,?,?,?,'open',?)`
+        ).bind(b.entityType, Number(b.entityId), String(b.title).trim(), b.dueAt ?? null, now).run();
+        return json({ id: result.meta.last_row_id }, 201);
+      }
+
+      // ---- PATCH /api/tasks/:id ---- (staff only — mark done/cancelled)
+      if (segments.length === 2 && segments[0] === 'tasks' && method === 'PATCH') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const b = await request.json().catch(() => ({}));
+        if (!['open', 'done', 'cancelled'].includes(b.status)) return json({ error: 'Invalid status.' }, 400);
+        await DB.prepare('UPDATE tasks SET status = ? WHERE id = ?').bind(b.status, Number(segments[1])).run();
+        return json({ ok: true });
+      }
+
+      // ==================== ROTA ====================
+
+      // ---- GET /api/rota?week=YYYY-MM-DD ---- (staff only — one round trip for the grid)
+      if (segments.length === 1 && segments[0] === 'rota' && method === 'GET') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const week = url.searchParams.get('week');
+        if (!week) return json({ error: 'week (YYYY-MM-DD, any day in the target week) is required.' }, 400);
+        const from = weekStartTs(week), to = from + 7 * 1440;
+        const [shiftsR, groomersR, templatesR] = await Promise.all([
+          DB.prepare(
+            `SELECT sh.*, g.name AS groomer_name, g.color AS groomer_color FROM shifts sh
+             LEFT JOIN groomers g ON g.id = sh.groomer_id
+             WHERE sh.starts_at < ? AND sh.ends_at > ? AND sh.status != 'cancelled' ORDER BY sh.starts_at`
+          ).bind(to, from).all(),
+          DB.prepare('SELECT * FROM groomers ORDER BY id').all(),
+          DB.prepare('SELECT * FROM shift_templates ORDER BY weekday, start_min').all(),
+        ]);
+        return json({ weekStart: from, shifts: shiftsR.results, groomers: groomersR.results, templates: templatesR.results });
+      }
+
+      // ---- POST /api/shifts ---- (staff only — create; drag onto grid)
+      if (segments.length === 1 && segments[0] === 'shifts' && method === 'POST') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const b = await request.json().catch(() => ({}));
+        if (b.startsAt == null || b.endsAt == null) return json({ error: 'startsAt and endsAt required.' }, 400);
+        if (Number(b.endsAt) <= Number(b.startsAt)) return json({ error: 'End must be after start.' }, 400);
+        const groomerId = b.groomerId != null ? Number(b.groomerId) : null;
+        const now = Math.floor(Date.now() / 60000);
+        const result = await DB.prepare(
+          `INSERT INTO shifts (groomer_id,starts_at,ends_at,break_min,status,note,created_at)
+           SELECT ?,?,?,?,?,?,?
+           WHERE ? IS NULL OR NOT EXISTS (
+             SELECT 1 FROM shifts WHERE groomer_id = ? AND status != 'cancelled' AND starts_at < ? AND ends_at > ?
+           )`
+        ).bind(
+          groomerId, Number(b.startsAt), Number(b.endsAt), b.breakMin || 0, b.status || 'draft', b.note || null, now,
+          groomerId, groomerId, Number(b.endsAt), Number(b.startsAt)
+        ).run();
+        if (!result.meta.changes) return json({ error: 'That clashes with another shift for this staff member.' }, 409);
+        return json({ id: result.meta.last_row_id }, 201);
+      }
+
+      // ---- PATCH /api/shifts/:id ---- (staff only — move/resize/publish)
+      if (segments.length === 2 && segments[0] === 'shifts' && method === 'PATCH') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const id = Number(segments[1]);
+        const shift = await DB.prepare('SELECT * FROM shifts WHERE id = ?').bind(id).first();
+        if (!shift) return json({ error: 'Not found.' }, 404);
+        const b = await request.json().catch(() => ({}));
+        const groomerId = b.groomerId !== undefined ? (b.groomerId != null ? Number(b.groomerId) : null) : shift.groomer_id;
+        const startsAt = b.startsAt != null ? Number(b.startsAt) : shift.starts_at;
+        const endsAt = b.endsAt != null ? Number(b.endsAt) : shift.ends_at;
+        const status = b.status || shift.status;
+        const result = await DB.prepare(
+          `UPDATE shifts SET groomer_id = ?, starts_at = ?, ends_at = ?, status = ? WHERE id = ?
+           AND (? IS NULL OR NOT EXISTS (
+             SELECT 1 FROM shifts WHERE groomer_id = ? AND id != ? AND status != 'cancelled' AND starts_at < ? AND ends_at > ?
+           ))`
+        ).bind(
+          groomerId, startsAt, endsAt, status, id,
+          groomerId, groomerId, id, endsAt, startsAt
+        ).run();
+        if (!result.meta.changes) return json({ error: 'That clashes with another shift for this staff member.' }, 409);
+        return json({ ok: true });
+      }
+
+      // ---- DELETE /api/shifts/:id ---- (staff only — soft cancel)
+      if (segments.length === 2 && segments[0] === 'shifts' && method === 'DELETE') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        await DB.prepare("UPDATE shifts SET status = 'cancelled' WHERE id = ?").bind(Number(segments[1])).run();
+        return json({ ok: true });
+      }
+
+      // ---- POST /api/shifts/apply-templates ---- (staff only — build a week from templates)
+      // shift_templates.weekday follows JS getUTCDay(): 0=Sun..6=Sat.
+      if (segments.length === 2 && segments[0] === 'shifts' && segments[1] === 'apply-templates' && method === 'POST') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const b = await request.json().catch(() => ({}));
+        if (!b.week) return json({ error: 'week (YYYY-MM-DD) required.' }, 400);
+        const monday = weekStartTs(b.week);
+        const templates = (await DB.prepare('SELECT * FROM shift_templates ORDER BY weekday').all()).results;
+        const now = Math.floor(Date.now() / 60000);
+        let created = 0;
+        for (const t of templates) {
+          const offsetDays = t.weekday === 0 ? 6 : t.weekday - 1; // days after Monday
+          const dayStart = monday + offsetDays * 1440;
+          const start = dayStart + t.start_min, end = dayStart + t.end_min;
+          const result = await DB.prepare(
+            `INSERT INTO shifts (groomer_id,starts_at,ends_at,break_min,status,created_at)
+             SELECT ?,?,?,?,'draft',?
+             WHERE NOT EXISTS (SELECT 1 FROM shifts WHERE groomer_id = ? AND status != 'cancelled' AND starts_at < ? AND ends_at > ?)`
+          ).bind(t.groomer_id, start, end, t.break_min, now, t.groomer_id, end, start).run();
+          if (result.meta.changes) created++;
+        }
+        return json({ created });
+      }
+
+      // ---- POST /api/shifts/copy-week ---- (staff only)
+      if (segments.length === 2 && segments[0] === 'shifts' && segments[1] === 'copy-week' && method === 'POST') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const b = await request.json().catch(() => ({}));
+        if (!b.fromWeek || !b.toWeek) return json({ error: 'fromWeek and toWeek (YYYY-MM-DD) required.' }, 400);
+        const fromStart = weekStartTs(b.fromWeek), toStart = weekStartTs(b.toWeek);
+        const offset = toStart - fromStart;
+        const source = (await DB.prepare(
+          `SELECT * FROM shifts WHERE starts_at >= ? AND starts_at < ? AND status != 'cancelled'`
+        ).bind(fromStart, fromStart + 7 * 1440).all()).results;
+        const now = Math.floor(Date.now() / 60000);
+        let created = 0;
+        for (const s of source) {
+          const start = s.starts_at + offset, end = s.ends_at + offset;
+          const result = await DB.prepare(
+            `INSERT INTO shifts (groomer_id,starts_at,ends_at,break_min,status,created_at)
+             SELECT ?,?,?,?,'draft',?
+             WHERE NOT EXISTS (SELECT 1 FROM shifts WHERE groomer_id = ? AND status != 'cancelled' AND starts_at < ? AND ends_at > ?)`
+          ).bind(s.groomer_id, start, end, s.break_min, now, s.groomer_id, end, start).run();
+          if (result.meta.changes) created++;
+        }
+        return json({ created });
+      }
+
+      // ---- POST /api/shift-templates ---- (staff only — define a recurring weekly pattern)
+      // weekday follows JS getUTCDay(): 0=Sun..6=Sat, matching apply-templates above.
+      if (segments.length === 1 && segments[0] === 'shift-templates' && method === 'POST') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const b = await request.json().catch(() => ({}));
+        if (b.weekday == null || b.startMin == null || b.endMin == null)
+          return json({ error: 'weekday, startMin and endMin are required.' }, 400);
+        if (Number(b.endMin) <= Number(b.startMin)) return json({ error: 'End must be after start.' }, 400);
+        const result = await DB.prepare(
+          `INSERT INTO shift_templates (groomer_id,weekday,start_min,end_min,break_min) VALUES (?,?,?,?,?)`
+        ).bind(
+          b.groomerId != null ? Number(b.groomerId) : null, Number(b.weekday), Number(b.startMin), Number(b.endMin), b.breakMin || 0
+        ).run();
+        return json({ id: result.meta.last_row_id }, 201);
+      }
+
+      // ---- PATCH /api/shift-templates/:id ---- (staff only)
+      if (segments.length === 2 && segments[0] === 'shift-templates' && method === 'PATCH') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const id = Number(segments[1]);
+        const b = await request.json().catch(() => ({}));
+        const map = { groomerId: 'groomer_id', weekday: 'weekday', startMin: 'start_min', endMin: 'end_min', breakMin: 'break_min' };
+        const sets = [], vals = [];
+        for (const [camel, col] of Object.entries(map)) {
+          if (b[camel] !== undefined) { sets.push(`${col} = ?`); vals.push(b[camel]); }
+        }
+        if (!sets.length) return json({ error: 'Nothing to update.' }, 400);
+        vals.push(id);
+        await DB.prepare(`UPDATE shift_templates SET ${sets.join(', ')} WHERE id = ?`).bind(...vals).run();
+        return json({ ok: true });
+      }
+
+      // ---- DELETE /api/shift-templates/:id ---- (staff only)
+      if (segments.length === 2 && segments[0] === 'shift-templates' && method === 'DELETE') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        await DB.prepare('DELETE FROM shift_templates WHERE id = ?').bind(Number(segments[1])).run();
+        return json({ ok: true });
+      }
+
+      // ==================== TIME CLOCK ====================
+
+      // ---- POST /api/time-entries/clock-in ---- (staff only)
+      if (segments.length === 2 && segments[0] === 'time-entries' && segments[1] === 'clock-in' && method === 'POST') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const b = await request.json().catch(() => ({}));
+        if (!b.groomerId) return json({ error: 'groomerId required.' }, 400);
+        const now = Math.floor(Date.now() / 60000);
+        const result = await DB.prepare(
+          `INSERT INTO time_entries (groomer_id,shift_id,clock_in,status) VALUES (?,?,?,'open')`
+        ).bind(Number(b.groomerId), b.shiftId != null ? Number(b.shiftId) : null, now).run();
+        return json({ id: result.meta.last_row_id }, 201);
+      }
+
+      // ---- POST /api/time-entries/:id/clock-out ---- (staff only)
+      if (segments.length === 3 && segments[0] === 'time-entries' && segments[2] === 'clock-out' && method === 'POST') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const now = Math.floor(Date.now() / 60000);
+        await DB.prepare("UPDATE time_entries SET clock_out = ?, status = 'closed' WHERE id = ?")
+          .bind(now, Number(segments[1])).run();
+        return json({ ok: true });
+      }
+
+      // ---- GET /api/time-entries?groomerId=&status= ---- (staff only — find an open entry to clock out)
+      if (segments.length === 1 && segments[0] === 'time-entries' && method === 'GET') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const groomerId = url.searchParams.get('groomerId');
+        const status = url.searchParams.get('status');
+        let sql = `SELECT te.*, g.name AS groomer_name FROM time_entries te JOIN groomers g ON g.id = te.groomer_id WHERE 1=1`;
+        const vals = [];
+        if (groomerId) { sql += ' AND te.groomer_id = ?'; vals.push(Number(groomerId)); }
+        if (status) { sql += ' AND te.status = ?'; vals.push(status); }
+        sql += ' ORDER BY te.clock_in DESC';
+        const r = await DB.prepare(sql).bind(...vals).all();
+        return json(r.results);
+      }
+
+      // ---- GET /api/timesheets?from=&to= ---- (staff only — YYYY-MM-DD)
+      if (segments.length === 1 && segments[0] === 'timesheets' && method === 'GET') {
+        if (!isStaff(request, env)) return json({ error: 'Unauthorized.' }, 401);
+        const from = url.searchParams.get('from'), to = url.searchParams.get('to');
+        if (!from || !to) return json({ error: 'from and to required.' }, 400);
+        const r = await DB.prepare(
+          `SELECT te.*, g.name AS groomer_name FROM time_entries te
+           JOIN groomers g ON g.id = te.groomer_id
+           WHERE te.clock_in >= ? AND te.clock_in < ? ORDER BY te.clock_in`
+        ).bind(dayStartTs(from), dayStartTs(to) + 1440).all();
+        return json(r.results);
+      }
+
       return json({ error: 'Unknown endpoint.' }, 404);
     } catch (err) {
       return json({ error: 'Server error: ' + (err && err.message ? err.message : String(err)) }, 500);
-    }
-  },
-
-  // Cloudflare Cron Trigger — configure a schedule (e.g. hourly) in the
-  // Worker's Triggers tab. Finds bookings ~24h out that haven't had a
-  // reminder yet and sends one, marking reminder_sent_at so it never repeats.
-  async scheduled(event, env, ctx) {
-    const DB = env.DB;
-    const nowTs = Date.now() / 60000;
-    const windowStart = nowTs + 23.5 * 60;
-    const windowEnd = nowTs + 24.5 * 60;
-    const rows = (await DB.prepare(
-      `SELECT a.*, g.name AS groomer_name, s.name AS service_name FROM appointments a
-       JOIN groomers g ON g.id = a.groomer_id JOIN services s ON s.id = a.service_id
-       WHERE a.status = 'booked' AND a.reminder_sent_at IS NULL
-       AND a.start_ts >= ? AND a.start_ts < ?`
-    ).bind(windowStart, windowEnd).all()).results;
-
-    for (const a of rows) {
-      const { date, min } = fromTs(a.start_ts);
-      const when = `${fmtDate(date)} at ${fmtMin(min)}`;
-      await sendEmail(env, {
-        to: a.client_email,
-        subject: `Reminder: your appointment tomorrow — ${a.service_name}`,
-        html: reminderEmailHtml({ name: a.client_name, serviceName: a.service_name, groomerName: a.groomer_name, when, ref: a.ref }),
-      });
-      await DB.prepare('UPDATE appointments SET reminder_sent_at = ? WHERE id = ?')
-        .bind(new Date().toISOString(), a.id).run();
     }
   },
 };
