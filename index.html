@@ -1279,7 +1279,7 @@ window.SS_CHAT = {
   function finish(){
     sendLead();
     bot("Perfect — got everything I need:<br><br>💬 <b>"+data.question+"</b><br>👤 "+data.name+"<br>📞 "+data.phone+"<br><br>"+business+" has your details and will be straight in touch 👍 Want to reach us now?",function(){
-      var msg=encodeURIComponent("Hi "+business+"! "+data.question+"\nName: "+data.name+"\nNumber: "+data.phon
+      var msg=encodeURIComponent("Hi "+business+"! "+data.question+"\nName: "+data.name+"\nNumber: "+data.phone);
       var cta=document.createElement('div');cta.className='ssc-cta';var h='';
       if(wa)h+='<a class="ssc-wa" href="https://wa.me/'+wa+'?text='+msg+'" target="_blank" rel="noopener">💬 Message on WhatsApp</a>';
       if(tel)h+='<a class="ssc-call" href="tel:'+tel+'">📞 Call '+(disp||'')+'</a>';
