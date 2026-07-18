@@ -8,13 +8,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --forest:#1f3327; --forest-dark:#152219; --forest-soft:#2f4b3b;
-  --terracotta:#d97b4f; --terracotta-dark:#c2643a; --terracotta-soft:#f3d9c9;
-  --cream:#faf6ee; --cream-alt:#f3ecdf; --card:#ffffff; --card2:#fbf8f2;
-  --ink:#221c14; --slate:#5a5346; --muted:#8a8272; --line:#e7ddc9;
-  --ok:#4c8f6c; --danger:#c2564a;
-  --serif:'Playfair Display',Georgia,serif;
-  --sans:'Inter',ui-sans-serif,system-ui,sans-serif;
+--forest:#1f3327; --forest-dark:#152219; --forest-soft:#2f4b3b;
+--terracotta:#d97b4f; --terracotta-dark:#c2643a; --terracotta-soft:#f3d9c9;
+--cream:#faf6ee; --cream-alt:#f3ecdf; --card:#ffffff; --card2:#fbf8f2;
+--ink:#221c14; --slate:#5a5346; --muted:#8a8272; --line:#e7ddc9;
+--ok:#4c8f6c; --danger:#c2564a;
+--serif:'Playfair Display',Georgia,serif;
+--sans:'Inter',ui-sans-serif,system-ui,sans-serif;
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--cream);line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -25,11 +25,12 @@ a{color:var(--terracotta-dark);text-decoration:none}
 .site-header .container{display:flex;align-items:center;justify-content:space-between;height:64px}
 .brand{font-family:var(--serif);font-weight:800;font-size:18px;display:flex;align-items:center;gap:10px;color:var(--forest)}
 .brand .logo{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--forest);display:grid;place-items:center;color:var(--forest);font-size:15px}
+.nav{display:flex;align-items:center;gap:8px}
 .nav a{font-size:13.5px;font-weight:600;color:var(--slate);border:1px solid var(--line);border-radius:8px;padding:8px 14px}
 .nav a:hover{border-color:var(--terracotta);color:var(--terracotta-dark)}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:999px;
-  padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:.15s}
+padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:.15s}
 .btn.primary{background:var(--forest);color:#fff;box-shadow:0 10px 24px -10px rgba(31,51,39,.45)}
 .btn.primary:hover{background:var(--forest-dark);transform:translateY(-1px)}
 .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
@@ -56,8 +57,8 @@ a{color:var(--terracotta-dark);text-decoration:none}
 .toolbar .spacer{flex:1}
 .today-label{font-family:var(--serif);font-size:17px;color:var(--ink);font-weight:600}
 input[type=date],input[type=time],select,input[type=text],input[type=email],input[type=tel],input[type=password],textarea{
-  width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:8px;color:var(--ink);
-  padding:10px 12px;font-size:14px;font-family:var(--sans)}
+width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:8px;color:var(--ink);
+padding:10px 12px;font-size:14px;font-family:var(--sans)}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--terracotta)}
 textarea{resize:vertical}
 
@@ -75,15 +76,15 @@ textarea{resize:vertical}
 .hourline{border-bottom:1px solid var(--line);position:relative}
 .hourline span{position:absolute;top:-8px;left:6px;font-size:11px;color:var(--muted)}
 .appt{position:absolute;left:3px;right:3px;border-radius:8px;padding:5px 7px;font-size:12px;color:#fff;
-  overflow:hidden;cursor:pointer;box-shadow:0 2px 8px rgba(31,51,39,.25)}
+overflow:hidden;cursor:pointer;box-shadow:0 2px 8px rgba(31,51,39,.25)}
 .appt b{display:block;font-size:12.5px;line-height:1.2}
 .appt small{display:block;font-size:11px;opacity:.9}
 .arrived-toggle{position:absolute;top:4px;right:5px;width:16px;height:16px;border-radius:50%;
-  background:rgba(255,255,255,.35);display:grid;place-items:center;font-size:10px;font-weight:900;cursor:pointer;color:#fff}
+background:rgba(255,255,255,.35);display:grid;place-items:center;font-size:10px;font-weight:900;cursor:pointer;color:#fff}
 .arrived-toggle.on{background:#fff;color:var(--ok)}
 .blk{position:absolute;left:3px;right:3px;border-radius:8px;padding:5px 7px;font-size:12px;
-  background:repeating-linear-gradient(135deg,#e7ddc9,#e7ddc9 8px,#f3ecdf 8px,#f3ecdf 16px);
-  color:var(--slate);cursor:pointer;overflow:hidden;border:1px dashed var(--line)}
+background:repeating-linear-gradient(135deg,#e7ddc9,#e7ddc9 8px,#f3ecdf 8px,#f3ecdf 16px);
+color:var(--slate);cursor:pointer;overflow:hidden;border:1px dashed var(--line)}
 .now-line{position:absolute;left:56px;right:0;height:2px;background:var(--terracotta);z-index:5;pointer-events:none}
 .now-line::before{content:'';position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--terracotta)}
 .footer{color:var(--muted);font-size:13px;padding:16px 0 60px}
@@ -128,7 +129,7 @@ textarea{resize:vertical}
 .modal footer{flex-wrap:wrap;row-gap:8px}
 .backdrop{position:fixed;inset:0;background:rgba(34,28,20,.55);display:grid;place-items:center;z-index:50;padding:20px}
 .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:460px;width:100%;
-  box-shadow:0 24px 70px rgba(34,28,20,.35);max-height:90vh;overflow:auto}
+box-shadow:0 24px 70px rgba(34,28,20,.35);max-height:90vh;overflow:auto}
 .modal.wide{max-width:600px}
 .modal header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--line)}
 .modal header h3{margin:0;font-family:var(--serif);font-size:19px;font-weight:700}
@@ -148,7 +149,7 @@ textarea{resize:vertical}
 .checkbox-row input{width:auto}
 .tabs{display:flex;gap:8px;margin-bottom:16px}
 .tab-btn{flex:1;padding:9px 12px;border-radius:8px;border:1.5px solid var(--line);background:var(--card2);
-  color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--sans)}
+color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--sans)}
 .tab-btn.active{background:var(--forest);color:#fff;border-color:var(--forest)}
 
 .week-daycol{border-left:1px solid var(--line);padding:8px 6px;display:flex;flex-direction:column;gap:6px;min-height:420px}
@@ -172,218 +173,400 @@ textarea{resize:vertical}
 .mc-more{font-size:10px;color:var(--muted)}
 
 @media (max-width:760px){
-  .stats{grid-template-columns:repeat(2,1fr)}
+.stats{grid-template-columns:repeat(2,1fr)}
 }
 @media (max-width:640px){
-  .row{grid-template-columns:1fr}
-  .cal{overflow-x:auto}
+.row{grid-template-columns:1fr}
+.cal{overflow-x:auto}
+}
+
+/* ---------- Leads pipeline (kanban) ---------- */
+.leads-board{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;padding:10px 0 60px;align-items:start}
+.leads-col{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px;min-height:160px;transition:.15s}
+.leads-col.drag-over{border-color:var(--terracotta);box-shadow:0 0 0 1px rgba(217,123,79,.3),0 14px 30px -14px rgba(34,28,20,.3)}
+.leads-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px}
+.leads-col-title{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--slate)}
+.leads-col-count{font-size:11px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:2px 8px}
+.lead-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:grab;transition:.15s}
+.lead-card:last-child{margin-bottom:0}
+.lead-card:hover{border-color:var(--terracotta);transform:translateY(-1px)}
+.lead-card.dragging{opacity:.4}
+.lead-card.rotting{border-left:3px solid var(--danger)}
+.lead-card .lc-name{font-weight:700;font-size:13.5px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.lead-card .lc-meta{font-size:11.5px;color:var(--muted);line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lead-card .lc-rot{color:var(--danger);font-weight:700;font-size:10.5px;margin-top:5px;text-transform:uppercase;letter-spacing:.03em}
+.leads-empty{font-size:12px;color:var(--muted);text-align:center;padding:20px 0}
+@media (max-width:1100px){.leads-board{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:640px){.leads-board{grid-template-columns:1fr}}
+
+/* ---------- Rota (shifts, templates, time clock) ---------- */
+.rota-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 0 16px}
+.rota-grid{display:grid;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+.rota-head-row,.rota-row{display:grid;grid-template-columns:140px repeat(7,1fr)}
+.rota-head-cell{padding:10px 8px;text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--cream-alt);border-bottom:1px solid var(--line);border-left:1px solid var(--line)}
+.rota-head-cell:first-child{border-left:none;text-align:left;padding-left:14px}
+.rota-head-cell.is-today{color:var(--terracotta-dark)}
+.rota-staff-cell{padding:12px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;background:var(--cream-alt)}
+.rota-cell{border-bottom:1px solid var(--line);border-left:1px solid var(--line);padding:6px;min-height:70px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:4px}
+.rota-cell:hover{background:var(--cream-alt)}
+.shift-chip{border-radius:8px;padding:5px 7px;font-size:11.5px;cursor:pointer;transition:.15s}
+.shift-chip.is-draft{background:var(--card2);border:1px dashed var(--line);color:var(--slate)}
+.shift-chip.is-published{background:var(--forest);color:#fff;font-weight:700;box-shadow:0 4px 12px rgba(31,51,39,.3)}
+.shift-chip:hover{transform:translateY(-1px)}
+.shift-chip .sc-time{display:block;font-weight:700}
+.shift-chip .sc-break{display:block;font-size:10px;opacity:.75}
+
+.timeclock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:24px}
+.tc-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.tc-card .tc-name{font-weight:700;font-size:13.5px;margin-bottom:8px;display:flex;align-items:center;gap:7px;color:var(--ink)}
+.tc-card .tc-status{font-size:12px;color:var(--muted);margin-bottom:10px}
+.tc-card .tc-status.on-clock{color:var(--ok);font-weight:600}
+
+.timesheet-table{width:100%;border-collapse:collapse;font-size:13px}
+.timesheet-table th{text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--line)}
+.timesheet-table td{padding:8px 10px;border-bottom:1px solid var(--line)}
+.timesheet-table tfoot td{font-weight:700;color:var(--ink);border-top:1px solid var(--line);border-bottom:none}
+
+.templates-list{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.template-row{display:flex;justify-content:space-between;align-items:center;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
+.template-row .tr-meta{color:var(--muted);font-size:12px}
+@media (max-width:900px){
+.rota-head-row,.rota-row{grid-template-columns:110px repeat(7,minmax(90px,1fr))}
+.rota-grid{overflow-x:auto}
 }
 </style>
 </head>
 <body>
 <header class="site-header"><div class="container">
-  <div class="brand"><span class="logo">🐾</span> Willow & Wag · <span style="color:var(--muted);font-weight:500">Staff</span></div>
-  <nav class="nav"><a href="index.html">Client site</a></nav>
+<div class="brand"><span class="logo">🐾</span> Willow & Wag · <span style="color:var(--muted);font-weight:500">Staff</span></div>
+<nav class="nav">
+<a href="index.html">Client site</a>
+<button class="btn primary" id="navCalendarBtn">Calendar</button>
+<button class="btn ghost" id="navLeadsBtn">Leads</button>
+<button class="btn ghost" id="navRotaBtn">Rota</button>
+</nav>
 </div></header>
 
 <div class="backdrop" id="loginGate">
-  <div class="modal" style="max-width:320px">
-    <header><h3>Staff sign-in</h3></header>
-    <div class="body">
-      <div class="field"><label>PIN</label><input type="password" id="pinInput" inputmode="numeric" autocomplete="off" placeholder="Enter staff PIN"></div>
-      <div class="notice err hidden" id="pinErr">Incorrect PIN.</div>
-    </div>
-    <footer><span></span><button class="btn primary" id="pinSubmit">Unlock</button></footer>
-  </div>
+<div class="modal" style="max-width:320px">
+<header><h3>Staff sign-in</h3></header>
+<div class="body">
+<div class="field"><label>PIN</label><input type="password" id="pinInput" inputmode="numeric" autocomplete="off" placeholder="Enter staff PIN"></div>
+<div class="notice err hidden" id="pinErr">Incorrect PIN.</div>
+</div>
+<footer><span></span><button class="btn primary" id="pinSubmit">Unlock</button></footer>
+</div>
 </div>
 
 <main class="container hidden" id="app">
-  <div class="hero-strip">
-    <div>
-      <h1 id="heroGreeting">Good morning, team.</h1>
-      <div class="clock" id="heroSub"></div>
-    </div>
-  </div>
+<div id="calendarPage">
+<div class="hero-strip">
+<div>
+<h1 id="heroGreeting">Good morning, team.</h1>
+<div class="clock" id="heroSub"></div>
+</div>
+</div>
 
-  <div class="stats" id="stats">
-    <div class="stat">
-      <div class="k"><span class="ic">📅</span>Bookings</div>
-      <div class="v" id="statBookings">0</div>
-      <div class="d" id="statBookingsSub">—</div>
-    </div>
-    <div class="stat">
-      <div class="k"><span class="ic">✓</span>Arrived</div>
-      <div class="v" id="statArrived">0</div>
-      <div class="d" id="statArrivedSub">—</div>
-    </div>
-    <div class="stat">
-      <div class="k"><span class="ic">£</span>Revenue</div>
-      <div class="v" id="statRevenue">£0</div>
-      <div class="d" id="statRevenueSub">—</div>
-    </div>
-  </div>
+<div class="stats" id="stats">
+<div class="stat">
+<div class="k"><span class="ic">📅</span>Bookings</div>
+<div class="v" id="statBookings">0</div>
+<div class="d" id="statBookingsSub">—</div>
+</div>
+<div class="stat">
+<div class="k"><span class="ic">✓</span>Arrived</div>
+<div class="v" id="statArrived">0</div>
+<div class="d" id="statArrivedSub">—</div>
+</div>
+<div class="stat">
+<div class="k"><span class="ic">£</span>Revenue</div>
+<div class="v" id="statRevenue">£0</div>
+<div class="d" id="statRevenueSub">—</div>
+</div>
+</div>
 
-  <div class="toolbar">
-    <button class="iconbtn" id="prev">‹</button>
-    <button class="btn ghost" id="today">Today</button>
-    <button class="iconbtn" id="next">›</button>
-    <button class="btn ghost" id="weekBtn">Week</button>
-    <button class="btn ghost" id="monthBtn">Month</button>
-    <input type="date" id="date" style="max-width:180px">
-    <span class="today-label" id="dayLabel"></span>
-    <span class="spacer"></span>
-    <button class="btn ghost" id="panelToggleBtn">Today panel</button>
+<div class="toolbar">
+<button class="iconbtn" id="prev">‹</button>
+<button class="btn ghost" id="today">Today</button>
+<button class="iconbtn" id="next">›</button>
+<button class="btn ghost" id="weekBtn">Week</button>
+<button class="btn ghost" id="monthBtn">Month</button>
+<input type="date" id="date" style="max-width:180px">
+<span class="today-label" id="dayLabel"></span>
+<span class="spacer"></span>
+<button class="btn ghost" id="panelToggleBtn">Today panel</button>
 <button class="btn ghost" id="briefBtn">Morning brief</button>
-    <button class="btn ghost" id="waitlistBtn">Waitlist</button>
-    <button class="btn ghost" id="blockBtn">＋ Block out time</button>
-    <button class="btn primary" id="newBookingBtn">＋ New booking</button>
-  </div>
+<button class="btn ghost" id="waitlistBtn">Waitlist</button>
+<button class="btn ghost" id="blockBtn">＋ Block out time</button>
+<button class="btn primary" id="newBookingBtn">＋ New booking</button>
+</div>
 
-  <div class="cal-row" id="calRow">
-  <div class="cal-main">
-  <div class="legend" id="legend"></div>
-  <div class="cal" id="cal"></div>
-  </div>
-  <aside class="day-panel" id="dayPanel">
-  <div class="day-panel-head">
-  <h3>Today panel</h3>
-  <button class="iconbtn" id="panelCloseBtn" title="Collapse">✕</button>
-  </div>
-  <div class="dp-section">
-  <div class="dp-section-title">Now / next</div>
-  <div id="dpNowNext"></div>
-  </div>
-  <div class="dp-section">
-  <div class="dp-section-title">Waitlist</div>
-  <div id="dpWaitlist"></div>
-  </div>
-  <div class="dp-section">
-  <div class="dp-brief" id="dpBrief"><span>Morning brief</span><span class="dp-brief-count">&ndash;</span></div>
-  </div>
-  </aside>
-  </div>
-  <p class="footer">Appointments booked online appear here instantly. Click any appointment to reschedule or cancel.</p>
+<div class="cal-row" id="calRow">
+<div class="cal-main">
+<div class="legend" id="legend"></div>
+<div class="cal" id="cal"></div>
+</div>
+<aside class="day-panel" id="dayPanel">
+<div class="day-panel-head">
+<h3>Today panel</h3>
+<button class="iconbtn" id="panelCloseBtn" title="Collapse">✕</button>
+</div>
+<div class="dp-section">
+<div class="dp-section-title">Now / next</div>
+<div id="dpNowNext"></div>
+</div>
+<div class="dp-section">
+<div class="dp-section-title">Waitlist</div>
+<div id="dpWaitlist"></div>
+</div>
+<div class="dp-section">
+<div class="dp-brief" id="dpBrief"><span>Morning brief</span><span class="dp-brief-count">&ndash;</span></div>
+</div>
+</aside>
+</div>
+<p class="footer">Appointments booked online appear here instantly. Click any appointment to reschedule or cancel.</p>
+</div>
+
+<div id="leadsPage" class="hidden">
+<div class="hero-strip">
+<div>
+<h1>Leads pipeline</h1>
+<div class="clock" id="leadsSub"></div>
+</div>
+<div><button class="btn primary" id="newLeadBtn">＋ New lead</button></div>
+</div>
+<div class="leads-board" id="leadsBoard"></div>
+<p class="footer">Drag a card between columns to update its stage, or click it to edit details. Cards with a red edge haven't had any activity in a while and may need a follow-up.</p>
+</div>
+
+<div id="rotaPage" class="hidden">
+<div class="hero-strip">
+<div>
+<h1>Staff rota</h1>
+<div class="clock" id="rotaWeekLabel"></div>
+</div>
+</div>
+
+<div class="rota-toolbar">
+<button class="iconbtn" id="rotaPrevBtn">‹</button>
+<button class="btn ghost" id="rotaTodayBtn">This week</button>
+<button class="iconbtn" id="rotaNextBtn">›</button>
+<span class="spacer" style="flex:1"></span>
+<button class="btn ghost" id="manageTemplatesBtn">Manage templates</button>
+<button class="btn ghost" id="applyTemplatesBtn">Apply templates</button>
+<button class="btn ghost" id="copyLastWeekBtn">Copy last week</button>
+</div>
+
+<div class="rota-grid" id="rotaGrid"></div>
+<p class="footer">Click an empty cell to add a shift, or click a shift to edit it. Draft shifts are dashed; published shifts are solid.</p>
+
+<h2 style="font-family:var(--serif);font-size:19px;margin:36px 0 14px;color:var(--forest)">Time clock</h2>
+<div class="timeclock-grid" id="timeclockGrid"></div>
+
+<h2 style="font-family:var(--serif);font-size:19px;margin:8px 0 14px;color:var(--forest)">This week's timesheet</h2>
+<div style="overflow-x:auto;margin-bottom:60px">
+<table class="timesheet-table" id="timesheetTable"></table>
+</div>
+</div>
 </main>
 
 <!-- Appointment modal -->
 <div class="backdrop hidden" id="apptModal">
-  <div class="modal">
-    <header><h3>Appointment</h3><button class="iconbtn" data-close>✕</button></header>
-    <div class="body">
-      <div class="summary" id="apptInfo"></div>
-      <p style="font-size:13px;color:var(--muted);margin:14px 0 8px;font-weight:600">Reschedule / reassign</p>
-      <div class="row">
-        <div class="field"><label>Groomer</label><select id="rGroomer"></select></div>
-        <div class="field"><label>Date</label><input type="date" id="rDate"></div>
-      </div>
-      <div class="field"><label>Time</label><select id="rTime"></select></div>
-      <div class="notice err hidden" id="apptErr"></div>
-    </div>
-    <footer>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="link-danger" id="cancelAppt">Cancel appointment</button>
-        <button class="btn ghost" id="noShowAppt">No-show</button>
-        <button class="btn ghost" id="completeAppt">Completed</button>
-      </div>
-      <div style="display:flex;gap:10px">
-        <button class="btn ghost" id="toggleArrived">Mark arrived</button>
-        <button class="btn primary" id="saveAppt">Save changes</button>
-      </div>
-    </footer>
-  </div>
+<div class="modal">
+<header><h3>Appointment</h3><button class="iconbtn" data-close>✕</button></header>
+<div class="body">
+<div class="summary" id="apptInfo"></div>
+<p style="font-size:13px;color:var(--muted);margin:14px 0 8px;font-weight:600">Reschedule / reassign</p>
+<div class="row">
+<div class="field"><label>Groomer</label><select id="rGroomer"></select></div>
+<div class="field"><label>Date</label><input type="date" id="rDate"></div>
+</div>
+<div class="field"><label>Time</label><select id="rTime"></select></div>
+<div class="notice err hidden" id="apptErr"></div>
+</div>
+<footer>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="link-danger" id="cancelAppt">Cancel appointment</button>
+<button class="btn ghost" id="noShowAppt">No-show</button>
+<button class="btn ghost" id="completeAppt">Completed</button>
+</div>
+<div style="display:flex;gap:10px">
+<button class="btn ghost" id="toggleArrived">Mark arrived</button>
+<button class="btn primary" id="saveAppt">Save changes</button>
+</div>
+</footer>
+</div>
 </div>
 
 <!-- New booking modal (walk-in / phone) -->
 <div class="backdrop hidden" id="newBookingModal">
-  <div class="modal wide">
-    <header><h3>New booking</h3><button class="iconbtn" data-close>✕</button></header>
-    <div class="body">
-      <p style="font-size:13px;color:var(--muted);margin:0 0 14px">For walk-ins or phone bookings — this uses the same slots as the online booking page.</p>
-      <div class="row">
-        <div class="field"><label>Service</label><select id="nbService"></select></div>
-        <div class="field"><label>Groomer</label><select id="nbGroomer"></select></div>
-      </div>
-      <div class="row">
-        <div class="field"><label>Date</label><input type="date" id="nbDate"></div>
-        <div class="field"><label>Time</label><select id="nbTime"></select></div>
-      </div>
-      <div class="row">
-        <div class="field"><label>Client name</label><input type="text" id="nbName"></div>
-        <div class="field"><label>Phone</label><input type="tel" id="nbPhone"></div>
-      </div>
-      <div class="field"><label>Email</label><input type="email" id="nbEmail"></div>
-      <div class="field"><label>Notes</label><textarea id="nbNotes" rows="2"></textarea></div>
-      <div class="notice err hidden" id="nbErr"></div>
-    </div>
-    <footer><span></span><button class="btn primary" id="saveNewBooking">Book appointment</button></footer>
-  </div>
+<div class="modal wide">
+<header><h3>New booking</h3><button class="iconbtn" data-close>✕</button></header>
+<div class="body">
+<p style="font-size:13px;color:var(--muted);margin:0 0 14px">For walk-ins or phone bookings — this uses the same slots as the online booking page.</p>
+<div class="row">
+<div class="field"><label>Service</label><select id="nbService"></select></div>
+<div class="field"><label>Groomer</label><select id="nbGroomer"></select></div>
+</div>
+<div class="row">
+<div class="field"><label>Date</label><input type="date" id="nbDate"></div>
+<div class="field"><label>Time</label><select id="nbTime"></select></div>
+</div>
+<div class="row">
+<div class="field"><label>Client name</label><input type="text" id="nbName"></div>
+<div class="field"><label>Phone</label><input type="tel" id="nbPhone"></div>
+</div>
+<div class="field"><label>Email</label><input type="email" id="nbEmail"></div>
+<div class="field"><label>Notes</label><textarea id="nbNotes" rows="2"></textarea></div>
+<div class="notice err hidden" id="nbErr"></div>
+</div>
+<footer><span></span><button class="btn primary" id="saveNewBooking">Book appointment</button></footer>
+</div>
 </div>
 
 <!-- Block modal -->
 <div class="backdrop hidden" id="blockModal">
-  <div class="modal">
-    <header><h3>Block out time</h3><button class="iconbtn" data-close>✕</button></header>
-    <div class="body">
-      <div class="tabs">
-        <button class="tab-btn active" id="blockTabAdd">Add block</button>
-        <button class="tab-btn" id="blockTabRemove">Remove existing</button>
-      </div>
-      <div id="blockAddPanel">
-        <div class="field"><label>Reason</label><input type="text" id="bReason" placeholder="e.g. Bank holiday, Training, Annual leave"></div>
-        <div class="field"><label>Applies to</label><select id="bGroomer"></select></div>
-        <div class="row">
-          <div class="field"><label>From date</label><input type="date" id="bStartDate"></div>
-          <div class="field"><label>From time</label><input type="time" id="bStartTime" value="09:00"></div>
-        </div>
-        <div class="row">
-          <div class="field"><label>To date</label><input type="date" id="bEndDate"></div>
-          <div class="field"><label>To time</label><input type="time" id="bEndTime" value="17:00"></div>
-        </div>
-        <div class="checkbox-row"><input type="checkbox" id="bAllDay"><label for="bAllDay" style="margin:0">All day (whole shop hours)</label></div>
-        <div class="notice err hidden" id="blockErr"></div>
-      </div>
-      <div id="blockRemovePanel" class="hidden">
-        <div id="blockRemoveList"></div>
-      </div>
-    </div>
-    <footer><span></span><button class="btn primary" id="saveBlock">Add block</button></footer>
-  </div>
+<div class="modal">
+<header><h3>Block out time</h3><button class="iconbtn" data-close>✕</button></header>
+<div class="body">
+<div class="tabs">
+<button class="tab-btn active" id="blockTabAdd">Add block</button>
+<button class="tab-btn" id="blockTabRemove">Remove existing</button>
+</div>
+<div id="blockAddPanel">
+<div class="field"><label>Reason</label><input type="text" id="bReason" placeholder="e.g. Bank holiday, Training, Annual leave"></div>
+<div class="field"><label>Applies to</label><select id="bGroomer"></select></div>
+<div class="row">
+<div class="field"><label>From date</label><input type="date" id="bStartDate"></div>
+<div class="field"><label>From time</label><input type="time" id="bStartTime" value="09:00"></div>
+</div>
+<div class="row">
+<div class="field"><label>To date</label><input type="date" id="bEndDate"></div>
+<div class="field"><label>To time</label><input type="time" id="bEndTime" value="17:00"></div>
+</div>
+<div class="checkbox-row"><input type="checkbox" id="bAllDay"><label for="bAllDay" style="margin:0">All day (whole shop hours)</label></div>
+<div class="notice err hidden" id="blockErr"></div>
+</div>
+<div id="blockRemovePanel" class="hidden">
+<div id="blockRemoveList"></div>
+</div>
+</div>
+<footer><span></span><button class="btn primary" id="saveBlock">Add block</button></footer>
+</div>
 </div>
 
 <!-- Affected-appointments safety panel -->
 <div class="backdrop hidden" id="affectedModal">
-  <div class="modal wide">
-    <header><h3>⚠️ Appointments affected by this block</h3><button class="iconbtn" data-close>✕</button></header>
-    <div class="body">
-      <p style="font-size:13px;color:var(--muted);margin:0 0 14px">These clients were already booked in during the time you just blocked out. Nothing has been cancelled — reassign each one to a groomer who's free, or cancel and call them to rebook.</p>
-      <div id="affectedList"></div>
-    </div>
-    <footer><span></span><button class="btn ghost" data-close>Close</button></footer>
-  </div>
+<div class="modal wide">
+<header><h3>⚠️ Appointments affected by this block</h3><button class="iconbtn" data-close>✕</button></header>
+<div class="body">
+<p style="font-size:13px;color:var(--muted);margin:0 0 14px">These clients were already booked in during the time you just blocked out. Nothing has been cancelled — reassign each one to a groomer who's free, or cancel and call them to rebook.</p>
+<div id="affectedList"></div>
+</div>
+<footer><span></span><button class="btn ghost" data-close>Close</button></footer>
+</div>
 </div>
 
 <!-- Waitlist modal -->
 <div class="backdrop hidden" id="waitlistModal">
-  <div class="modal wide">
-    <header><h3>Waitlist</h3><button class="iconbtn" data-close>✕</button></header>
-    <div class="body">
-      <p style="font-size:13px;color:var(--muted);margin:0 0 14px">Contact these clients if a slot frees up, then remove them once booked in or no longer interested.</p>
-      <div id="waitlistList"></div>
-    </div>
-    <footer><span></span><button class="btn ghost" data-close>Close</button></footer>
-  </div>
+<div class="modal wide">
+<header><h3>Waitlist</h3><button class="iconbtn" data-close>✕</button></header>
+<div class="body">
+<p style="font-size:13px;color:var(--muted);margin:0 0 14px">Contact these clients if a slot frees up, then remove them once booked in or no longer interested.</p>
+<div id="waitlistList"></div>
+</div>
+<footer><span></span><button class="btn ghost" data-close>Close</button></footer>
+</div>
 </div>
 
 <!-- Morning brief modal -->
 <div class="backdrop hidden" id="briefModal">
-  <div class="modal wide">
-    <header><h3>Morning brief</h3><button class="iconbtn" data-close>✕</button></header>
-    <div class="body">
-      <p style="font-size:13px;color:var(--muted);margin:0 0 14px" id="briefSub">Appointments booked while the shop was closed.</p>
-      <div id="briefList"></div>
-    </div>
-    <footer><span></span><button class="btn ghost" data-close>Close</button></footer>
-  </div>
+<div class="modal wide">
+<header><h3>Morning brief</h3><button class="iconbtn" data-close>✕</button></header>
+<div class="body">
+<p style="font-size:13px;color:var(--muted);margin:0 0 14px" id="briefSub">Appointments booked while the shop was closed.</p>
+<div id="briefList"></div>
+</div>
+<footer><span></span><button class="btn ghost" data-close>Close</button></footer>
+</div>
+</div>
+
+<!-- Lead modal (add / edit) -->
+<div class="backdrop hidden" id="leadModal">
+<div class="modal">
+<header><h3 id="leadModalTitle">New lead</h3><button class="iconbtn" data-close>✕</button></header>
+<div class="body">
+<div class="field"><label>Name</label><input type="text" id="ldName" placeholder="Full name"></div>
+<div class="row">
+<div class="field"><label>Email</label><input type="email" id="ldEmail" placeholder="client@email.com"></div>
+<div class="field"><label>Phone</label><input type="tel" id="ldPhone" placeholder="07…"></div>
+</div>
+<div class="field"><label>What are they after</label><input type="text" id="ldIntent" placeholder="e.g. Wants a regular nail-trim slot for their dog"></div>
+<div id="leadMeta" style="font-size:12.5px;color:var(--muted);margin-top:-4px;margin-bottom:14px">&nbsp;</div>
+<div class="notice err hidden" id="leadErr"></div>
+</div>
+<footer>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="link-danger hidden" id="markLostBtn">Mark as lost</button>
+</div>
+<div style="display:flex;gap:10px">
+<button class="btn ghost hidden" id="convertLeadBtn">Convert to client</button>
+<button class="btn primary" id="saveLeadBtn">Save changes</button>
+</div>
+</footer>
+</div>
+</div>
+
+<!-- Shift modal (add / edit) -->
+<div class="backdrop hidden" id="shiftModal">
+<div class="modal">
+<header><h3 id="shiftModalTitle">New shift</h3><button class="iconbtn" data-close>✕</button></header>
+<div class="body">
+<div class="field"><label>Groomer</label><select id="shGroomer"></select></div>
+<div class="field"><label>Date</label><input type="date" id="shDate"></div>
+<div class="row">
+<div class="field"><label>Start time</label><input type="time" id="shStart" value="09:00"></div>
+<div class="field"><label>End time</label><input type="time" id="shEnd" value="17:00"></div>
+</div>
+<div class="field"><label>Break (minutes)</label><input type="text" id="shBreak" value="0" inputmode="numeric"></div>
+<div class="checkbox-row"><input type="checkbox" id="shPublished"><label for="shPublished" style="margin:0">Published (visible as confirmed)</label></div>
+<div class="notice err hidden" id="shiftErr"></div>
+</div>
+<footer>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="link-danger hidden" id="deleteShiftBtn">Delete shift</button>
+</div>
+<div style="display:flex;gap:10px">
+<button class="btn primary" id="saveShiftBtn">Add shift</button>
+</div>
+</footer>
+</div>
+</div>
+
+<!-- Shift templates modal -->
+<div class="backdrop hidden" id="templatesModal">
+<div class="modal wide">
+<header><h3>Manage weekly templates</h3><button class="iconbtn" data-close>✕</button></header>
+<div class="body">
+<p style="font-size:13px;color:var(--muted);margin:0 0 14px">A recurring weekly pattern. Click "Apply templates" on the rota to build any week from these in one go.</p>
+<div class="templates-list" id="templatesList"></div>
+<p style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin:0 0 10px">Add a template</p>
+<div class="row">
+<div class="field"><label>Groomer</label><select id="tplGroomer"></select></div>
+<div class="field"><label>Day</label><select id="tplWeekday">
+<option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
+<option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option>
+</select></div>
+</div>
+<div class="row">
+<div class="field"><label>Start time</label><input type="time" id="tplStart" value="09:00"></div>
+<div class="field"><label>End time</label><input type="time" id="tplEnd" value="17:00"></div>
+</div>
+<div class="field"><label>Break (minutes)</label><input type="text" id="tplBreak" value="0" inputmode="numeric"></div>
+<div class="notice err hidden" id="templateErr"></div>
+</div>
+<footer><span></span><button class="btn primary" id="addTemplateBtn">Add template</button></footer>
+</div>
 </div>
 
 <script src="staff.js"></script>

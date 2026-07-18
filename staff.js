@@ -1,7 +1,9 @@
 const API_BASE = 'https://willow-and-wag-api.luke1999-turner.workers.dev';
 // Staff calendar: day view across all groomers, reschedule, cancel, block out time,
 // waitlist, walk-in/phone bookings, and a morning brief of bookings made while the
-// shop was closed.
+// shop was closed. Also includes a Leads pipeline (kanban) page and a Rota page
+// (shift scheduling, weekly templates, time clock) — see the matching sections
+// near the bottom of this file.
 const $ = (s) => document.querySelector(s); function parseDogInfo(notes){ if (!notes) return null; const m = notes.match(/^Dog:\s*([^·\n]+?)\s*·\s*Breed:\s*([^·\n]+?)\s*·\s*Size:\s*([^\n]+)/); if (!m) return null; const rest = notes.slice(m[0].length).replace(/^\n/, '').trim(); return { dog: m[1].trim(), breed: m[2].trim(), size: m[3].trim(), rest }; } function dogTileLabel(a){ const info = parseDogInfo(a.notes); if (!info) return a.client_name; const firstName = (a.client_name || '').split(' ')[0]; return `${info.dog} (${firstName})`; }
 let STAFF_KEY = '';
 const api = (u, o = {}) => {
@@ -27,9 +29,9 @@ function fmtFromTs(ts) {
   return `${prettyDate(date)}, ${fmt(min)}`;
 }
 
-const DAY_START = 8 * 60, DAY_END = 20 * 60, PXH = 56;   // visible window 08:00-20:00
+const DAY_START = 8 * 60, DAY_END = 20 * 60, PXH = 56; // visible window 08:00-20:00
 const PXMIN = PXH / 60;
-const state = { date: null, view: 'day', groomers: [], services: [], editing: null, affected: [], blocks: [], editingDate: null };
+const state = { date: null, view: 'day', page: 'calendar', groomers: [], services: [], editing: null, affected: [], blocks: [], editingDate: null, rotaWeekDate: null, leads: [], rota: {}, timeEntries: [], timesheet: [], editingLead: null, editingShift: null };
 
 function hoursForDow(dow) {
   const h = (state.hours || []).find((x) => x.dow === dow);
@@ -66,6 +68,7 @@ async function init() {
   state.services = (await api('/api/services')).data;
   state.hours = (await api('/api/hours')).data;
   const t = new Date(); state.date = t.toISOString().slice(0, 10);
+  state.rotaWeekDate = mondayOf(state.date);
   $('#date').value = state.date;
   $('#legend').innerHTML = state.groomers.map((b) =>
     `<span class="lg"><span class="sw" style="background:${b.color}"></span>${b.name}</span>`).join('') +
@@ -76,6 +79,7 @@ async function init() {
   $('#bGroomer').innerHTML = `<option value="all">Whole shop</option>` + opts;
   $('#nbGroomer').innerHTML = `<option value="any">Any available</option>` + opts;
   $('#nbService').innerHTML = state.services.map((s) => `<option value="${s.id}">${s.name} (${s.duration_min}min)</option>`).join('');
+  $('#shGroomer').innerHTML = opts;
 
   $('#prev').onclick = () => shiftView(-1);
   $('#next').onclick = () => shiftView(1);
@@ -88,9 +92,9 @@ async function init() {
   $('#waitlistBtn').onclick = openWaitlist;
   $('#briefBtn').onclick = openBrief;
   $('#newBookingBtn').onclick = openNewBooking;
-$('#panelToggleBtn').onclick = togglePanel;
-$('#panelCloseBtn').onclick = closePanel;
-$('#dpBrief').onclick = openBrief;
+  $('#panelToggleBtn').onclick = togglePanel;
+  $('#panelCloseBtn').onclick = closePanel;
+  $('#dpBrief').onclick = openBrief;
   document.querySelectorAll('[data-close]').forEach((b) => b.onclick = closeModals);
   $('#saveBlock').onclick = saveBlock;
   $('#saveAppt').onclick = saveAppt;
@@ -103,6 +107,24 @@ $('#dpBrief').onclick = openBrief;
   $('#saveNewBooking').onclick = saveNewBooking;
   $('#blockTabAdd').onclick = () => switchBlockTab('add');
   $('#blockTabRemove').onclick = () => switchBlockTab('remove');
+  // Leads pipeline nav + modal
+  $('#navCalendarBtn').onclick = () => switchPage('calendar');
+  $('#navLeadsBtn').onclick = () => switchPage('leads');
+  $('#newLeadBtn').onclick = openNewLead;
+  $('#saveLeadBtn').onclick = saveLead;
+  $('#markLostBtn').onclick = markLeadLost;
+  $('#convertLeadBtn').onclick = convertLead;
+  // Rota nav + modals
+  $('#navRotaBtn').onclick = () => switchPage('rota');
+  $('#rotaPrevBtn').onclick = () => switchRotaWeek(-1);
+  $('#rotaTodayBtn').onclick = () => { state.rotaWeekDate = mondayOf(new Date().toISOString().slice(0, 10)); loadRota(); };
+  $('#rotaNextBtn').onclick = () => switchRotaWeek(1);
+  $('#manageTemplatesBtn').onclick = openTemplatesModal;
+  $('#applyTemplatesBtn').onclick = applyTemplates;
+  $('#copyLastWeekBtn').onclick = copyLastWeek;
+  $('#saveShiftBtn').onclick = saveShift;
+  $('#deleteShiftBtn').onclick = deleteShift;
+  $('#addTemplateBtn').onclick = addTemplate;
 
   updateHero();
   setInterval(updateHero, 30000);
@@ -770,7 +792,7 @@ async function saveBlock() {
   closeModals(); load();
 }
 function closeModals() {
-  ['apptModal', 'blockModal', 'waitlistModal', 'affectedModal', 'briefModal', 'newBookingModal'].forEach((id) => $('#' + id).classList.add('hidden'));
+  ['apptModal', 'blockModal', 'waitlistModal', 'affectedModal', 'briefModal', 'newBookingModal', 'leadModal', 'shiftModal', 'templatesModal'].forEach((id) => $('#' + id).classList.add('hidden'));
   state.editing = null;
 }
 
@@ -810,10 +832,10 @@ function renderAffected() {
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
         ${a.availableGroomers.length ? `
-          <select data-swap="${a.id}" style="width:auto;padding:6px 8px">
-            ${a.availableGroomers.map((b) => `<option value="${b.id}">${b.name}</option>`).join('')}
-          </select>
-          <button class="btn primary" style="padding:6px 12px;font-size:13px" data-reassign="${a.id}">Reassign groomer</button>
+        <select data-swap="${a.id}" style="width:auto;padding:6px 8px">
+          ${a.availableGroomers.map((b) => `<option value="${b.id}">${b.name}</option>`).join('')}
+        </select>
+        <button class="btn primary" style="padding:6px 12px;font-size:13px" data-reassign="${a.id}">Reassign groomer</button>
         ` : `<span style="font-size:12px;color:var(--danger);text-align:right;max-width:180px">No one else free at this time — call client to rebook</span>`}
         <button class="link-danger" style="font-size:13px" data-cancel="${a.id}">Cancel appointment</button>
       </div>
@@ -831,6 +853,439 @@ function renderAffected() {
       { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'cancelled' }) });
     if (ok) { state.affected = state.affected.filter((x) => x.id != id); renderAffected(); load(); }
   });
+}
+
+// ==================== Leads pipeline (kanban) ====================
+// A lightweight sales/inquiry board sitting alongside the calendar. Leads come
+// in from the public chatbot (source:'chatbot') or get added here manually by
+// staff (source:'manual') for a phone/walk-in inquiry that isn't ready to book
+// yet. Drag a card between columns to move it through the pipeline; converting
+// a lead creates (or reuses) a client record and marks the lead 'won'.
+const LEAD_STATUSES = [
+{ key: 'new', label: 'New' },
+{ key: 'contacted', label: 'Contacted' },
+{ key: 'qualified', label: 'Qualified' },
+{ key: 'booked', label: 'Booked' },
+{ key: 'won', label: 'Won' },
+{ key: 'lost', label: 'Lost' },
+];
+// How long (in minutes) a lead can sit with no activity in a given stage
+// before it's flagged as "needs attention". Won/lost leads never rot.
+const ROT_THRESHOLD_MIN = { new: 1440, contacted: 4320, qualified: 10080, booked: 20160 };
+
+function switchPage(page) {
+state.page = page;
+$('#calendarPage').classList.toggle('hidden', page !== 'calendar');
+$('#leadsPage').classList.toggle('hidden', page !== 'leads');
+$('#rotaPage').classList.toggle('hidden', page !== 'rota');
+$('#navCalendarBtn').classList.toggle('primary', page === 'calendar');
+$('#navCalendarBtn').classList.toggle('ghost', page !== 'calendar');
+$('#navLeadsBtn').classList.toggle('primary', page === 'leads');
+$('#navLeadsBtn').classList.toggle('ghost', page !== 'leads');
+$('#navRotaBtn').classList.toggle('primary', page === 'rota');
+$('#navRotaBtn').classList.toggle('ghost', page !== 'rota');
+if (page === 'leads') loadLeads();
+if (page === 'rota') loadRota();
+}
+
+function isRotting(lead) {
+const threshold = ROT_THRESHOLD_MIN[lead.status];
+if (!threshold) return false;
+const nowMin = Math.floor(Date.now() / 60000);
+return (nowMin - lead.last_activity_at) > threshold;
+}
+function leadAgeLabel(ts) {
+const nowMin = Math.floor(Date.now() / 60000);
+const diffMin = Math.max(0, nowMin - ts);
+if (diffMin < 60) return 'just now';
+if (diffMin < 1440) return `${Math.floor(diffMin / 60)}h ago`;
+return `${Math.floor(diffMin / 1440)}d ago`;
+}
+
+async function loadLeads() {
+const { data } = await api('/api/leads');
+state.leads = data || [];
+renderLeadsBoard();
+$('#leadsSub').textContent = `${state.leads.length} lead${state.leads.length === 1 ? '' : 's'} in the pipeline`;
+}
+
+function leadCardHtml(l) {
+const rot = isRotting(l);
+return `<div class="lead-card${rot ? ' rotting' : ''}" draggable="true" data-id="${l.id}">
+<div class="lc-name">${l.contact_name}</div>
+<div class="lc-meta">${l.intent || (l.source === 'chatbot' ? 'From the chatbot' : 'Manual entry')}</div>
+<div class="lc-meta">${leadAgeLabel(l.last_activity_at)}</div>
+${rot ? `<div class="lc-rot">Needs a follow-up</div>` : ''}
+</div>`;
+}
+
+function renderLeadsBoard() {
+const board = $('#leadsBoard'); if (!board) return;
+board.innerHTML = LEAD_STATUSES.map((col) => {
+const items = state.leads.filter((l) => l.status === col.key).sort((a, b) => a.pipeline_position - b.pipeline_position);
+return `<div class="leads-col" data-status="${col.key}">
+<div class="leads-col-head"><span class="leads-col-title">${col.label}</span><span class="leads-col-count">${items.length}</span></div>
+<div class="leads-col-body">${items.length ? items.map(leadCardHtml).join('') : `<div class="leads-empty">No leads</div>`}</div>
+</div>`;
+}).join('');
+wireLeadsDnD();
+}
+
+function wireLeadsDnD() {
+const board = $('#leadsBoard');
+board.querySelectorAll('.lead-card').forEach((card) => {
+card.addEventListener('dragstart', (e) => {
+card.classList.add('dragging');
+e.dataTransfer.effectAllowed = 'move';
+e.dataTransfer.setData('text/plain', card.dataset.id);
+});
+card.addEventListener('dragend', () => card.classList.remove('dragging'));
+card.addEventListener('click', () => openLead(+card.dataset.id));
+});
+board.querySelectorAll('.leads-col').forEach((col) => {
+col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('drag-over'); });
+col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+col.addEventListener('drop', async (e) => {
+e.preventDefault();
+col.classList.remove('drag-over');
+const id = +e.dataTransfer.getData('text/plain');
+const status = col.dataset.status;
+const lead = state.leads.find((x) => x.id === id);
+if (!lead || lead.status === status) return;
+const position = state.leads.filter((x) => x.status === status).length;
+// Optimistic UI: reflect the move immediately, then confirm with the API.
+lead.status = status; lead.pipeline_position = position; lead.last_activity_at = Math.floor(Date.now() / 60000);
+renderLeadsBoard();
+await api(`/api/leads/${id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, position }) });
+loadLeads();
+});
+});
+}
+
+function openNewLead() {
+state.editingLead = null;
+$('#leadModalTitle').textContent = 'New lead';
+$('#ldName').value = ''; $('#ldEmail').value = ''; $('#ldPhone').value = ''; $('#ldIntent').value = '';
+$('#leadMeta').innerHTML = '&nbsp;';
+$('#leadErr').classList.add('hidden');
+$('#markLostBtn').classList.add('hidden');
+$('#convertLeadBtn').classList.add('hidden');
+$('#saveLeadBtn').textContent = 'Add lead';
+$('#leadModal').classList.remove('hidden');
+}
+
+function openLead(id) {
+const l = state.leads.find((x) => x.id === id); if (!l) return;
+state.editingLead = l;
+$('#leadModalTitle').textContent = 'Edit lead';
+$('#ldName').value = l.contact_name;
+$('#ldEmail').value = l.email || '';
+$('#ldPhone').value = l.phone || '';
+$('#ldIntent').value = l.intent || '';
+const stageLabel = (LEAD_STATUSES.find((s) => s.key === l.status) || {}).label || l.status;
+$('#leadMeta').textContent = `Stage: ${stageLabel} · Source: ${l.source === 'chatbot' ? 'Chatbot' : 'Manual'} · Last activity ${leadAgeLabel(l.last_activity_at)}`;
+$('#leadErr').classList.add('hidden');
+$('#markLostBtn').classList.toggle('hidden', l.status === 'lost' || l.status === 'won');
+$('#convertLeadBtn').classList.toggle('hidden', l.status === 'won');
+$('#saveLeadBtn').textContent = 'Save changes';
+$('#leadModal').classList.remove('hidden');
+}
+
+async function saveLead() {
+const err = $('#leadErr');
+const name = $('#ldName').value.trim();
+if (!name) { err.textContent = 'Name is required.'; err.classList.remove('hidden'); return; }
+const body = { contactName: name, email: $('#ldEmail').value.trim(), phone: $('#ldPhone').value.trim(), intent: $('#ldIntent').value.trim() };
+if (state.editingLead) {
+const { ok, data } = await api(`/api/leads/${state.editingLead.id}`,
+{ method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+if (!ok) { err.textContent = data.error || 'Could not save.'; err.classList.remove('hidden'); return; }
+} else {
+body.source = 'manual';
+const { ok, data } = await api('/api/leads',
+{ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+if (!ok) { err.textContent = data.error || 'Could not save.'; err.classList.remove('hidden'); return; }
+}
+closeModals(); loadLeads();
+}
+
+async function markLeadLost() {
+const l = state.editingLead; if (!l) return;
+if (!confirm(`Mark ${l.contact_name} as lost?`)) return;
+const position = state.leads.filter((x) => x.status === 'lost').length;
+await api(`/api/leads/${l.id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'lost', position }) });
+closeModals(); loadLeads();
+}
+
+async function convertLead() {
+const l = state.editingLead; if (!l) return;
+if (!confirm(`Convert ${l.contact_name} to a client record? This marks the lead as won.`)) return;
+const { ok } = await api(`/api/leads/${l.id}/convert`, { method: 'POST' });
+if (ok) { closeModals(); loadLeads(); alert('Converted — a client record has been created.'); }
+}
+
+// ==================== Rota (shifts, templates, time clock) ====================
+// A weekly staff schedule sitting alongside the calendar and leads pipeline.
+// Shifts are drafted directly on the grid (click an empty cell) or generated
+// in bulk from a saved weekly template pattern; "published" shifts render as
+// solid gold chips so staff can tell what's confirmed from what's still a
+// draft. A lightweight time clock and per-week timesheet round out the page.
+const WEEKDAY_LABELS = [
+{ dow: 1, label: 'Mon' }, { dow: 2, label: 'Tue' }, { dow: 3, label: 'Wed' },
+{ dow: 4, label: 'Thu' }, { dow: 5, label: 'Fri' }, { dow: 6, label: 'Sat' }, { dow: 0, label: 'Sun' },
+];
+const hmToMin = (v) => { const [h, m] = v.split(':').map(Number); return h * 60 + m; };
+
+function switchRotaWeek(n) {
+state.rotaWeekDate = addDays(state.rotaWeekDate, 7 * n);
+loadRota();
+}
+
+async function loadRota() {
+if (!state.rotaWeekDate) state.rotaWeekDate = mondayOf(state.date);
+const { data } = await api(`/api/rota?week=${state.rotaWeekDate}`);
+state.rota = data;
+renderRotaWeekLabel();
+renderRotaGrid();
+await refreshTimeclock();
+await loadTimesheet();
+}
+
+function renderRotaWeekLabel() {
+const monday = mondayOf(state.rotaWeekDate);
+const sunday = addDays(monday, 6);
+$('#rotaWeekLabel').textContent = weekLabel(monday, sunday);
+}
+
+function renderRotaGrid() {
+const grid = $('#rotaGrid');
+const monday = mondayOf(state.rotaWeekDate);
+const today = new Date().toISOString().slice(0, 10);
+const dayFor = (i) => addDays(monday, i);
+
+let html = `<div class="rota-head-row"><div class="rota-head-cell"></div>` +
+[...Array(7)].map((_, i) => {
+const d = dayFor(i);
+const dt = new Date(d + 'T00:00');
+const label = dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
+return `<div class="rota-head-cell${d === today ? ' is-today' : ''}">${label}</div>`;
+}).join('') + `</div>`;
+
+(state.rota.groomers || []).forEach((b) => {
+html += `<div class="rota-row">`;
+html += `<div class="rota-staff-cell"><span class="sw" style="width:9px;height:9px;border-radius:50%;background:${b.color};display:inline-block;flex-shrink:0"></span>${b.name}</div>`;
+for (let i = 0; i < 7; i++) {
+const d = dayFor(i);
+const dayTs = toTs(d, 0);
+const shiftsHere = (state.rota.shifts || []).filter((s) => s.groomer_id === b.id && s.starts_at >= dayTs && s.starts_at < dayTs + 1440);
+html += `<div class="rota-cell" data-groomer="${b.id}" data-date="${d}">` +
+shiftsHere.map((s) => shiftChipHtml(s)).join('') + `</div>`;
+}
+html += `</div>`;
+});
+grid.innerHTML = html;
+
+grid.querySelectorAll('.rota-cell').forEach((cell) => cell.addEventListener('click', (e) => {
+if (e.target.closest('.shift-chip')) return;
+openNewShift(+cell.dataset.groomer, cell.dataset.date);
+}));
+grid.querySelectorAll('.shift-chip').forEach((chip) => chip.addEventListener('click', (e) => {
+e.stopPropagation();
+openEditShift(+chip.dataset.id);
+}));
+}
+
+function shiftChipHtml(s) {
+const dayTs = toTs(fromTs(s.starts_at).date, 0);
+const startMin = s.starts_at - dayTs;
+const endMin = s.ends_at - dayTs;
+const cls = s.status === 'published' ? 'is-published' : 'is-draft';
+return `<div class="shift-chip ${cls}" data-id="${s.id}">
+<span class="sc-time">${fmt(startMin)}–${fmt(endMin)}</span>
+${s.break_min ? `<span class="sc-break">${s.break_min}m break</span>` : ''}
+</div>`;
+}
+
+function openNewShift(groomerId, dateStr) {
+state.editingShift = null;
+$('#shiftModalTitle').textContent = 'New shift';
+$('#shGroomer').value = groomerId;
+$('#shDate').value = dateStr;
+$('#shStart').value = '09:00';
+$('#shEnd').value = '17:00';
+$('#shBreak').value = '0';
+$('#shPublished').checked = false;
+$('#shiftErr').classList.add('hidden');
+$('#deleteShiftBtn').classList.add('hidden');
+$('#saveShiftBtn').textContent = 'Add shift';
+$('#shiftModal').classList.remove('hidden');
+}
+
+function openEditShift(id) {
+const s = (state.rota.shifts || []).find((x) => x.id === id); if (!s) return;
+state.editingShift = s;
+$('#shiftModalTitle').textContent = 'Edit shift';
+const { date, min: startMin } = fromTs(s.starts_at);
+const endMin = s.ends_at - toTs(date, 0);
+$('#shGroomer').value = s.groomer_id;
+$('#shDate').value = date;
+$('#shStart').value = fmt(startMin);
+$('#shEnd').value = fmt(endMin);
+$('#shBreak').value = String(s.break_min || 0);
+$('#shPublished').checked = s.status === 'published';
+$('#shiftErr').classList.add('hidden');
+$('#deleteShiftBtn').classList.remove('hidden');
+$('#saveShiftBtn').textContent = 'Save changes';
+$('#shiftModal').classList.remove('hidden');
+}
+
+async function saveShift() {
+const err = $('#shiftErr');
+const groomerId = $('#shGroomer').value;
+const dateStr = $('#shDate').value;
+const startMin = hmToMin($('#shStart').value);
+const endMin = hmToMin($('#shEnd').value);
+if (endMin <= startMin) { err.textContent = 'End must be after start.'; err.classList.remove('hidden'); return; }
+const startsAt = toTs(dateStr, startMin);
+const endsAt = toTs(dateStr, endMin);
+const breakMin = Math.max(0, parseInt($('#shBreak').value, 10) || 0);
+const status = $('#shPublished').checked ? 'published' : 'draft';
+const body = { groomerId: +groomerId, startsAt, endsAt, breakMin, status };
+let res;
+if (state.editingShift) {
+res = await api(`/api/shifts/${state.editingShift.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+} else {
+res = await api('/api/shifts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+}
+if (!res.ok) { err.textContent = res.data.error || 'Could not save.'; err.classList.remove('hidden'); return; }
+closeModals(); loadRota();
+}
+
+async function deleteShift() {
+const s = state.editingShift; if (!s) return;
+if (!confirm('Delete this shift?')) return;
+await api(`/api/shifts/${s.id}`, { method: 'DELETE' });
+closeModals(); loadRota();
+}
+
+async function applyTemplates() {
+if (!confirm("Build this week's draft shifts from your saved templates? Existing shifts are left untouched.")) return;
+const { data } = await api('/api/shifts/apply-templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ week: state.rotaWeekDate }) });
+await loadRota();
+alert(`${data.created || 0} shift${data.created === 1 ? '' : 's'} created.`);
+}
+
+async function copyLastWeek() {
+const fromWeek = addDays(mondayOf(state.rotaWeekDate), -7);
+if (!confirm("Copy last week's shifts into this week?")) return;
+const { data } = await api('/api/shifts/copy-week', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fromWeek, toWeek: state.rotaWeekDate }) });
+await loadRota();
+alert(`${data.created || 0} shift${data.created === 1 ? '' : 's'} copied.`);
+}
+
+function openTemplatesModal() {
+$('#tplGroomer').innerHTML = state.groomers.map((b) => `<option value="${b.id}">${b.name}</option>`).join('');
+renderTemplatesList();
+$('#templateErr').classList.add('hidden');
+$('#templatesModal').classList.remove('hidden');
+}
+
+function renderTemplatesList() {
+const box = $('#templatesList');
+const templates = state.rota.templates || [];
+const dayLabel = (w) => (WEEKDAY_LABELS.find((x) => x.dow === w) || {}).label || w;
+if (!templates.length) { box.innerHTML = `<p style="font-size:13px;color:var(--muted)">No templates yet — add one below.</p>`; return; }
+box.innerHTML = templates.map((t) => {
+const groomer = state.groomers.find((b) => b.id === t.groomer_id);
+return `<div class="template-row">
+<div><b>${dayLabel(t.weekday)}</b> · ${groomer ? groomer.name : 'Unassigned'}
+<div class="tr-meta">${fmt(t.start_min)}–${fmt(t.end_min)}${t.break_min ? ` · ${t.break_min}m break` : ''}</div></div>
+<button class="link-danger" data-del-tpl="${t.id}">Remove</button>
+</div>`;
+}).join('');
+box.querySelectorAll('[data-del-tpl]').forEach((btn) => btn.onclick = async () => {
+await api(`/api/shift-templates/${btn.dataset.delTpl}`, { method: 'DELETE' });
+const { data } = await api(`/api/rota?week=${state.rotaWeekDate}`);
+state.rota = data;
+renderTemplatesList();
+});
+}
+
+async function addTemplate() {
+const err = $('#templateErr');
+const startMin = hmToMin($('#tplStart').value);
+const endMin = hmToMin($('#tplEnd').value);
+if (endMin <= startMin) { err.textContent = 'End must be after start.'; err.classList.remove('hidden'); return; }
+const body = {
+groomerId: +$('#tplGroomer').value, weekday: +$('#tplWeekday').value,
+startMin, endMin, breakMin: Math.max(0, parseInt($('#tplBreak').value, 10) || 0),
+};
+const { ok, data } = await api('/api/shift-templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+if (!ok) { err.textContent = data.error || 'Could not add.'; err.classList.remove('hidden'); return; }
+err.classList.add('hidden');
+const r = await api(`/api/rota?week=${state.rotaWeekDate}`);
+state.rota = r.data;
+renderTemplatesList();
+}
+
+// ---------- time clock ----------
+async function refreshTimeclock() {
+const { data } = await api('/api/time-entries?status=open');
+state.timeEntries = data;
+renderTimeclock();
+}
+
+function renderTimeclock() {
+const grid = $('#timeclockGrid');
+grid.innerHTML = state.groomers.map((b) => {
+const open = (state.timeEntries || []).find((te) => te.groomer_id === b.id && te.status === 'open');
+return `<div class="tc-card">
+<div class="tc-name"><span class="sw" style="width:9px;height:9px;border-radius:50%;background:${b.color};display:inline-block;flex-shrink:0"></span>${b.name}</div>
+<div class="tc-status${open ? ' on-clock' : ''}">${open ? 'Clocked in ' + leadAgeLabel(open.clock_in) : 'Not clocked in'}</div>
+${open
+? `<button class="btn ghost" data-clockout="${open.id}">Clock out</button>`
+: `<button class="btn primary" data-clockin="${b.id}">Clock in</button>`}
+</div>`;
+}).join('');
+grid.querySelectorAll('[data-clockin]').forEach((btn) => btn.onclick = async () => {
+await api('/api/time-entries/clock-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groomerId: +btn.dataset.clockin }) });
+await refreshTimeclock();
+});
+grid.querySelectorAll('[data-clockout]').forEach((btn) => btn.onclick = async () => {
+await api(`/api/time-entries/${btn.dataset.clockout}/clock-out`, { method: 'POST' });
+await refreshTimeclock();
+await loadTimesheet();
+});
+}
+
+// ---------- timesheet ----------
+async function loadTimesheet() {
+const monday = mondayOf(state.rotaWeekDate);
+const sunday = addDays(monday, 6);
+const { data } = await api(`/api/timesheets?from=${monday}&to=${sunday}`);
+state.timesheet = data;
+renderTimesheet();
+}
+
+function renderTimesheet() {
+const table = $('#timesheetTable');
+const rows = state.timesheet || [];
+const totals = {};
+const rowHtml = rows.map((te) => {
+const durMin = te.clock_out ? (te.clock_out - te.clock_in) : null;
+if (durMin != null) totals[te.groomer_name] = (totals[te.groomer_name] || 0) + durMin;
+const hrs = durMin != null ? (durMin / 60).toFixed(1) + 'h' : '—';
+return `<tr>
+<td>${te.groomer_name}</td>
+<td>${fmtFromTs(te.clock_in)}</td>
+<td>${te.clock_out ? fmtFromTs(te.clock_out) : '<span style="color:var(--ok);font-weight:600">Still clocked in</span>'}</td>
+<td>${hrs}</td>
+</tr>`;
+}).join('');
+const totalRows = Object.entries(totals).map(([name, min]) => `<tr><td colspan="3">${name} total</td><td>${(min / 60).toFixed(1)}h</td></tr>`).join('');
+table.innerHTML = `<thead><tr><th>Staff</th><th>Clocked in</th><th>Clocked out</th><th>Hours</th></tr></thead>
+<tbody>${rowHtml || '<tr><td colspan="4" style="color:var(--muted)">No time entries this week.</td></tr>'}</tbody>
+<tfoot>${totalRows}</tfoot>`;
 }
 
 // ---------- staff PIN gate ----------
