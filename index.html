@@ -1275,11 +1275,11 @@ window.SS_CHAT = {
     if(!LEAD_ENDPOINT)return;
     try{fetch(LEAD_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:business,service:data.reason+' — '+data.question,postcode:'',name:data.name,phone:data.phone,site:location.hostname,time:new Date().toISOString()})});}catch(e){}
      if(CRM_ENDPOINT){try{fetch(CRM_ENDPOINT.replace(/\/$/,'')+'/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contactName:data.name,phone:data.phone,source:'chatbot',intent:(data.reason?data.reason+' — ':'')+data.question})});}catch(e){}}
-  }  }
+  }
   function finish(){
     sendLead();
     bot("Perfect — got everything I need:<br><br>💬 <b>"+data.question+"</b><br>👤 "+data.name+"<br>📞 "+data.phone+"<br><br>"+business+" has your details and will be straight in touch 👍 Want to reach us now?",function(){
-      var msg=encodeURIComponent("Hi "+business+"! "+data.question+"\nName: "+data.name+"\nNumber: "+data.phone);
+      var msg=encodeURIComponent("Hi "+business+"! "+data.question+"\nName: "+data.name+"\nNumber: "+data.phon
       var cta=document.createElement('div');cta.className='ssc-cta';var h='';
       if(wa)h+='<a class="ssc-wa" href="https://wa.me/'+wa+'?text='+msg+'" target="_blank" rel="noopener">💬 Message on WhatsApp</a>';
       if(tel)h+='<a class="ssc-call" href="tel:'+tel+'">📞 Call '+(disp||'')+'</a>';
