@@ -201,7 +201,7 @@ export default {
 
     if (method === 'OPTIONS') return new Response(null, { headers: CORS_HEADERS });
     if (!url.pathname.startsWith('/api/')) return json({ error: 'Not found.' }, 404);
-    const segments = url.pathname.replace(/^/api//, '').split('/').filter(Boolean);
+    const segments = url.pathname.replace(/^\/api\//, '').split('/').filter(Boolean);
 
     try {
       // ---- POST /api/staff/verify ----
