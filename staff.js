@@ -13,8 +13,6 @@ const api = (u, o = {}) => {
     return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
   });
 };
-
-};
 const initials = (n) => n.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 const pad = (n) => String(n).padStart(2, '0');
 const fmt = (m) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
