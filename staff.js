@@ -5,10 +5,15 @@ const API_BASE = 'https://willow-and-wag-api.luke1999-turner.workers.dev';
 // (shift scheduling, weekly templates, time clock) — see the matching sections
 // near the bottom of this file.
 const $ = (s) => document.querySelector(s); function parseDogInfo(notes){ if (!notes) return null; const m = notes.match(/^Dog:\s*([^·\n]+?)\s*·\s*Breed:\s*([^·\n]+?)\s*·\s*Size:\s*([^\n]+)/); if (!m) return null; const rest = notes.slice(m[0].length).replace(/^\n/, '').trim(); return { dog: m[1].trim(), breed: m[2].trim(), size: m[3].trim(), rest }; } function dogTileLabel(a){ const info = parseDogInfo(a.notes); if (!info) return a.client_name; const firstName = (a.client_name || '').split(' ')[0]; return `${info.dog} (${firstName})`; }
-let STAFF_KEY = '';
+let STAFF_TOKEN = '';
 const api = (u, o = {}) => {
-  o.headers = { ...(o.headers || {}), 'X-Staff-Key': STAFF_KEY };
-  return fetch(API_BASE + u, o).then(async (r) => ({ ok: r.ok, status: r.status, data: await r.json() }));
+  o.headers = { ...(o.headers || {}), Authorization: `Bearer ${STAFF_TOKEN}` };
+  return fetch(API_BASE + u, o).then(async (r) => {
+    if (r.status === 401 && STAFF_TOKEN) { STAFF_TOKEN = ''; sessionStorage.removeItem('staffToken'); showGate('Your session expired. Please sign in again.'); }
+    return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
+  });
+};
+
 };
 const initials = (n) => n.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 const pad = (n) => String(n).padStart(2, '0');
@@ -1297,37 +1302,53 @@ function showGate(msg) {
   $('#pinInput').value = '';
   $('#pinInput').focus();
 }
-async function verifyPin(pin) {
-  const r = await fetch(API_BASE + '/api/staff/verify', {
+async function login(pin) {
+  const r = await fetch(API_BASE + '/api/staff/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin }),
   });
-  return r.ok;
+  const data = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, data };
 }
-async function tryPin() {
-  const pin = $('#pinInput').value.trim();
-  if (!pin) return;
-  if (await verifyPin(pin)) {
-    STAFF_KEY = pin;
-    sessionStorage.setItem('staffKey', pin);
-    $('#loginGate').classList.add('hidden');
-    $('#app').classList.remove('hidden');
-    init();
-  } else {
-    showGate('Incorrect PIN, try again.');
+  async function checkSession(token) {
+    const r = await fetch(API_BASE + '/api/staff/session', { headers: { Authorization: `Bearer ${token}` } });
+    return r.ok;
   }
-}
-$('#pinSubmit').onclick = tryPin;
-$('#pinInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') tryPin(); });
+  async function tryPin() {
+    const pin = $('#pinInput').value.trim();
+    if (!pin) return;
+    const res = await login(pin);
+    if (res.ok && res.data.token) {
+      STAFF_TOKEN = res.data.token;
+      sessionStorage.setItem('staffToken', STAFF_TOKEN);
+      $('#loginGate').classList.add('hidden');
+      $('#app').classList.remove('hidden');
+      init();
+    } else if (res.status === 429) {
+      showGate(res.data.error || 'Too many failed attempts. Please try again in a few minutes.');
+    } else {
+      showGate('Incorrect PIN, try again.');
+    }
+  }
+  function signOut() {
+    STAFF_TOKEN = '';
+    sessionStorage.removeItem('staffToken');
+    $('#app').classList.add('hidden');
+    showGate();
+  }
+  $('#pinSubmit').onclick = tryPin;
+  $('#pinInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') tryPin(); });
+  const signOutBtn = $('#signOutBtn');
+  if (signOutBtn) signOutBtn.onclick = signOut;
 
-(async function boot() {
-  const remembered = sessionStorage.getItem('staffKey');
-  if (remembered && await verifyPin(remembered)) {
-    STAFF_KEY = remembered;
-    $('#loginGate').classList.add('hidden');
-    $('#app').classList.remove('hidden');
-    init();
-    return;
-  }
-  sessionStorage.removeItem('staffKey');
-  showGate();
-})();
+  (async function boot() {
+    const remembered = sessionStorage.getItem('staffToken');
+    if (remembered && await checkSession(remembered)) {
+      STAFF_TOKEN = remembered;
+      $('#loginGate').classList.add('hidden');
+      $('#app').classList.remove('hidden');
+      init();
+      return;
+    }
+    sessionStorage.removeItem('staffToken');
+    showGate();
+  })();
