@@ -503,12 +503,17 @@ color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var
 <div class="field"><label>Phone</label><input type="tel" id="ldPhone" placeholder="07…"></div>
 </div>
 <div class="field"><label>What are they after</label><input type="text" id="ldIntent" placeholder="e.g. Wants a regular nail-trim slot for their dog"></div>
+  <div class="field"><label>Stage</label><select id="ldStage"></select</div>
+  <div class="field"><label>Follow-up date</label><input type="date" id="ldFollowUp"></div>
+    <div class="field hidden" id="ldBookingRow"><label>Booking reference</label><input type="text" id="ldBookingRef" placeholder="e.g. AB12CD"></div>
 <div id="leadMeta" style="font-size:12.5px;color:var(--muted);margin-top:-4px;margin-bottom:14px">&nbsp;</div>
 <div class="notice err hidden" id="leadErr"></div>
 </div>
 <footer>
 <div style="display:flex;gap:8px;align-items:center">
 <button class="link-danger hidden" id="markLostBtn">Mark as lost</button>
+  <div class="field"><label>Notes & activity</label><div id="leadTimeline"></div></div>
+    <div class="field"><input type="text" id="ldNoteText" placeholder="Add a note"><button class="btn ghost" id="addNoteBtn" type="button">Add note</button></div>
 </div>
 <div style="display:flex;gap:10px">
 <button class="btn ghost hidden" id="convertLeadBtn">Convert to client</button>
