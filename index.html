@@ -976,6 +976,7 @@ async function submitBooking(){
   if (name.length < 2){ problems.push("your full name"); $("#pname").classList.add("invalid"); }
   if (!validEmail(email)){ problems.push("a valid email"); $("#pemail").classList.add("invalid"); }
   if (phone.replace(/\D/g,"").length < 7){ problems.push("a valid phone number"); $("#pphone").classList.add("invalid"); }
+   if (state.slotMin == null || !state.date){ problems.push("a valid time slot"); }
   if (problems.length){
     err.textContent = `Please check: ${problems.join(", ")}.`;
     err.classList.remove("hidden");
