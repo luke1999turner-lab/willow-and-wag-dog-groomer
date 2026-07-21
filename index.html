@@ -465,27 +465,27 @@ padding:10px 14px;gap:10px}
 <div class="paw-mosaic">
 <div class="pad" style="left:15.056%;top:44.145%;width:70.193%;height:55.855%">
   <div class="tile" style="clip-path:url(#padHeel);-webkit-clip-path:url(#padHeel)">
-    <img src="https://images.unsplash.com/photo-1594149929911-78975a43d4f5?auto=format&fit=crop&w=900&q=75" alt="Freshly groomed dog in the Willow &amp; Wag studio" loading="lazy">
+    <img src="https://images.unsplash.com/photo-1594149929911-78975a43d4f5?auto=format&fit=crop&w=900&q=75" alt="Freshly groomed dog in the Willow &amp; Wag studio" loading="lazy" width="500" height="400">
   </div>
 </div>
 <div class="pad" style="left:0%;top:21.311%;width:26.857%;height:38.642%">
   <div class="tile" style="clip-path:url(#padToeOuterLeft);-webkit-clip-path:url(#padToeOuterLeft)">
-    <img src="https://images.unsplash.com/photo-1528846104175-4fd300ee59da?auto=format&fit=crop&w=600&q=75" alt="Groomer brushing a dog's coat" loading="lazy">
+    <img src="https://images.unsplash.com/photo-1528846104175-4fd300ee59da?auto=format&fit=crop&w=600&q=75" alt="Groomer brushing a dog's coat" loading="lazy" width="500" height="400">
   </div>
 </div>
 <div class="pad" style="left:23.499%;top:0%;width:24.415%;height:42.623%">
   <div class="tile" style="clip-path:url(#padToeInnerLeft);-webkit-clip-path:url(#padToeInnerLeft)">
-    <img src="https://images.unsplash.com/photo-1611173622933-91942d394b04?auto=format&fit=crop&w=600&q=75" alt="Dog wrapped in a towel after a bath" loading="lazy">
+    <img src="https://images.unsplash.com/photo-1611173622933-91942d394b04?auto=format&fit=crop&w=600&q=75" alt="Dog wrapped in a towel after a bath" loading="lazy" width="500" height="400">
   </div>
 </div>
 <div class="pad" style="left:52.187%;top:0%;width:24.212%;height:42.623%">
   <div class="tile" style="clip-path:url(#padToeInnerRight);-webkit-clip-path:url(#padToeInnerRight)">
-    <img src="https://images.unsplash.com/photo-1719464454959-9cf304ef4774?auto=format&fit=crop&w=600&q=75" alt="Dog receiving a precise scissor trim" loading="lazy">
+    <img src="https://images.unsplash.com/photo-1719464454959-9cf304ef4774?auto=format&fit=crop&w=600&q=75" alt="Dog receiving a precise scissor trim" loading="lazy" width="500" height="400">
   </div>
 </div>
 <div class="pad" style="left:73.550%;top:21.311%;width:26.450%;height:38.642%">
   <div class="tile" style="clip-path:url(#padToeOuterRight);-webkit-clip-path:url(#padToeOuterRight)">
-    <img src="https://images.unsplash.com/photo-1625321171045-1fea4ac688e9?auto=format&fit=crop&w=600&q=75" alt="Finishing blow-dry after a groom" loading="lazy">
+    <img src="https://images.unsplash.com/photo-1625321171045-1fea4ac688e9?auto=format&fit=crop&w=600&q=75" alt="Finishing blow-dry after a groom" loading="lazy" width="500" height="400">
   </div>
 </div>
 </div>
@@ -726,7 +726,7 @@ function renderServices(services){
 function renderTeam(groomers){
   $("#teamList").innerHTML = groomers.map((b) => `
     <div class="card member">
-      <div class="photo-wrap"><img src="${b.photo}" alt="${esc(b.name)}"></div>
+      <div class="photo-wrap"><img src="${b.photo}" alt="${esc(b.name)}" loading="lazy" width="112" height="112"></div>
       <h3>${esc(b.name)}</h3>
       <div class="role">${esc(b.title)}</div>
       <div class="creds">${b.experience_years}+ years experience</div>
@@ -736,7 +736,7 @@ function renderTeam(groomers){
 
 /* ================= gallery ================= */
 function renderGallery(){
-  $("#galleryGrid").innerHTML = GALLERY.map((g, i) => `<figure data-i="${i}"><div class="photo-frame"><img src="${g.src}" alt="${esc(g.alt)}" loading="lazy"></div><figcaption>${esc(g.caption)}</figcaption></figure>`).join("");
+  $("#galleryGrid").innerHTML = GALLERY.map((g, i) => `<figure data-i="${i}"><div class="photo-frame"><img src="${g.src}" alt="${esc(g.alt)}" loading="lazy" width="280" height="350"></div><figcaption>${esc(g.caption)}</figcaption></figure>`).join("");
   $$("#galleryGrid figure").forEach((f) => f.addEventListener("click", () => openLightbox(GALLERY[+f.dataset.i])));
 }
 function openLightbox(g){
