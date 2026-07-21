@@ -662,21 +662,21 @@ async function openAppt(id, forDate) {
 
 async function refreshRTimes() {
   const a = state.editing; if (!a) return;
-  const groomerId = $('#rGroomer').value, date = $('#rDate').value;
-  const { data } = await api(`/api/availability?date=${date}&serviceId=${a.service_id}&groomerId=${groomerId}`);
+  const staffId = $('#rGroomer').value, date = $('#rDate').value;
+  const { data } = await api(`/api/availability?date=${date}&serviceId=${a.service_id}&staffId=${staffId}`);
   const slots = data.slots || [];
   const cur = a.start_ts - toTs(date, 0);
   let opts = slots.map((s) => `<option value="${s.min}">${s.label}</option>`).join('');
   // Ensure the current time is selectable if it falls on this groomer/date
-  if (+groomerId === a.groomer_id && date === state.editingDate && !slots.some((s) => s.min === cur))
+  if (+staffId === a.groomer_id && date === state.editingDate && !slots.some((s) => s.min === cur))
     opts = `<option value="${cur}">${fmt(cur)} (current)</option>` + opts;
   $('#rTime').innerHTML = opts || `<option value="">No free times</option>`;
-  if (+groomerId === a.groomer_id && date === state.editingDate) $('#rTime').value = cur;
+  if (+staffId === a.groomer_id && date === state.editingDate) $('#rTime').value = cur;
 }
 
 async function saveAppt() {
   const a = state.editing;
-  const body = { groomerId: +$('#rGroomer').value, date: $('#rDate').value, min: +$('#rTime').value };
+  const body = { staffId: +$('#rGroomer').value, date: $('#rDate').value, min: +$('#rTime').value };
   const { ok, data } = await api(`/api/appointments/${a.id}`,
     { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!ok) { const e = $('#apptErr'); e.textContent = data.error; e.classList.remove('hidden'); return; }
@@ -716,15 +716,15 @@ function openNewBooking() {
   $('#newBookingModal').classList.remove('hidden');
 }
 async function refreshNBTimes() {
-  const serviceId = $('#nbService').value, groomerId = $('#nbGroomer').value, date = $('#nbDate').value;
+  const serviceId = $('#nbService').value, staffId = $('#nbGroomer').value, date = $('#nbDate').value;
   if (!serviceId || !date) return;
-  const { data } = await api(`/api/availability?date=${date}&serviceId=${serviceId}&groomerId=${groomerId}`);
+  const { data } = await api(`/api/availability?date=${date}&serviceId=${serviceId}&staffId=${staffId}`);
   const slots = data.slots || [];
   $('#nbTime').innerHTML = slots.length ? slots.map((s) => `<option value="${s.min}">${s.label}</option>`).join('') : `<option value="">No free times</option>`;
 }
 async function saveNewBooking() {
   const body = {
-    serviceId: +$('#nbService').value, groomerId: $('#nbGroomer').value,
+    serviceId: +$('#nbService').value, staffId: $('#nbGroomer').value,
     date: $('#nbDate').value, min: +$('#nbTime').value,
     name: $('#nbName').value.trim(), email: $('#nbEmail').value.trim(),
     phone: $('#nbPhone').value.trim(), notes: $('#nbNotes').value.trim(),
@@ -779,7 +779,7 @@ async function saveBlock() {
   const allDay = $('#bAllDay').checked;
   const multiDay = $('#bStartDate').value !== $('#bEndDate').value;
   const body = {
-    reason: $('#bReason').value.trim() || 'Blocked', groomerId: $('#bGroomer').value,
+    reason: $('#bReason').value.trim() || 'Blocked', staffId: $('#bGroomer').value,
     startDate: $('#bStartDate').value, endDate: $('#bEndDate').value,
     startMin: (allDay || multiDay) ? 0 : hm($('#bStartTime').value),
     endMin: (allDay || multiDay) ? 1440 : hm($('#bEndTime').value),
@@ -849,7 +849,7 @@ function renderAffected() {
     const id = btn.dataset.reassign;
     const sel = box.querySelector(`[data-swap="${id}"]`);
     const { ok } = await api(`/api/appointments/${id}`,
-      { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groomerId: sel.value }) });
+      { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staffId: sel.value }) });
     if (ok) { state.affected = state.affected.filter((x) => x.id != id); renderAffected(); load(); }
   });
   box.querySelectorAll('[data-cancel]').forEach((btn) => btn.onclick = async () => {
@@ -1174,10 +1174,10 @@ ${s.break_min ? `<span class="sc-break">${s.break_min}m break</span>` : ''}
 </div>`;
 }
 
-function openNewShift(groomerId, dateStr) {
+function openNewShift(staffId, dateStr) {
 state.editingShift = null;
 $('#shiftModalTitle').textContent = 'New shift';
-$('#shGroomer').value = groomerId;
+$('#shGroomer').value = staffId;
 $('#shDate').value = dateStr;
 $('#shStart').value = '09:00';
 $('#shEnd').value = '17:00';
@@ -1209,7 +1209,7 @@ $('#shiftModal').classList.remove('hidden');
 
 async function saveShift() {
 const err = $('#shiftErr');
-const groomerId = $('#shGroomer').value;
+const staffId = $('#shGroomer').value;
 const dateStr = $('#shDate').value;
 const startMin = hmToMin($('#shStart').value);
 const endMin = hmToMin($('#shEnd').value);
@@ -1217,9 +1217,9 @@ if (endMin <= startMin) { err.textContent = 'End must be after start.'; err.clas
 const startsAt = toTs(dateStr, startMin);
 const endsAt = toTs(dateStr, endMin);
 const breakMin = Math.max(0, parseInt($('#shBreak').value, 10) || 0);
-if (!groomerId || !dateStr || Number.isNaN(startMin) || Number.isNaN(endMin)) { err.textContent = 'Please select a groomer, date, and valid time.'; err.classList.remove('hidden'); return; }
+if (!staffId || !dateStr || Number.isNaN(startMin) || Number.isNaN(endMin)) { err.textContent = 'Please select a groomer, date, and valid time.'; err.classList.remove('hidden'); return; }
   const status = $('#shPublished').checked ? 'published' : 'draft';
-const body = { groomerId: +groomerId, startsAt, endsAt, breakMin, status };
+const body = { staffId: +staffId, startsAt, endsAt, breakMin, status };
 let res;
 if (state.editingShift) {
 res = await api(`/api/shifts/${state.editingShift.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -1286,7 +1286,7 @@ const startMin = hmToMin($('#tplStart').value);
 const endMin = hmToMin($('#tplEnd').value);
 if (endMin <= startMin) { err.textContent = 'End must be after start.'; err.classList.remove('hidden'); return; }
 const body = {
-groomerId: +$('#tplGroomer').value, weekday: +$('#tplWeekday').value,
+staffId: +$('#tplGroomer').value, weekday: +$('#tplWeekday').value,
 startMin, endMin, breakMin: Math.max(0, parseInt($('#tplBreak').value, 10) || 0),
 };
 const { ok, data } = await api('/api/shift-templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -1317,7 +1317,7 @@ ${open
 </div>`;
 }).join('');
 grid.querySelectorAll('[data-clockin]').forEach((btn) => btn.onclick = async () => {
-await api('/api/time-entries/clock-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groomerId: +btn.dataset.clockin }) });
+await api('/api/time-entries/clock-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staffId: +btn.dataset.clockin }) });
 await refreshTimeclock();
 });
 grid.querySelectorAll('[data-clockout]').forEach((btn) => btn.onclick = async () => {
