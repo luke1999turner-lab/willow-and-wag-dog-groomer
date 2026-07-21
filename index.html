@@ -540,7 +540,7 @@ padding:10px 14px;gap:10px}
 <div class="wi"><div class="ic">🌿</div><h3>Natural Products Only</h3><p>Botanical shampoos and conditioners, chosen for sensitive skin and coat health.</p></div>
 </div></div>
 
-<!-- ============ GALLERY ============ -->
+<!-- ============ CONFIG.gallery ============ -->
 <section class="section" id="gallery"><div class="container">
 <div class="sec-head reveal">
 <div class="kicker">The Transformation</div>
@@ -549,7 +549,7 @@ padding:10px 14px;gap:10px}
 <div class="gallery reveal-right" id="galleryGrid"></div>
 </div></section>
 
-<!-- ============ REVIEWS ============ -->
+<!-- ============ CONFIG.reviews ============ -->
 <section class="section" id="reviews"><div class="container">
 <div class="rev-head reveal">
 <div class="rev-score">
@@ -627,11 +627,92 @@ const $ = (s, el=document) => el.querySelector(s);
 const $$ = (s, el=document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 $("#yr").textContent = new Date().getFullYear();
+   const CONFIG = {
+        brand: {
+               name: "Willow & Wag",
+               pill: "Boutique Grooming · Est. Sheffield",
+               heroTitle: "The Art of the Groom.",
+               heroSub: "Elevated grooming experiences for your most cherished companions. We blend traditional artisanal care with modern wellness, in a boutique English countryside-inspired studio."
+        },
+        business: {
+               address: "22 Hathersage Road, Sheffield S11 9QT",
+               phone: "0114 496 0192",
+               phoneHref: "tel:01144960192",
+               email: "hello@willowandwag.dog",
+               mapSrc: "https://www.google.com/maps?q=22+Hathersage+Road,Sheffield+S11+9QT&output=embed"
+        },
+        rating: { score: "4.9", count: "210+ Google reviews" },
+        stats: [
+           { value:"12+", label:"Years Combined Craft" },
+           { value:"6,500+", label:"Grooms Delivered" },
+           { value:"4.9★", label:"Average Rating" },
+           { value:"3", label:"Master Groomers" }
+             ],
+        gallery: [
+           { src:"https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=700&q=75", alt:"Groomed Bichon Frise", caption:"Chloe · Bichon Frise" },
+           { src:"https://images.unsplash.com/photo-1591160690555-5debfba289f0?auto=format&fit=crop&w=700&q=75", alt:"Groomed Poodle mix", caption:"Max · Cockapoo" },
+           { src:"https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=700&q=75", alt:"Groomed Golden Retriever", caption:"Bella · Golden Retriever" },
+           { src:"https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=700&q=75", alt:"Groomed Schnauzer", caption:"Rocky · Schnauzer" }
+             ],
+        reviews: [
+           { name:"Amelia R.", summary:"Patient with nervous dogs — booking took seconds.", text:"Sarah is incredible with nervous dogs — my rescue actually enjoys her grooms now. Booking online took thirty seconds.", stars:5 },
+           { name:"Tom W.", summary:"De-shedding treatment is worth every penny.", text:"The de-shedding treatment for our Husky is worth every penny. House has never had less fur in it.", stars:5 },
+           { name:"Priya S.", summary:"Neatest show trim our Poodle's ever had.", text:"Marcus gave our Poodle the neatest show trim we've ever had. Consistently excellent.", stars:5 },
+           { name:"Callum B.", summary:"Puppy's first groom — calm, patient, amazing.", text:"Took our puppy for her first groom — patient, calm, and she came home smelling amazing. Will be back.", stars:5 },
+           { name:"Harriet N.", summary:"Unbelievably gentle with our anxious rescue.", text:"Booked a full boutique groom for our anxious rescue lurcher and the team were unbelievably gentle. He came home looking — and smelling — incredible.", stars:5 }
+             ],
+        faq: [
+           { q:"Do I need to book in advance?", a:"We recommend booking online to guarantee your preferred groomer and time — especially for full boutique experiences and weekends." },
+           { q:"Can I request a specific groomer?", a:'Absolutely. Choose "Any available groomer" for the fastest slot, or pick a named groomer during booking if you have a preference.' },
+           { q:"What if I need to cancel or change my time?", a:'Use "Manage booking" in the top menu with your reference code and email to cancel any time before your appointment.' },
+           { q:"Is my dog safe with you?", a:"Yes — all groomers are fully insured, trained in fear-free handling, and every dog is supervised throughout their visit." },
+           { q:"How early should I arrive?", a:"Please arrive 5 minutes before your slot with your dog on a secure lead. Running more than 10 minutes late may mean your appointment needs to be rescheduled." }
+             ],
+        chat: {
+               accent:"#2f4b3b",
+               accent2:"#1f3327",
+               area:"Sheffield",
+               services:["Dog grooming","Bath & brush","Full boutique groom","Nail trims"],
+               knowledge:[
+                        "We recommend booking online to guarantee your preferred groomer and time, especially for full boutique experiences and weekends.",
+                        "You can choose 'Any available groomer' for the fastest slot, or pick a named groomer if you have a preference.",
+                        "To cancel or change a booking, use 'Manage booking' in the top menu with the booking reference and email, any time before the appointment.",
+                        "All groomers are fully insured, trained in fear-free handling, and every dog is supervised throughout their visit.",
+                        "Please arrive 5 minutes before the slot with the dog on a secure lead; more than 10 minutes late may mean rescheduling.",
+                        "Opening hours: Monday-Friday 8:30am-6pm, Saturday 9am-4pm, closed Sunday.",
+                        "Address: 22 Hathersage Road, Sheffield S11 9QT."
+                      ],
+               greeting:"Hi! 👋 Thanks for stopping by Willow & Wag. Want to book your dog in, or have a quick question first?",
+               bookHref:"#book"
+        }
+   };
+
+   function renderBrand(){
+        $(".nav .brand").textContent = CONFIG.brand.name;
+        $(".hero .pill").textContent = CONFIG.brand.pill;
+        $(".hero h1").textContent = CONFIG.brand.heroTitle;
+        $(".hero .sub").textContent = CONFIG.brand.heroSub;
+        $(".trust span:last-child").textContent = `${CONFIG.rating.score} out of 5 · ${CONFIG.rating.count}`;
+        $(".stats-band .stats").innerHTML = CONFIG.stats.map((s) => `<div class="stat"><b>${esc(s.value)}</b><span>${esc(s.label)}</span></div>`).join("");
+        $("#faq .faq-list").innerHTML = CONFIG.faq.map((f) => `<details><summary>${esc(f.q)}</summary><p>${f.a}</p></details>`).join("");
+        const ccards = $$(".contact-info .card.pad");
+        ccards[0].innerHTML = `<h3>Address</h3><p>${esc(CONFIG.business.address)}</p>`;
+        ccards[1].innerHTML = `<h3>Phone</h3><p><a href="${CONFIG.business.phoneHref}" style="color:var(--forest)">${esc(CONFIG.business.phone)}</a></p>`;
+        ccards[2].innerHTML = `<h3>Email</h3><p><a href="mailto:${CONFIG.business.email}" style="color:var(--forest)">${esc(CONFIG.business.email)}</a></p>`;
+        $(".map-card iframe").src = CONFIG.business.mapSrc;
+        $(".footer .fbrand").textContent = CONFIG.brand.name;
+        $(".footer .fbrand").nextElementSibling.textContent = `${CONFIG.business.address} · ${CONFIG.business.phone}`;
+        $(".call").textContent = CONFIG.business.phone;
+        $(".call").href = CONFIG.business.phoneHref;
+        $(".mb-call").href = CONFIG.business.phoneHref;
+   }
+   renderBrand();
+   
 
 /* ================= tiny DB layer (real Cloudflare Worker + D1 backend) ================= */
 const DB = {
   async services(){ return (await fetch(`${API}/services`)).json(); },
-  async groomers(){ return (await fetch(`${API}/groomers`)).json(); },
+async groomers(){ return (await fetch(`${API}/groomers`)).json(); },
   async availability(date, serviceId, groomerId){
     const q = new URLSearchParams({ date, serviceId });
     if (groomerId && groomerId !== "any") q.set("groomerId", groomerId);
@@ -673,19 +754,6 @@ const DB = {
 };
 
 /* ================= static content (not stored in D1 — same pattern as Vanguard/Riverside) ================= */
-const GALLERY = [
-  { src:"https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=700&q=75", alt:"Groomed Bichon Frise", caption:"Chloe · Bichon Frise" },
-  { src:"https://images.unsplash.com/photo-1591160690555-5debfba289f0?auto=format&fit=crop&w=700&q=75", alt:"Groomed Poodle mix", caption:"Max · Cockapoo" },
-  { src:"https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=700&q=75", alt:"Groomed Golden Retriever", caption:"Bella · Golden Retriever" },
-  { src:"https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=700&q=75", alt:"Groomed Schnauzer", caption:"Rocky · Schnauzer" },
-];
-const REVIEWS = [
-  { name:"Amelia R.", summary:"Patient with nervous dogs — booking took seconds.", text:"Sarah is incredible with nervous dogs — my rescue actually enjoys her grooms now. Booking online took thirty seconds.", stars:5 },
-  { name:"Tom W.", summary:"De-shedding treatment is worth every penny.", text:"The de-shedding treatment for our Husky is worth every penny. House has never had less fur in it.", stars:5 },
-  { name:"Priya S.", summary:"Neatest show trim our Poodle's ever had.", text:"Marcus gave our Poodle the neatest show trim we've ever had. Consistently excellent.", stars:5 },
-  { name:"Callum B.", summary:"Puppy's first groom — calm, patient, amazing.", text:"Took our puppy for her first groom — patient, calm, and she came home smelling amazing. Will be back.", stars:5 },
-  { name:"Harriet N.", summary:"Unbelievably gentle with our anxious rescue.", text:"Booked a full boutique groom for our anxious rescue lurcher and the team were unbelievably gentle. He came home looking — and smelling — incredible.", stars:5 },
-];
 /* pad positions/clip-paths match the hero paw-mosaic exactly, so the reviews
    section reuses the same silhouette structure (1 heel pad + 4 toe pads) */
 const REVIEW_PADS = [
@@ -736,8 +804,8 @@ function renderTeam(groomers){
 
 /* ================= gallery ================= */
 function renderGallery(){
-  $("#galleryGrid").innerHTML = GALLERY.map((g, i) => `<figure data-i="${i}"><div class="photo-frame"><img src="${g.src}" alt="${esc(g.alt)}" loading="lazy" width="280" height="350"></div><figcaption>${esc(g.caption)}</figcaption></figure>`).join("");
-  $$("#galleryGrid figure").forEach((f) => f.addEventListener("click", () => openLightbox(GALLERY[+f.dataset.i])));
+  $("#galleryGrid").innerHTML = CONFIG.gallery.map((g, i) => `<figure data-i="${i}"><div class="photo-frame"><img src="${g.src}" alt="${esc(g.alt)}" loading="lazy" width="280" height="350"></div><figcaption>${esc(g.caption)}</figcaption></figure>`).join("");
+  $$("#galleryGrid figure").forEach((f) => f.addEventListener("click", () => openLightbox(CONFIG.gallery[+f.dataset.i])));
 }
 function openLightbox(g){
   $("#lightboxRoot").innerHTML = `<div class="lightbox" id="lb"><span class="lb-close">&times;</span><img src="${g.src.replace("w=700","w=1600")}" alt="${esc(g.alt)}"></div>`;
@@ -748,7 +816,7 @@ function openLightbox(g){
 /* ================= reviews (paw-print mosaic — same structure as the hero) ================= */
 function renderReviews(){
   $("#reviewsMosaic").innerHTML = REVIEW_PADS.map((p, i) => {
-    const r = REVIEWS[i];
+    const r = CONFIG.reviews[i];
     if (!r) return "";
     return `<div class="pad" style="${p.style}">
       <div class="tile" data-i="${i}" style="clip-path:url(#${p.clip});-webkit-clip-path:url(#${p.clip})">
@@ -757,7 +825,7 @@ function renderReviews(){
       </div>
     </div>`;
   }).join("");
-  $$("#reviewsMosaic .tile").forEach((t) => t.addEventListener("click", () => openReviewModal(REVIEWS[+t.dataset.i])));
+  $$("#reviewsMosaic .tile").forEach((t) => t.addEventListener("click", () => openReviewModal(CONFIG.reviews[+t.dataset.i])));
 }
 function openReviewModal(r){
   $("#lightboxRoot").innerHTML = `<div class="review-backdrop" id="revBackdrop">
@@ -1119,26 +1187,7 @@ $("#manageLink").addEventListener("click", (e) => { e.preventDefault(); openMana
 </script>
 <!-- Sorted Sites lead-capture chatbot -->
 <script>
-window.SS_CHAT = {
-  business: "Willow & Wag",
-     crmEndpoint: "https://willow-and-wag-api.luke1999-turner.workers.dev",
-  phone: "0114 496 0192",
-  accent: "#2f4b3b",
-  accent2: "#1f3327",
-  area: "Sheffield",
-  services: ["Dog grooming", "Bath & brush", "Full boutique groom", "Nail trims"],
-  knowledge: [
-    "We recommend booking online to guarantee your preferred groomer and time, especially for full boutique experiences and weekends.",
-    "You can choose 'Any available groomer' for the fastest slot, or pick a named groomer if you have a preference.",
-    "To cancel or change a booking, use 'Manage booking' in the top menu with the booking reference and email, any time before the appointment.",
-    "All groomers are fully insured, trained in fear-free handling, and every dog is supervised throughout their visit.",
-    "Please arrive 5 minutes before the slot with the dog on a secure lead; more than 10 minutes late may mean rescheduling.",
-    "Opening hours: Monday-Friday 8:30am-6pm, Saturday 9am-4pm, closed Sunday.",
-    "Address: 22 Hathersage Road, Sheffield S11 9QT."
-  ],
-  greeting: "Hi! 👋 Thanks for stopping by Willow & Wag. Want to book your dog in, or have a quick question first?",
-  bookHref: "#book"
-};
+window.SS_CHAT = { business: CONFIG.brand.name, crmEndpoint: "https://willow-and-wag-api.luke1999-turner.workers.dev", phone: CONFIG.business.phone, accent: CONFIG.chat.accent, accent2: CONFIG.chat.accent2, area: CONFIG.chat.area, services: CONFIG.chat.services, knowledge: CONFIG.chat.knowledge, greeting: CONFIG.chat.greeting, bookHref: CONFIG.chat.bookHref };
 </script>
 <style>
 .ssc-launch{position:fixed;right:20px;bottom:20px;z-index:99998;display:flex;align-items:center;gap:10px;cursor:pointer;font-family:'Inter',system-ui,sans-serif}
