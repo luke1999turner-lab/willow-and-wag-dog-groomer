@@ -1217,7 +1217,8 @@ if (endMin <= startMin) { err.textContent = 'End must be after start.'; err.clas
 const startsAt = toTs(dateStr, startMin);
 const endsAt = toTs(dateStr, endMin);
 const breakMin = Math.max(0, parseInt($('#shBreak').value, 10) || 0);
-const status = $('#shPublished').checked ? 'published' : 'draft';
+if (!groomerId || !dateStr || Number.isNaN(startMin) || Number.isNaN(endMin)) { err.textContent = 'Please select a groomer, date, and valid time.'; err.classList.remove('hidden'); return; }
+  const status = $('#shPublished').checked ? 'published' : 'draft';
 const body = { groomerId: +groomerId, startsAt, endsAt, breakMin, status };
 let res;
 if (state.editingShift) {
