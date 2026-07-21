@@ -713,15 +713,15 @@ $("#yr").textContent = new Date().getFullYear();
 const DB = {
   async services(){ return (await fetch(`${API}/services`)).json(); },
 async groomers(){ return (await fetch(`${API}/groomers`)).json(); },
-  async availability(date, serviceId, groomerId){
+  async availability(date, serviceId, staffId){
     const q = new URLSearchParams({ date, serviceId });
-    if (groomerId && groomerId !== "any") q.set("groomerId", groomerId);
+    if (staffId && staffId !== "any") q.set("staffId", staffId);
     const r = await (await fetch(`${API}/availability?${q}`)).json();
     return r.slots || [];
   },
-  async dayCounts(serviceId, groomerId, from, to){
+  async dayCounts(serviceId, staffId, from, to){
     const q = new URLSearchParams({ serviceId, from, to });
-    if (groomerId && groomerId !== "any") q.set("groomerId", groomerId);
+    if (staffId && staffId !== "any") q.set("staffId", staffId);
     return (await fetch(`${API}/day-counts?${q}`)).json();
   },
   async book(payload){
@@ -765,7 +765,7 @@ const REVIEW_PADS = [
 ];
 
 /* ================= state ================= */
-const state = { services:[], groomers:[], service:null, groomerId:"any", date:null, slotMin:null, slotGroomerId:null };
+const state = { services:[], groomers:[], service:null, staffId:"any", date:null, slotMin:null, slotStaffId:null };
 
 /* ================= reveal on scroll ================= */
 const io = new IntersectionObserver((entries) => {
@@ -896,7 +896,7 @@ function panel2(){
     </div>`));
   $("#groomerGrid").innerHTML = cards.join("");
   $$("#groomerGrid .choice").forEach((el) => el.addEventListener("click", () => {
-    state.groomerId = el.dataset.id;
+    state.staffId = el.dataset.id;
     panel3();
   }));
   $("#b2back").addEventListener("click", panel1);
@@ -928,7 +928,7 @@ async function panel3(){
     <div class="waitbox hidden" id="waitbox"><p id="waitboxText"></p><a class="btn ghost" id="joinWaitBtn">Join the waitlist</a></div>
     <div class="actions"><a class="btn ghost" id="b3back">Back</a><a class="btn primary" id="s3next" disabled>Continue</a></div>
   </div>`;
-  const who = state.groomerId === "any" ? "any available groomer" : state.groomers.find((b) => b.id === +state.groomerId).name;
+  const who = state.staffId === "any" ? "any available groomer" : state.groomers.find((b) => b.id === +state.staffId).name;
   $("#slotContext").textContent = `${state.service.name} (${state.service.duration_min} min) · ${who}`;
   $("#b3back").addEventListener("click", panel2);
   $("#weekPrev").addEventListener("click", () => { if (weekOffset > 0){ weekOffset -= 7; loadWeek(); } });
@@ -942,7 +942,7 @@ async function loadWeek(autoPick){
   const dates = weekDates(weekOffset);
   $("#weekLabel").textContent = new Date(dates[0] + "T12:00:00Z").toLocaleDateString("en-GB", { month:"long", year:"numeric" });
   $("#weekPrev").style.opacity = weekOffset === 0 ? .35 : 1;
-  const counts = await DB.dayCounts(state.service.id, state.groomerId, dates[0], dates[dates.length-1]);
+  const counts = await DB.dayCounts(state.service.id, state.staffId, dates[0], dates[dates.length-1]);
   $("#datestrip").innerHTML = dates.map((d) => {
     const c = counts[d] || 0;
     const dt = new Date(d + "T12:00:00Z");
@@ -979,30 +979,30 @@ function setWaitbox(empty){
   $("#waitbox").classList.remove("hidden");
 }
 async function loadSlots(){
-  state.slotMin = null; state.slotGroomerId = null;
+  state.slotMin = null; state.slotStaffId = null;
   $("#s3next").disabled = true;
   const box = $("#periods");
   box.innerHTML = `<div class="empty">Loading…</div>`;
-  const slots = await DB.availability(state.date, state.service.id, state.groomerId);
+  const slots = await DB.availability(state.date, state.service.id, state.staffId);
   if (!slots.length){ box.innerHTML = ""; setWaitbox(true); return; }
   setWaitbox(false);
   const groups = { Morning:[], Afternoon:[], Evening:[] };
   slots.forEach((s) => { const g = s.min < 720 ? "Morning" : s.min < 1020 ? "Afternoon" : "Evening"; groups[g].push(s); });
   box.innerHTML = Object.entries(groups).filter(([,v]) => v.length).map(([g, v]) => `
     <div class="period"><h4>${g}</h4><div class="slots">
-    ${v.map((s) => `<div class="slot" data-min="${s.min}" data-groomer="${s.groomerIds[0]}">${s.label}</div>`).join("")}
+    ${v.map((s) => `<div class="slot" data-min="${s.min}" data-groomer="${s.staffIds[0]}">${s.label}</div>`).join("")}
     </div></div>`).join("");
   $$("#periods .slot").forEach((el) => el.addEventListener("click", () => {
     $$("#periods .slot").forEach((x) => x.classList.remove("sel"));
     el.classList.add("sel");
     state.slotMin = +el.dataset.min;
-    state.slotGroomerId = +el.dataset.groomer;
+    state.slotStaffId = +el.dataset.groomer;
     $("#s3next").disabled = false;
   }));
 }
 
 function chosenGroomer(){
-  const id = state.groomerId === "any" ? state.slotGroomerId : +state.groomerId;
+  const id = state.staffId === "any" ? state.slotStaffId : +state.staffId;
   return state.groomers.find((b) => b.id === id);
 }
 const prettyDate = (s) => new Date(s + "T12:00:00Z").toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long" });
@@ -1054,7 +1054,7 @@ async function submitBooking(){
   btn.textContent = "Booking…"; btn.style.pointerEvents = "none";
   try{
     const result = await DB.book({
-      serviceId: state.service.id, groomerId: state.groomerId, date: state.date, min: state.slotMin,
+      serviceId: state.service.id, staffId: state.staffId, date: state.date, min: state.slotMin,
       name, email, phone, notes: $("#pnotes").value.trim()
     });
     panelConfirm(result);
@@ -1105,7 +1105,7 @@ function openWaitlistModal(){
       return;
     }
     try{
-      await DB.waitlist({ serviceId: state.service?.id, groomerId: state.groomerId, date: state.date, name, email, phone });
+      await DB.waitlist({ serviceId: state.service?.id, staffId: state.staffId, date: state.date, name, email, phone });
       $(".modal .body").innerHTML = `<div class="confirm"><div class="tick">✓</div><h2 style="font-size:18px">You're on the list</h2><p class="sub">We'll email you the moment a suitable slot opens up.</p></div>`;
       $(".modal footer").innerHTML = `<a class="btn primary" style="width:100%" id="waitDone">Done</a>`;
       $("#waitDone").addEventListener("click", closeWaitlistModal);
