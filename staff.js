@@ -1024,57 +1024,57 @@ const { ok, data } = await api('/api/leads',
 if (!ok) { err.textContent = data.error || 'Could not save.'; err.classList.remove('hidden'); return; }
 }
 closeModals(); loadLeads();
+}
 
-  function populateStageSelect(current) {
-    const sel = $('#ldStage');
-    sel.innerHTML = LEAD_STATUSES.map(s => `<option value="${s.key}" ${s.key===current?'selected':''}>${s.label}</option>`).join('');
-  }
+function populateStageSelect(current) {
+  const sel = $('#ldStage');
+  sel.innerHTML = LEAD_STATUSES.map(s => `<option value="${s.key}" ${s.key===current?'selected':''}>${s.label}</option>`).join('');
+}
 
-  async function onLeadStageChange() {
-    if (!state.editingLead) return;
-    const newStatus = $('#ldStage').value;
-    if (newStatus === state.editingLead.status) return;
-    const { ok, data } = await api(`/api/leads/${state.editingLead.id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus, position: 0 }) });
-    if (!ok) { alert(data.error || 'Could not change stage.'); populateStageSelect(state.editingLead.status); return; }
-    state.editingLead.status = newStatus;
-    const stageLabel2 = (LEAD_STATUSES.find(s => s.key === newStatus) || {}).label || newStatus;
-    $('#leadMeta').textContent = $('#leadMeta').textContent.replace(/^Stage: [^·]+/, `Stage: ${stageLabel2} `);
-    $('#ldBookingRow').classList.toggle('hidden', newStatus !== 'won');
-    await loadLeadTimeline(state.editingLead.id);
-    await loadLeads();
-  }
+async function onLeadStageChange() {
+  if (!state.editingLead) return;
+  const newStatus = $('#ldStage').value;
+  if (newStatus === state.editingLead.status) return;
+  const { ok, data } = await api(`/api/leads/${state.editingLead.id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus, position: 0 }) });
+  if (!ok) { alert(data.error || 'Could not change stage.'); populateStageSelect(state.editingLead.status); return; }
+  state.editingLead.status = newStatus;
+  const stageLabel2 = (LEAD_STATUSES.find(s => s.key === newStatus) || {}).label || newStatus;
+  $('#leadMeta').textContent = $('#leadMeta').textContent.replace(/^Stage: [^·]+/, `Stage: ${stageLabel2} `);
+  $('#ldBookingRow').classList.toggle('hidden', newStatus !== 'won');
+  await loadLeadTimeline(state.editingLead.id);
+  await loadLeads();
+}
 
-  async function addLeadNote() {
-    if (!state.editingLead) return;
-    const text = $('#ldNoteText').value.trim();
-    if (!text) return;
-    const { ok, data } = await api(`/api/leads/${state.editingLead.id}/notes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: text }) });
-    if (!ok) { alert(data.error || 'Could not add note.'); return; }
-    $('#ldNoteText').value = '';
-    await loadLeadTimeline(state.editingLead.id);
-  }
+async function addLeadNote() {
+  if (!state.editingLead) return;
+  const text = $('#ldNoteText').value.trim();
+  if (!text) return;
+  const { ok, data } = await api(`/api/leads/${state.editingLead.id}/notes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: text }) });
+  if (!ok) { alert(data.error || 'Could not add note.'); return; }
+  $('#ldNoteText').value = '';
+  await loadLeadTimeline(state.editingLead.id);
+}
 
-  function timelineEntryLabel(entry) {
-    const when = new Date(entry.occurred_at * 60000).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-    let text = entry.verb;
-    let payload = {};
-    try { payload = entry.payload ? JSON.parse(entry.payload) : {}; } catch (e) {}
-    if (entry.verb === 'lead.created') text = 'Lead created' + (payload.source ? ' (' + payload.source + ')' : '');
-    else if (entry.verb === 'lead.stage_changed') text = 'Stage changed to ' + (payload.to || payload.status || '');
-    else if (entry.verb === 'lead.note') text = payload.body || 'Note added';
-    else if (entry.verb === 'lead.converted') text = 'Converted to client';
-    else if (entry.verb === 'lead.booked') text = 'Booking created' + (payload.ref ? ' (' + payload.ref + ')' : '');
-    else if (entry.verb === 'lead.follow_up_set') text = 'Follow-up set for ' + (payload.date || '');
-    return '<div class="tl-entry"><span class="tl-when">' + when + '</span><span class="tl-text">' + text + '</span><span class="tl-actor">' + (entry.actor_label || '') + '</span></div>';
-  }
+function timelineEntryLabel(entry) {
+  const when = new Date(entry.occurred_at * 60000).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  let text = entry.verb;
+  let payload = {};
+  try { payload = entry.payload ? JSON.parse(entry.payload) : {}; } catch (e) {}
+  if (entry.verb === 'lead.created') text = 'Lead created' + (payload.source ? ' (' + payload.source + ')' : '');
+  else if (entry.verb === 'lead.stage_changed') text = 'Stage changed to ' + (payload.to || payload.status || '');
+  else if (entry.verb === 'lead.note') text = payload.body || 'Note added';
+  else if (entry.verb === 'lead.converted') text = 'Converted to client';
+  else if (entry.verb === 'lead.booked') text = 'Booking created' + (payload.ref ? ' (' + payload.ref + ')' : '');
+  else if (entry.verb === 'lead.follow_up_set') text = 'Follow-up set for ' + (payload.date || '');
+  return '<div class="tl-entry"><span class="tl-when">' + when + '</span><span class="tl-text">' + text + '</span><span class="tl-actor">' + (entry.actor_label || '') + '</span></div>';
+}
 
-  async function loadLeadTimeline(id) {
-    const box = $('#leadTimeline');
-    box.innerHTML = 'Loading…';
-    const { ok, data } = await api(`/api/leads/${id}/timeline`);
-    if (!ok || !Array.isArray(data) || !data.length) { box.innerHTML = 'No activity yet.'; return; }
-    box.innerHTML = data.map(timelineEntryLabel).join('');
-  }
+async function loadLeadTimeline(id) {
+  const box = $('#leadTimeline');
+  box.innerHTML = 'Loading…';
+  const { ok, data } = await api(`/api/leads/${id}/timeline`);
+  if (!ok || !Array.isArray(data) || !data.length) { box.innerHTML = 'No activity yet.'; return; }
+  box.innerHTML = data.map(timelineEntryLabel).join('');
 }
 
 async function markLeadLost() {
