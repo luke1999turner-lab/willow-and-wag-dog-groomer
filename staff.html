@@ -240,6 +240,20 @@ color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var
 .site-header .container{flex-wrap:wrap;height:auto;padding:10px 0;row-gap:8px}
 .nav{flex-wrap:wrap;overflow-x:visible;width:100%;justify-content:flex-start}
 }
+
+/* ---------- Insights (what is selling) ---------- */
+.ins-range{display:flex;gap:8px;flex-wrap:wrap}
+.ins-total{font-family:var(--serif);font-size:1.7rem;margin:4px 0 20px;color:var(--forest)}
+.ins-total span{color:var(--muted);font-size:.8rem;font-family:var(--sans)}
+.ins-bars{display:flex;flex-direction:column;gap:16px}
+.ins-row{display:grid;grid-template-columns:1fr auto;gap:5px 12px;align-items:baseline}
+.ins-name{font-weight:700;font-size:14px}
+.ins-val{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px}
+.ins-track{grid-column:1/-1;height:10px;border-radius:999px;background:rgba(0,0,0,.07);overflow:hidden}
+.ins-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--terracotta),var(--terracotta-dark));transition:width .5s ease}
+.ins-sub{grid-column:1/-1;font-size:11.5px;color:var(--muted)}
+.ins-empty{color:var(--muted);font-size:13px;padding:22px 0}
+.ins-note{color:var(--muted);font-size:11.5px;margin-top:20px}
 </style>
 </head>
 <body>
@@ -250,6 +264,7 @@ color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var
 <button class="btn primary" id="navCalendarBtn">Calendar</button>
 <button class="btn ghost" id="navLeadsBtn">Leads</button>
 <button class="btn ghost" id="navRotaBtn">Rota</button>
+  <button class="btn ghost" id="navInsightsBtn">Insights</button>
   <button class="btn ghost" id="signOutBtn">Sign out</button>
 </nav>
 </div></header>
@@ -344,6 +359,23 @@ color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var
 </div>
 <div class="leads-board" id="leadsBoard"></div>
 <p class="footer">Drag a card between columns to update its stage, or click it to edit details. Cards with a red edge haven't had any activity in a while and may need a follow-up.</p>
+</div>
+
+<div id="insightsPage" class="hidden">
+<div class="hero-strip">
+<div>
+<h1>What's selling</h1>
+<div class="clock" id="insightsRangeLab">Last 30 days</div>
+</div>
+<div class="ins-range">
+<button class="btn ghost" data-days="30">30 days</button>
+<button class="btn ghost" data-days="90">90 days</button>
+<button class="btn ghost" data-days="365">12 months</button>
+</div>
+</div>
+<div class="ins-total" id="insTotal"></div>
+<div class="ins-bars" id="insBars"></div>
+<p class="ins-note">Ranked by revenue taken. Cancellations and no-shows are excluded.</p>
 </div>
 
 <div id="rotaPage" class="hidden">
