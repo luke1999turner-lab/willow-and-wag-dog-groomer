@@ -121,6 +121,7 @@ async function init() {
   $('#convertLeadBtn').onclick = convertLead;
   // Rota nav + modals
   $('#navRotaBtn').onclick = () => switchPage('rota');
+$('#navInsightsBtn').onclick = () => switchPage('insights');
   $('#rotaPrevBtn').onclick = () => switchRotaWeek(-1);
   $('#rotaTodayBtn').onclick = () => { state.rotaWeekDate = mondayOf(new Date().toISOString().slice(0, 10)); loadRota(); };
   $('#rotaNextBtn').onclick = () => switchRotaWeek(1);
@@ -883,14 +884,53 @@ state.page = page;
 $('#calendarPage').classList.toggle('hidden', page !== 'calendar');
 $('#leadsPage').classList.toggle('hidden', page !== 'leads');
 $('#rotaPage').classList.toggle('hidden', page !== 'rota');
+$('#insightsPage').classList.toggle('hidden', page !== 'insights');
 $('#navCalendarBtn').classList.toggle('primary', page === 'calendar');
 $('#navCalendarBtn').classList.toggle('ghost', page !== 'calendar');
 $('#navLeadsBtn').classList.toggle('primary', page === 'leads');
 $('#navLeadsBtn').classList.toggle('ghost', page !== 'leads');
 $('#navRotaBtn').classList.toggle('primary', page === 'rota');
 $('#navRotaBtn').classList.toggle('ghost', page !== 'rota');
+$('#navInsightsBtn').classList.toggle('primary', page === 'insights');
+$('#navInsightsBtn').classList.toggle('ghost', page !== 'insights');
 if (page === 'leads') loadLeads();
 if (page === 'rota') loadRota();
+if (page === 'insights') loadInsights();
+}
+
+let INSIGHT_DAYS = 30;
+
+async function loadInsights() {
+  const bars = $('#insBars');
+  const tot = $('#insTotal');
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const money = (p) => '\u00A3' + (Number(p || 0) / 100).toFixed(2).replace(/\.00$/, '');
+  bars.innerHTML = '<div class="ins-empty">Loading\u2026</div>';
+  const res = await api('/api/stats/services?days=' + INSIGHT_DAYS);
+  if (!res.ok) { bars.innerHTML = '<div class="ins-empty">Could not load figures.</div>'; return; }
+  const svcs = res.data.services || [];
+  $('#insightsRangeLab').textContent = 'Last ' + res.data.days + ' days';
+  tot.innerHTML = money(res.data.total_revenue_pence) + ' <span>taken in the last ' + res.data.days + ' days</span>';
+  document.querySelectorAll('#insightsPage .ins-range button').forEach((b) => {
+    const d = Number(b.dataset.days);
+    b.classList.toggle('primary', d === INSIGHT_DAYS);
+    b.classList.toggle('ghost', d !== INSIGHT_DAYS);
+    b.onclick = () => { INSIGHT_DAYS = d; loadInsights(); };
+  });
+  if (!svcs.some((s) => s.bookings > 0)) {
+    bars.innerHTML = '<div class="ins-empty">No bookings in this period yet.</div>';
+    return;
+  }
+  const max = Math.max(1, ...svcs.map((s) => s.revenue_pence || 0));
+  bars.innerHTML = svcs.map((s) => {
+    const pct = Math.round(((s.revenue_pence || 0) / max) * 100);
+    return '<div class="ins-row">'
+      + '<div class="ins-name">' + esc(s.name) + '</div>'
+      + '<div class="ins-val">' + money(s.revenue_pence) + '</div>'
+      + '<div class="ins-track"><div class="ins-fill" style="width:' + pct + '%"></div></div>'
+      + '<div class="ins-sub">' + s.bookings + ' booked \u00B7 ' + money(s.price_pence) + ' each \u00B7 ' + money(s.revenue_per_hour_pence) + ' per hour of salon time</div>'
+      + '</div>';
+  }).join('');
 }
 
 function isRotting(lead) {
