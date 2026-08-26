@@ -172,12 +172,13 @@ color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var
 .mc-chip{border-radius:5px;padding:2px 5px;font-size:10.5px;color:#fff;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer}
 .mc-more{font-size:10px;color:var(--muted)}
 
-@media (max-width:760px){
+@media (max-width:900px){
 .stats{grid-template-columns:repeat(2,1fr)}
 }
 @media (max-width:640px){
 .row{grid-template-columns:1fr}
 .cal{overflow-x:auto}
+.stats{grid-template-columns:1fr}
 }
 
 /* ---------- Leads pipeline (kanban) ---------- */
@@ -233,6 +234,11 @@ color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var
 @media (max-width:900px){
 .rota-head-row,.rota-row{grid-template-columns:110px repeat(7,minmax(90px,1fr))}
 .rota-grid{overflow-x:auto}
+}
+
+@media (max-width:640px){
+.site-header .container{flex-wrap:wrap;height:auto;padding:10px 0;row-gap:8px}
+.nav{flex-wrap:wrap;overflow-x:visible;width:100%;justify-content:flex-start}
 }
 </style>
 </head>
