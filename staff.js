@@ -560,6 +560,7 @@ function renderDay(appts, blocks) {
   }
   const DAY_START = win.start, DAY_END = win.end;
   const cal = $('#cal');
+  cal.className = 'cal';
   const N = state.groomers.length;
   cal.style.gridTemplateColumns = `56px repeat(${N}, 1fr)`;
   const hours = [];
