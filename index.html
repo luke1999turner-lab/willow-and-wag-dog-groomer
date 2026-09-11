@@ -372,6 +372,19 @@ html,body{overflow-x:hidden}
 .row{grid-template-columns:1fr}
 .why-grid{padding:48px 0}
 }
+/* booking modal */
+.bscrim{position:fixed;inset:0;background:rgba(26,32,26,.55);z-index:800;display:none}
+.bscrim.on{display:block}
+.bmodal{position:fixed;z-index:801;left:0;right:0;bottom:0;top:auto;max-height:92vh;overflow-y:auto;background:var(--bg);border-radius:20px 20px 0 0;display:none;box-shadow:0 -10px 50px rgba(0,0,0,.3)}
+.bmodal.on{display:block}
+@media(min-width:820px){.bmodal{top:4vh;bottom:auto;left:50%;transform:translateX(-50%);width:760px;max-width:94vw;border-radius:18px;max-height:90vh}}
+.bmhead{position:sticky;top:0;z-index:2;background:var(--bg);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 24px 14px;border-bottom:1px solid var(--line)}
+.bmhead b{font-family:var(--serif);font-size:24px;font-weight:600;display:block;margin-top:4px}
+.bmx{background:none;border:0;font-size:30px;line-height:1;cursor:pointer;color:var(--muted);padding:0 4px}
+.bmx:hover{color:var(--ink)}
+.bmbody{padding:18px 24px 30px}
+.bmbody .card.booking{box-shadow:none;border:0;padding:0;background:none}
+body.bmopen{overflow:hidden}
 </style>
 </head>
 <body>
@@ -507,23 +520,25 @@ html,body{overflow-x:hidden}
 <div class="sec-head reveal">
 <div class="kicker">Tailored Grooming Collections</div>
 <h2>Every Price. Every Minute. No Surprises.</h2>
-<p class="lead">Full transparency on price and duration — choose a service below to jump straight into booking.</p>
+<p class="lead">Full transparency on price and duration — pick one and you are booked in under a minute.</p>
 </div>
 <div class="svc-list reveal-left" id="svcList"></div>
 </div></section>
 
 <!-- ============ BOOKING WIZARD ============ -->
-<section class="section" id="book"><div class="container">
-<div class="sec-head reveal">
-<div class="kicker">Book Online</div>
-<h2>Reserve Your Dog's Groom</h2>
-<p class="lead">Live availability, instant confirmation — takes less than a minute.</p>
+<!-- BOOKING MODAL -->
+<div class="bscrim" id="bscrim"></div>
+<div class="bmodal" id="bmodal" role="dialog" aria-modal="true" aria-label="Reserve your dog's groom">
+<div class="bmhead">
+<div><div class="kicker">Book Online</div><b>Reserve Your Dog's Groom</b></div>
+<button class="bmx" id="bmClose" aria-label="Close">&times;</button>
 </div>
-<div class="card booking reveal-right" id="wizard">
+<div class="bmbody">
+<div class="card booking" id="wizard">
 <div class="steps" id="stepsBar"></div>
 <div id="panels"></div>
 </div>
-</div></section>
+</div></div>
 
 <!-- ============ TEAM ============ -->
 <section class="section" id="team"><div class="container">
@@ -788,7 +803,7 @@ function renderServices(services){
     </div>`).join("");
   $$("#svcList [data-svc]").forEach((a) => a.addEventListener("click", (e) => {
     const svc = services.find((s) => s.id === +e.currentTarget.dataset.svc);
-    setTimeout(() => selectService(svc), 300);
+    selectService(svc);
   }));
 }
 
@@ -874,9 +889,29 @@ function panel1(){
     });
   });
 }
+function openBooking(){
+  var sc=document.getElementById('bscrim'), md=document.getElementById('bmodal');
+  if(!sc||!md) return;
+  sc.classList.add('on'); md.classList.add('on');
+  document.body.classList.add('bmopen');
+  md.scrollTop=0;
+}
+function closeBooking(){
+  var sc=document.getElementById('bscrim'), md=document.getElementById('bmodal');
+  if(sc) sc.classList.remove('on');
+  if(md) md.classList.remove('on');
+  document.body.classList.remove('bmopen');
+}
+document.addEventListener('click', function(ev){
+  var a=ev.target.closest('a[href$="#book"]');
+  if(a){ ev.preventDefault(); openBooking(); return; }
+  if(ev.target.closest('#bmClose')||ev.target.id===('bscrim')){ closeBooking(); return; }
+});
+document.addEventListener('keydown', function(ev){ if(ev.key===('Escape')) closeBooking(); });
+
 function selectService(svc){
   state.service = svc;
-  document.getElementById("book").scrollIntoView({ behavior:"smooth", block:"start" });
+  openBooking();
   panel2();
 }
 
