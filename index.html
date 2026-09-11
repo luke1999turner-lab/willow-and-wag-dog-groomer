@@ -375,16 +375,17 @@ html,body{overflow-x:hidden}
 /* booking modal */
 .bscrim{position:fixed;inset:0;background:rgba(26,32,26,.55);z-index:800;display:none}
 .bscrim.on{display:block}
-.bmodal{position:fixed;z-index:801;left:0;right:0;bottom:0;top:auto;max-height:92vh;overflow-y:auto;background:var(--bg);border-radius:20px 20px 0 0;display:none;box-shadow:0 -10px 50px rgba(0,0,0,.3)}
+.bmodal{position:fixed;z-index:801;left:0;right:0;bottom:0;top:auto;max-height:92vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:#faf6ee;background:var(--cream,#faf6ee);border-radius:20px 20px 0 0;display:none;box-shadow:0 -10px 50px rgba(0,0,0,.3)}
 .bmodal.on{display:block}
 @media(min-width:820px){.bmodal{top:4vh;bottom:auto;left:50%;transform:translateX(-50%);width:760px;max-width:94vw;border-radius:18px;max-height:90vh}}
-.bmhead{position:sticky;top:0;z-index:2;background:var(--bg);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 24px 14px;border-bottom:1px solid var(--line)}
+.bmhead{position:sticky;top:0;z-index:2;background:#faf6ee;background:var(--cream,#faf6ee);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 24px 14px;border-bottom:1px solid var(--line)}
 .bmhead b{font-family:var(--serif);font-size:24px;font-weight:600;display:block;margin-top:4px}
 .bmx{background:none;border:0;font-size:30px;line-height:1;cursor:pointer;color:var(--muted);padding:0 4px}
 .bmx:hover{color:var(--ink)}
 .bmbody{padding:18px 24px 30px}
 .bmbody .card.booking{box-shadow:none;border:0;padding:0;background:none}
 body.bmopen{overflow:hidden}
+html.bmopen{overflow:hidden}
 </style>
 </head>
 <body>
@@ -894,6 +895,7 @@ function openBooking(){
   if(!sc||!md) return;
   sc.classList.add('on'); md.classList.add('on');
   document.body.classList.add('bmopen');
+  document.documentElement.classList.add('bmopen');
   md.scrollTop=0;
 }
 function closeBooking(){
@@ -901,6 +903,7 @@ function closeBooking(){
   if(sc) sc.classList.remove('on');
   if(md) md.classList.remove('on');
   document.body.classList.remove('bmopen');
+  document.documentElement.classList.remove('bmopen');
 }
 document.addEventListener('click', function(ev){
   var a=ev.target.closest('a[href$="#book"]');
