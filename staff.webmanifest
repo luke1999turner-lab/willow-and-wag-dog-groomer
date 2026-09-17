@@ -1,0 +1,30 @@
+{
+  "name": "Willow & Wag Staff",
+  "short_name": "Willow & Wag",
+  "description": "Staff calendar for Willow & Wag dog grooming.",
+  "start_url": "/staff",
+  "scope": "/staff",
+  "display": "standalone",
+  "background_color": "#faf6ee",
+  "theme_color": "#1f3327",
+  "icons": [
+    {
+      "src": "/staff-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/staff-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/staff-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
