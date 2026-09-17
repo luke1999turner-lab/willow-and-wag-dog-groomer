@@ -281,6 +281,39 @@ color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var
 .cal-nav #date{order:5;max-width:150px}
 }
 </style>
+<style>
+/* Horizontal week view */
+.cal.cal-weekh{display:block;padding:6px 0 4px}
+.wh-axis,.wh-row{display:grid;grid-template-columns:92px 22px 1fr;gap:10px;align-items:center;padding:0 12px}
+.wh-axis{height:26px;position:sticky;top:0;z-index:3;background:var(--card2);border-bottom:1px solid var(--line)}
+.wh-scale{position:relative;height:100%}
+.wh-tick{position:absolute;top:50%;transform:translate(-50%,-50%);font-size:10.5px;color:var(--muted);font-weight:600;white-space:nowrap}
+.wh-row{padding-top:10px;padding-bottom:10px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s}
+.wh-row:last-child{border-bottom:none}
+.wh-row:hover{background:rgba(127,127,127,.06)}
+.wh-row.is-closed{opacity:.55}
+.wh-dayname{font-weight:700;font-size:14px;color:var(--ink)}
+.wh-daynum{color:var(--muted);font-weight:600}
+.wh-row.is-today .wh-dayname,.wh-row.is-today .wh-daynum{color:var(--terracotta)}
+.wh-meta{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap}
+.wh-track{position:relative;display:flex;flex-direction:column;gap:3px;padding:3px 0;min-height:22px;
+background-image:linear-gradient(90deg,var(--line) 1px,transparent 1px);background-repeat:repeat-x;border-radius:6px}
+.wh-lane{position:relative;height:12px;border-radius:4px;background:rgba(127,127,127,.10)}
+.wh-appt{position:absolute;top:0;bottom:0;border-radius:3px;min-width:3px;box-shadow:inset -1px 0 0 rgba(0,0,0,.35)}
+.wh-blk{position:absolute;top:0;bottom:0;border-radius:3px;background:repeating-linear-gradient(135deg,rgba(127,127,127,.45),rgba(127,127,127,.45) 3px,transparent 3px,transparent 6px)}
+.wh-shut{position:absolute;top:0;bottom:0;background:rgba(0,0,0,.18);border-radius:4px;z-index:1;pointer-events:none}
+.wh-now{position:absolute;top:-3px;bottom:-3px;width:2px;background:#e8695f;border-radius:2px;z-index:2;box-shadow:0 0 6px #e8695f}
+.wh-inits{display:flex;flex-direction:column;gap:3px;padding:3px 0}
+.wh-inits span{height:12px;line-height:12px;font-size:9px;font-weight:800;text-align:right;letter-spacing:.02em}
+.wh-closed{font-size:12px;color:var(--muted);padding:3px 0}
+@media (max-width:640px){
+.wh-axis,.wh-row{grid-template-columns:58px 20px 1fr;gap:6px;padding-left:10px;padding-right:10px}
+.wh-dayname{font-size:13px}
+.wh-meta{font-size:10px;white-space:normal;line-height:1.25}
+.wh-lane{height:14px}
+.wh-inits span{height:14px;line-height:14px}
+}
+</style>
 </head>
 <body>
 <header class="site-header"><div class="container">
