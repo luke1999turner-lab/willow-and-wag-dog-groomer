@@ -262,6 +262,25 @@ color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var
 .ins-empty{color:var(--muted);font-size:13px;padding:22px 0}
 .ins-note{color:var(--muted);font-size:11.5px;margin-top:20px}
 </style>
+<style>
+/* Calendar view switcher: sits directly on top of the calendar */
+.cal-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 0 12px}
+.cal-nav .seg{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--line);border-radius:16px;background:var(--card2)}
+.cal-nav .seg .btn{padding:8px 16px;box-shadow:none}
+.cal-nav .seg .btn.ghost{background:transparent;border-color:transparent}
+.cal-nav .today-label{margin-left:6px}
+.cal-nav #date{max-width:170px;margin-left:auto}
+@media (max-width:640px){
+.toolbar{flex-wrap:nowrap;overflow-x:auto;padding:14px 0 10px;scrollbar-width:none}
+.toolbar::-webkit-scrollbar{display:none}
+.toolbar .btn{flex:none;padding:9px 13px;font-size:13px}
+.cal-nav{gap:6px}
+.cal-nav .seg{flex:1}
+.cal-nav .seg .btn{flex:1;padding:9px 4px}
+.cal-nav .today-label{order:4;flex:1 1 auto;min-width:0;margin-left:0;font-size:15px}
+.cal-nav #date{order:5;max-width:150px}
+}
+</style>
 </head>
 <body>
 <header class="site-header"><div class="container">
@@ -315,14 +334,6 @@ color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var
 </div>
 
 <div class="toolbar">
-<button class="iconbtn" id="prev">‹</button>
-<button class="btn ghost" id="today">Today</button>
-<button class="iconbtn" id="next">›</button>
-<button class="btn ghost" id="weekBtn">Week</button>
-<button class="btn ghost" id="monthBtn">Month</button>
-<input type="date" id="date" style="max-width:180px">
-<span class="today-label" id="dayLabel"></span>
-<span class="spacer"></span>
 <button class="btn ghost" id="panelToggleBtn">Today panel</button>
 <button class="btn ghost" id="briefBtn">Morning brief</button>
 <button class="btn ghost" id="waitlistBtn">Waitlist</button>
@@ -332,6 +343,17 @@ color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var
 
 <div class="cal-row" id="calRow">
 <div class="cal-main">
+<div class="cal-nav" id="calNav">
+<button class="iconbtn" id="prev" aria-label="Previous">‹</button>
+<div class="seg">
+<button class="btn ghost" id="today">Day</button>
+<button class="btn ghost" id="weekBtn">Week</button>
+<button class="btn ghost" id="monthBtn">Month</button>
+</div>
+<button class="iconbtn" id="next" aria-label="Next">›</button>
+<span class="today-label" id="dayLabel"></span>
+<input type="date" id="date">
+</div>
 <div class="legend" id="legend"></div>
 <div class="cal" id="cal"></div>
 </div>
