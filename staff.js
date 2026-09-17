@@ -429,55 +429,79 @@ async function loadMonth() {
 // the same time never visually collide. Click a chip to open it exactly like
 // the day view; click a day's header to jump straight into Day view for it.
 function renderWeek(monday, appts, blocks) {
+  // Horizontal week: one row per day, time runs left to right, one thin lane per team member.
+  // Blocks sit at their real times, so the hour scale along the top genuinely lines up.
   const cal = $('#cal');
-  cal.className = 'cal';
-  cal.style.gridTemplateColumns = `56px repeat(7, 1fr)`;
+  cal.className = 'cal cal-weekh';
+  cal.style.gridTemplateColumns = '1fr';
+  const STAFF = state.groomers;
   const days = [...Array(7)].map((_, i) => addDays(monday, i));
-  const winW = weekWindowFor(days);
-  const DAY_START = winW.start, DAY_END = winW.end;
+  const win = weekWindowFor(days);
+  const W0 = win.start, W1 = win.end, SPAN = W1 - W0;
+  const pct = (m) => (Math.max(0, Math.min(SPAN, m - W0)) / SPAN) * 100;
   const today = new Date().toISOString().slice(0, 10);
-  const hours = [];
-  for (let h = DAY_START; h < DAY_END; h += 60) hours.push(h);
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const hourCount = SPAN / 60;
+  const gridBg = 'background-size:calc(100% / ' + hourCount + ') 100%';
+  const shortHour = (m) => { const h = Math.floor(m / 60); return (h % 12 || 12) + (h < 12 ? 'am' : 'pm'); };
+  const money = (p) => '£' + Math.round(p / 100).toLocaleString('en-GB');
+  const priceOf = (id) => { const s = (state.services || []).find((x) => x.id === id); return s ? s.price_pence : 0; };
 
-  let html = `<div class="colhead gutterhead"></div>`;
-  html += days.map((d) => {
-    const dt = new Date(d + 'T00:00');
-    const dayName = dt.toLocaleDateString('en-GB', { weekday: 'short' });
-    return `<div class="colhead weekcolhead ${d === today ? 'is-today' : ''}" data-date="${d}">
-      <div class="wk-dayname">${dayName}</div><div class="wk-daynum">${dt.getDate()}</div></div>`;
-  }).join('');
-
-  html += `<div class="gutter" style="grid-column:1">` +
-    hours.map((h) => `<div class="hourline"><span>${fmt(h)}</span></div>`).join('') + `</div>`;
+  let ticks = '';
+  const step = hourCount > 8 ? 3 : 2;
+  for (let m = Math.ceil(W0 / 60) * 60; m < W1; m += 60 * step) {
+    ticks += '<span class="wh-tick" style="left:' + pct(m) + '%">' + shortHour(m) + '</span>';
+  }
+  let html = '<div class="wh-axis"><div class="wh-daycell"></div><div class="wh-inits"></div><div class="wh-scale">' + ticks + '</div></div>';
+  const inits = hrsAny => '<div class="wh-inits">' + (hrsAny ? STAFF.map((st) => '<span style="color:' + st.color + '">' + initials(st.name) + '</span>').join('') : '') + '</div>';
 
   days.forEach((d) => {
     const dayTs = toTs(d, 0);
-    const dayAppts = appts.filter((a) => (a.status === 'booked' || a.status === 'no-show' || a.status === 'completed') && fromTs(a.start_ts).date === d)
-      .sort((a, b) => a.start_ts - b.start_ts);
-    const dayBlocks = blocks.filter((bl) => fromTs(bl.start_ts).date <= d && fromTs(bl.end_ts - 1).date >= d);
-    let col = `<div class="daycol week-daycol" data-date="${d}">`;
-    dayBlocks.forEach((bl) => {
-      col += `<div class="wk-chip wk-block">${bl.reason}${bl.groomer_name ? ' · ' + bl.groomer_name : ''}</div>`;
-    });
-    if (!dayAppts.length && !dayBlocks.length) col += `<div class="wk-empty">No bookings</div>`;
-    dayAppts.forEach((a) => {
-      const min = a.start_ts - dayTs;
-      const dimmed = a.status === 'no-show' || a.status === 'completed';
-      const label = a.status === 'no-show' ? ' · NO-SHOW' : a.status === 'completed' ? ' · DONE' : '';
-      col += `<div class="wk-chip wk-appt${dimmed ? ' appt-dimmed' : ''}" data-id="${a.id}" style="border-left-color:${staffColorFor(a)}">
-        <b>${fmt(min)}</b> ${dogTileLabel(a)}<span class="wk-who">${a.groomer_name} · ${a.service_name}${label}</span></div>`;
-    });
-    col += `</div>`;
-    html += col;
+    const hrs = hoursForDow(dowOf(d));
+    const dt = new Date(d + 'T12:00:00Z');
+    const dayName = dt.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' });
+    const live = appts.filter((a) => (a.status === 'booked' || a.status === 'no-show' || a.status === 'completed') && fromTs(a.start_ts).date === d);
+    const takings = live.filter((a) => a.status !== 'no-show').reduce((n, a) => n + priceOf(a.service_id), 0);
+    const isToday = d === today;
+
+    let track = '';
+    if (!hrs) {
+      track = '<div class="wh-closed">Closed</div>';
+    } else {
+      if (hrs.open_min > W0) track += '<div class="wh-shut" style="left:0;width:' + pct(hrs.open_min) + '%"></div>';
+      if (hrs.close_min < W1) track += '<div class="wh-shut" style="left:' + pct(hrs.close_min) + '%;right:0"></div>';
+      STAFF.forEach((st) => {
+        let lane = '';
+        blocks.filter((bl) => bl.groomer_id == null || bl.groomer_id === st.id).forEach((bl) => {
+          const s = Math.max(bl.start_ts - dayTs, W0), e = Math.min(bl.end_ts - dayTs, W1);
+          if (e <= s) return;
+          lane += '<div class="wh-blk" style="left:' + pct(s) + '%;width:' + (pct(e) - pct(s)) + '%" title="' + (bl.reason || 'Blocked') + '"></div>';
+        });
+        live.filter((a) => a.groomer_id === st.id).forEach((a) => {
+          const s = a.start_ts - dayTs, e = a.end_ts - dayTs;
+          const dim = a.status !== 'booked' ? ' appt-dimmed' : '';
+          lane += '<div class="wh-appt' + dim + '" data-id="' + a.id + '" style="left:' + pct(s) + '%;width:' + (pct(e) - pct(s)) + '%;background:' + st.color + '" title="' + fmt(s) + ' ' + a.client_name + ' - ' + a.service_name + '"></div>';
+        });
+        track += '<div class="wh-lane">' + lane + '</div>';
+      });
+      if (isToday && nowMin >= W0 && nowMin <= W1) track += '<div class="wh-now" style="left:' + pct(nowMin) + '%"></div>';
+    }
+
+    html += '<div class="wh-row' + (isToday ? ' is-today' : '') + (hrs ? '' : ' is-closed') + '" data-date="' + d + '">' +
+      '<div class="wh-daycell"><div class="wh-dayname">' + dayName + ' <span class="wh-daynum">' + dt.getUTCDate() + '</span></div>' +
+      (hrs ? '<div class="wh-meta">' + live.length + ' booked' + (takings ? ' · ' + money(takings) : '') + '</div>' : '') +
+      '</div>' + inits(!!hrs) + '<div class="wh-track" style="' + (hrs ? gridBg : 'background-image:none') + '">' + track + '</div></div>';
   });
 
   cal.innerHTML = html;
-  cal.querySelectorAll('.hourline').forEach((el) => { el.style.height = PXH + 'px'; });
-  cal.querySelectorAll('.weekcolhead').forEach((el) => el.onclick = () => switchToDay(el.dataset.date));
-  cal.querySelectorAll('.wk-appt').forEach((el) => el.onclick = () => {
-    const d = el.closest('.week-daycol').dataset.date;
-    openAppt(+el.dataset.id, d);
-  });
+  cal.querySelectorAll('.wh-row').forEach((el) => el.onclick = () => switchToDay(el.dataset.date));
+  // Precise pointers (desktop) can open a booking straight from the week; on touch the row opens the day.
+  if (window.matchMedia && window.matchMedia('(pointer:fine)').matches) {
+    cal.querySelectorAll('.wh-appt').forEach((el) => el.onclick = (ev) => {
+      ev.stopPropagation();
+      openAppt(+el.dataset.id, el.closest('.wh-row').dataset.date);
+    });
+  }
 }
 
 // ---------- month view ----------
