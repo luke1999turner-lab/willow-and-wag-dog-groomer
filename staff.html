@@ -3,7 +3,14 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Staff Calendar — Willow & Wag</title>
-<link rel="icon" href="data:,">
+<link rel="icon" type="image/png" href="/staff-icon-192.png">
+<meta name="theme-color" content="#1f3327">
+<link rel="manifest" href="/staff.webmanifest">
+<link rel="apple-touch-icon" href="/staff-icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Willow & Wag">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -614,5 +621,6 @@ color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var
 </div>
 
 <script src="staff.js"></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/staff-sw.js",{scope:"/staff"}).catch(function(){});});}</script>
 </body>
 </html>
