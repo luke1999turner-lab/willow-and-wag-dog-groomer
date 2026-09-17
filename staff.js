@@ -86,7 +86,7 @@ async function init() {
 
   $('#prev').onclick = () => shiftView(-1);
   $('#next').onclick = () => shiftView(1);
-  $('#today').onclick = () => { state.date = new Date().toISOString().slice(0, 10); $('#date').value = state.date; load(); };
+  $('#today').onclick = () => { state.view = 'day'; state.date = new Date().toISOString().slice(0, 10); $('#date').value = state.date; setActiveViewBtn(); load(); };
   $('#date').onchange = () => { state.date = $('#date').value; load(); };
   $('#weekBtn').onclick = () => { state.view = 'week'; setActiveViewBtn(); load(); };
   $('#monthBtn').onclick = () => { state.view = 'month'; setActiveViewBtn(); load(); };
@@ -365,6 +365,8 @@ function shiftView(n) {
 }
 
 function setActiveViewBtn() {
+  $('#today').classList.toggle('primary', state.view === 'day');
+  $('#today').classList.toggle('ghost', state.view !== 'day');
   $('#weekBtn').classList.toggle('primary', state.view === 'week');
   $('#weekBtn').classList.toggle('ghost', state.view !== 'week');
   $('#monthBtn').classList.toggle('primary', state.view === 'month');
