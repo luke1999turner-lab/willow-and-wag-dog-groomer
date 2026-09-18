@@ -318,8 +318,12 @@ color:#fff;font-size:10.5px;font-weight:600;line-height:1}
 .wh-axis,.wh-row{grid-template-columns:58px 20px 1fr;gap:6px;padding-left:10px;padding-right:10px}
 .wh-dayname{font-size:13px}
 .wh-meta{font-size:10px;white-space:normal;line-height:1.25}
-.wh-lane{height:14px}
-.wh-inits span{height:14px;line-height:14px}
+/* Lanes stay tall enough for the time label; the client name is dropped because a
+   30-minute block at phone width cannot hold both. */
+.wh-lane{height:20px}
+.wh-inits span{height:20px;line-height:20px}
+.wa-nm{display:none}
+.wh-appt{font-size:10px;padding:0 3px}
 }
 </style>
 </head>
