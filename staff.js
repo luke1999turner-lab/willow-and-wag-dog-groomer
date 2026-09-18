@@ -482,7 +482,7 @@ function renderWeek(monday, appts, blocks) {
         live.filter((a) => a.groomer_id === st.id).forEach((a) => {
           const s = a.start_ts - dayTs, e = a.end_ts - dayTs;
           const dim = a.status !== 'booked' ? ' appt-dimmed' : '';
-          lane += '<div class="wh-appt' + dim + '" data-id="' + a.id + '" style="left:' + pct(s) + '%;width:' + (pct(e) - pct(s)) + '%;background:' + st.color + '" title="' + fmt(s) + ' ' + a.client_name + ' - ' + a.service_name + '"><span class="wa-lbl">' + fmt(s) + ' ' + firstName(a.client_name) + '</span></div>';
+          lane += '<div class="wh-appt' + dim + '" data-id="' + a.id + '" style="left:' + pct(s) + '%;width:' + (pct(e) - pct(s)) + '%;background:' + st.color + '" title="' + fmt(s) + ' ' + a.client_name + ' - ' + a.service_name + '"><span class="wa-lbl">' + fmt(s) + '<span class="wa-nm"> ' + firstName(a.client_name) + '</span></span></div>';
         });
         track += '<div class="wh-lane">' + lane + '</div>';
       });
