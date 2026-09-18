@@ -448,7 +448,9 @@ function renderWeek(monday, appts, blocks) {
   const priceOf = (id) => { const s = (state.services || []).find((x) => x.id === id); return s ? s.price_pence : 0; };
 
   let ticks = '';
-  const step = hourCount > 8 ? 3 : 2;
+  const firstName = (n) => String(n || '').split(' ')[0];
+  // One label per hour. The CSS thins these out on narrow screens so they stay readable.
+  const step = 1;
   for (let m = Math.ceil(W0 / 60) * 60; m < W1; m += 60 * step) {
     ticks += '<span class="wh-tick" style="left:' + pct(m) + '%">' + shortHour(m) + '</span>';
   }
@@ -480,7 +482,7 @@ function renderWeek(monday, appts, blocks) {
         live.filter((a) => a.groomer_id === st.id).forEach((a) => {
           const s = a.start_ts - dayTs, e = a.end_ts - dayTs;
           const dim = a.status !== 'booked' ? ' appt-dimmed' : '';
-          lane += '<div class="wh-appt' + dim + '" data-id="' + a.id + '" style="left:' + pct(s) + '%;width:' + (pct(e) - pct(s)) + '%;background:' + st.color + '" title="' + fmt(s) + ' ' + a.client_name + ' - ' + a.service_name + '"></div>';
+          lane += '<div class="wh-appt' + dim + '" data-id="' + a.id + '" style="left:' + pct(s) + '%;width:' + (pct(e) - pct(s)) + '%;background:' + st.color + '" title="' + fmt(s) + ' ' + a.client_name + ' - ' + a.service_name + '"><span class="wa-lbl">' + fmt(s) + ' ' + firstName(a.client_name) + '</span></div>';
         });
         track += '<div class="wh-lane">' + lane + '</div>';
       });
