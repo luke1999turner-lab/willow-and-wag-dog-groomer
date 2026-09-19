@@ -1585,6 +1585,13 @@ function roleStyles() {
     '.rq-acts button[disabled]{opacity:.55;cursor:default}',
     '.rq-err{font-size:12.5px;color:var(--danger);margin-top:8px}',
     '.rq-none{padding:20px 0;font-size:13.5px;color:var(--muted)}',
+    '.rq-notes{max-width:760px;padding:4px 0 2px}',
+    '.rq-notes-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:2px 0 10px}',
+    '.rq-notes-head b{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}',
+    '.rq-clear{font-size:12px;color:var(--muted);background:none;border:0;padding:0;cursor:pointer;font-family:inherit;text-decoration:underline}',
+    '.rq-clear[disabled]{opacity:.5;cursor:default}',
+    '.rq-note{padding:12px 15px;border:1px solid var(--line);border-left:3px solid var(--terracotta,#d97b4f);border-radius:12px;background:var(--card);margin-bottom:10px}',
+    '.rq-note.no{border-left-color:rgba(194,86,74,.9)}',
     '.vis-card{max-width:760px;margin-top:26px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--card)}',
     '.vis-head{font-size:14.5px;font-weight:700;color:var(--ink)}',
     '.vis-row{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--slate);padding:9px 0 0}',
@@ -1672,6 +1679,11 @@ function mountRequests() {
   if (!btn || typeof switchPage !== 'function') return;
   requestsMounted = true;
   btn.onclick = function () { switchPage('requests'); };
+  // Coming back to the tab is the moment you would want to know, and it costs nothing
+  // while the tab is in the background.
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && typeof STAFF_TOKEN === 'string' && STAFF_TOKEN) refreshRequests();
+  });
   const base = switchPage;
   switchPage = function (page) {
     base(page);
@@ -1695,14 +1707,52 @@ function rqCanAnswer(q) {
   return isMgr();
 }
 
+/* ---------- what came back on what you asked for ---------- */
+// These sit at the top of Requests until the person clears them. They are read on the
+// way in and whenever the tab comes back to the front, rather than polled: this account
+// has run into D1's daily read limit before, and a background poll is how you do that.
+async function renderAnswers() {
+  const host = $('#requestsNotes');
+  if (!host) return 0;
+  const r = await api('/api/requests/answered');
+  const rows = (r && r.ok && Array.isArray(r.data)) ? r.data : [];
+  if (!rows.length) { host.innerHTML = ''; return 0; }
+  host.innerHTML =
+    '<div class="rq-notes-head"><b>New for you</b>' +
+    '<button class="rq-clear" id="rqClear" type="button">Clear these</button></div>' +
+    rows.map(function (q) {
+      const yes = q.status === 'accepted';
+      const who = q.kind === 'handover' ? (q.to_name || 'They') : (q.decided_name || 'Your manager');
+      const what = q.kind === 'handover'
+        ? (yes ? ' has accepted the swap' : ' has declined the swap')
+        : (yes ? ' approved your time off' : ' declined your time off');
+      const sub = q.kind === 'handover'
+        ? (q.client_name || 'A booking') + (q.service_name ? ' \u00B7 ' + q.service_name : '') +
+          ' \u00B7 ' + rqWhen(q.appt_start)
+        : rqWhen(q.start_ts) + ' to ' + rqWhen(q.end_ts);
+      return '<div class="rq-note' + (yes ? '' : ' no') + '"><div class="rq-t">' +
+        srEsc(who + what) + '</div><div class="rq-s">' + srEsc(sub) +
+        (q.decided_at != null ? ' \u00B7 ' + srEsc(rqWhen(q.decided_at)) : '') + '</div></div>';
+    }).join('');
+  const clear = $('#rqClear');
+  if (clear) clear.onclick = async function () {
+    clear.disabled = true;
+    await api('/api/requests/answered/seen', { method: 'POST' });
+    refreshRequests();
+  };
+  return rows.length;
+}
+
 async function refreshRequests() {
   const r = await api('/api/requests');
   REQUESTS = (r && r.ok && Array.isArray(r.data)) ? r.data : [];
   const waiting = REQUESTS.filter(rqCanAnswer);
+  const answers = await renderAnswers();
   const badge = $('#rqBadge');
   if (badge) {
-    badge.textContent = String(waiting.length);
-    badge.classList.toggle('hidden', waiting.length === 0);
+    const n = waiting.length + answers;
+    badge.textContent = String(n);
+    badge.classList.toggle('hidden', n === 0);
   }
   const list = $('#requestsList');
   if (!list) return;
