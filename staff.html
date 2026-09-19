@@ -351,6 +351,7 @@ color:#fff;font-size:10.5px;font-weight:600;line-height:1}
 <button class="btn ghost" id="navLeadsBtn">Leads</button>
 <button class="btn ghost" id="navRotaBtn">Rota</button>
   <button class="btn ghost" id="navInsightsBtn">Insights</button>
+<button class="btn ghost" id="navRequestsBtn">Requests<span class="rq-badge hidden" id="rqBadge">0</span></button>
   <button class="btn ghost" id="signOutBtn">Sign out</button>
 </nav>
 </div></header>
@@ -499,6 +500,16 @@ color:#fff;font-size:10.5px;font-weight:600;line-height:1}
 <div style="overflow-x:auto;margin-bottom:60px">
 <table class="timesheet-table" id="timesheetTable"></table>
 </div>
+</div>
+<div id="requestsPage" class="hidden">
+<div class="hero-strip">
+<div>
+<h1>Requests</h1>
+<div class="clock">Handovers waiting on the person they were offered to, and time off waiting on a manager.</div>
+</div>
+</div>
+<div class="rq-list" id="requestsList"></div>
+<div id="requestsVisibility"></div>
 </div>
 </main>
 
