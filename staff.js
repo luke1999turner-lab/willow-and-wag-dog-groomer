@@ -147,7 +147,10 @@ $('#navInsightsBtn').onclick = () => switchPage('insights');
 function updateHero() {
   const now = new Date();
   const hour = now.getHours();
-  const greeting = hour < 12 ? 'Good morning, team.' : hour < 17 ? 'Good afternoon, team.' : 'Good evening, team.';
+  // Whoever is signed in, by name. It falls back to the team before the session
+// has loaded, and on the older API that does not send a name back.
+const who = window.__staffName || 'team';
+const greeting = hour < 12 ? 'Good morning, ' + who + '.' : hour < 17 ? 'Good afternoon, ' + who + '.' : 'Good evening, ' + who + '.';
   $('#heroGreeting').textContent = greeting;
   const dateStr = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -1564,7 +1567,7 @@ async function runSearch(raw) {
    The Worker decides what is allowed; this only makes the calendar honest about it, so
    people are not clicking things that come back refused. Everything here reads the role
    from the session, never from anything the browser could be told to believe. */
-const ROLE = { role: 'staff', staffId: null, hideLeads: false, hideInsights: false };
+const ROLE = { role: 'staff', staffId: null, name: '', hideLeads: false, hideInsights: false };
 function isMgr() { return ROLE.role === 'manager'; }
 function myStaffId() { return ROLE.staffId; }
 
@@ -1592,6 +1595,14 @@ function roleStyles() {
     '.vis-row{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--slate);padding:9px 0 0}',
     '.vis-row input{width:auto;accent-color:var(--terracotta,#d97b4f)}',
     '.vis-row label{margin:0;cursor:pointer}',
+    '.ah-wrap{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}',
+    '.ah-head{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin-bottom:8px}',
+    '.ah-row{display:flex;gap:10px;align-items:baseline;padding:4px 0;font-size:12.5px}',
+    '.ah-when{flex:0 0 auto;color:var(--muted);font-variant-numeric:tabular-nums;font-size:11.5px}',
+    '.ah-what{color:var(--ink)}',
+    '.ah-who{color:var(--muted)}',
+    '.ah-none{font-size:12.5px;color:var(--muted)}',
+    '.past-note{font-size:12.5px;color:var(--muted);margin:10px 0 0;line-height:1.45}',
     // Time off still waiting on a manager. It holds the slot either way, so it has to
     // look different from one that is settled.
     '.blk-pending{outline:2px dashed rgba(194,86,74,.9);outline-offset:-2px}',
@@ -1611,6 +1622,10 @@ async function loadRole() {
   if (r.data.role == null) return;
   ROLE.role = r.data.role === 'manager' ? 'manager' : 'staff';
   ROLE.staffId = r.data.barberId != null ? Number(r.data.barberId) : null;
+  // First name only. "Good morning, Julian." reads like a person talking; the full
+  // name reads like a payroll system.
+  ROLE.name = String(r.data.name || '').trim().split(' ')[0] || '';
+  if (ROLE.name) { window.__staffName = ROLE.name; if (typeof updateHero === 'function') updateHero(); }
   ROLE.hideLeads = !!r.data.hideLeads;
   ROLE.hideInsights = !!r.data.hideInsights;
   roleStyles();
@@ -1743,20 +1758,95 @@ async function refreshRequests() {
   mountVisibility();
 }
 
+/* ---------- what happened to this booking ---------- */
+const APPT_EVENTS = {
+  'appointment.booked': function (p) { return 'Booked' + (p.toName ? ' with ' + p.toName : '') + (p.when ? ', ' + p.when : ''); },
+  'appointment.offered': function (p) { return 'Handover offered: ' + (p.fromName || 'someone') + ' \u2192 ' + (p.toName || 'someone'); },
+  'appointment.offer_accepted': function (p) { return 'Handover accepted by ' + (p.toName || 'them'); },
+  'appointment.offer_declined': function (p) { return 'Handover declined by ' + (p.toName || 'them'); },
+  'appointment.reassigned': function (p) { return 'Moved from ' + (p.fromName || 'someone') + ' to ' + (p.toName || 'someone'); },
+  'appointment.rescheduled': function (p) { return 'Time changed' + (p.to ? ' to ' + p.to : ''); },
+  'appointment.cancelled': function () { return 'Cancelled'; }
+};
+
+function ahWhen(ts) {
+  if (ts == null) return '';
+  const d = new Date(ts * 60000);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) +
+    ' ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
+}
+
+async function renderApptHistory(id) {
+  const host = $('#apptHistory');
+  if (!host) return;
+  host.innerHTML = '<div class="ah-wrap"><div class="ah-head">Booking #' + id + '</div>' +
+    '<div class="ah-none">Loading\u2026</div></div>';
+  const r = await api('/api/appointments/' + id + '/history');
+  const rows = (r && r.ok && Array.isArray(r.data)) ? r.data : [];
+  const body = rows.length
+    ? rows.map(function (e) {
+        let p = {};
+        try { p = JSON.parse(e.payload || '{}'); } catch (err) { p = {}; }
+        const fn = APPT_EVENTS[e.verb];
+        const what = fn ? fn(p) : e.verb;
+        return '<div class="ah-row"><span class="ah-when">' + srEsc(ahWhen(e.occurred_at)) + '</span>' +
+          '<span class="ah-what">' + srEsc(what) +
+          (e.actor_label ? ' <span class="ah-who">\u00B7 ' + srEsc(e.actor_label) + '</span>' : '') +
+          '</span></div>';
+      }).join('')
+    : '<div class="ah-none">Nothing recorded yet. Changes from here on will show up.</div>';
+  host.innerHTML = '<div class="ah-wrap"><div class="ah-head">Booking #' + id + '</div>' + body + '</div>';
+}
+
 /* ---------- offering a booking to someone else ---------- */
 // Staff cannot reassign a booking, so the picker becomes an offer the other person has
-// to accept. A manager keeps the straight reassign they already had.
+// to accept. A manager keeps the straight reassign they already had. Either way, a
+// booking that has already started is left alone: it is a record of what happened.
 const _openApptBase = openAppt;
 openAppt = async function (id, forDate) {
   await _openApptBase(id, forDate);
-  const sel = $('#rGroomer');
-  if (!sel || isMgr()) return;
-  const row = sel.closest('label') || sel.parentElement;
-  if (row) row.classList.add('hidden');
+  const appt = state.editing;
+  if (!appt) return;
+  renderApptHistory(id);
+
   const old = document.getElementById('offerRow');
   if (old) old.remove();
-  const appt = state.editing;
-  if (!appt || appt.groomer_id !== myStaffId()) return;
+  const oldNote = document.getElementById('pastNote');
+  if (oldNote) oldNote.remove();
+
+  const sel = $('#rGroomer');
+  // The picker sits in a two-up row with the date. Staff lose only the picker; a
+  // booking that has started loses the whole row, the time and the heading above them.
+  const selField = sel ? (sel.closest('.field') || sel.closest('label') || sel.parentElement) : null;
+  const row = sel ? sel.closest('.row') : null;
+  const timeRow = $('#rTime') ? ($('#rTime').closest('.field') || $('#rTime').parentElement) : null;
+  const head = row ? row.previousElementSibling : null;
+  const save = $('#saveAppt');
+  const started = appt.start_ts <= Math.floor(Date.now() / 60000);
+
+  if (started) {
+    // Nothing to move. Cancel, no-show, completed and arrived all still work.
+    if (head && head.tagName === 'P') head.classList.add('hidden');
+    if (row) row.classList.add('hidden');
+    if (timeRow) timeRow.classList.add('hidden');
+    if (save) save.classList.add('hidden');
+    const note = document.createElement('p');
+    note.id = 'pastNote';
+    note.className = 'past-note';
+    note.textContent = 'This booking has already started, so it cannot be moved or handed over. You can still cancel it or mark it.';
+    const info = $('#apptInfo');
+    if (info && info.parentElement) info.parentElement.insertBefore(note, info.nextSibling);
+    return;
+  }
+
+  if (head && head.tagName === 'P') head.classList.remove('hidden');
+  if (row) row.classList.remove('hidden');
+  if (selField) selField.classList.remove('hidden');
+  if (timeRow) timeRow.classList.remove('hidden');
+  if (save) save.classList.remove('hidden');
+  if (!sel || isMgr()) return;
+  if (selField) selField.classList.add('hidden');
+  if (appt.groomer_id !== myStaffId()) return;
   const box = document.createElement('div');
   box.id = 'offerRow';
   box.style.cssText = 'margin:10px 0';
@@ -1780,7 +1870,7 @@ openAppt = async function (id, forDate) {
       ? 'Offered. It stays yours until they accept it on their Requests page.'
       : ((res.data && res.data.error) || 'That did not work.');
     if (!res.ok) $('#offerBtn').disabled = false;
-    if (res.ok) refreshRequests();
+    if (res.ok) { refreshRequests(); renderApptHistory(appt.id); }
   };
 };
 
