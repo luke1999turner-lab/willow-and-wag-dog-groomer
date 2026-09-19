@@ -62,6 +62,12 @@ padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(
 
 .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:22px 0 16px}
 .toolbar .spacer{flex:1}
+/* The toolbar's secondary actions live in one menu. The popup is fixed, not
+   absolute, so no scrolling ancestor can clip it. */
+.tb-menu{position:relative;display:inline-flex}
+.tb-caret{font-size:10px;opacity:.7;margin-left:3px}
+.tb-pop{position:fixed;z-index:140;display:flex;flex-direction:column;gap:6px;min-width:210px;padding:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px rgba(31,51,39,.18)}
+.tb-pop .btn{width:100%;text-align:left;justify-content:flex-start}
 .today-label{font-family:var(--serif);font-size:17px;color:var(--ink);font-weight:600}
 input[type=date],input[type=time],select,input[type=text],input[type=email],input[type=tel],input[type=password],textarea{
 width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:8px;color:var(--ink);
@@ -286,7 +292,7 @@ color:var(--slate);font-weight:700;font-size:13px;cursor:pointer;font-family:var
 .cal-nav .today-label{margin-left:6px}
 .cal-nav #date{max-width:170px;margin-left:auto}
 @media (max-width:640px){
-.toolbar{flex-wrap:nowrap;overflow-x:auto;padding:14px 0 10px;scrollbar-width:none}
+.toolbar{flex-wrap:wrap;padding:14px 0 10px}
 .toolbar::-webkit-scrollbar{display:none}
 .toolbar .btn{flex:none;padding:9px 13px;font-size:13px}
 .cal-nav{gap:6px}
@@ -395,11 +401,16 @@ color:#fff;font-size:10.5px;font-weight:600;line-height:1}
 </div>
 
 <div class="toolbar">
+<div class="tb-menu" id="tbMenu">
+<button class="btn ghost" id="tbMenuBtn" type="button" aria-haspopup="true" aria-expanded="false">Menu <span class="tb-caret">&#9662;</span></button>
+<div class="tb-pop hidden" id="tbPop">
 <button class="btn ghost" id="panelToggleBtn">Today panel</button>
 <button class="btn ghost" id="briefBtn">Morning brief</button>
 <button class="btn ghost" id="waitlistBtn">Waitlist</button>
-<button class="btn ghost" id="blockBtn">＋ Block out time</button>
-<button class="btn primary" id="newBookingBtn">＋ New booking</button>
+<button class="btn ghost" id="blockBtn">&#65291; Block out time</button>
+</div>
+</div>
+<button class="btn primary" id="newBookingBtn">&#65291; New booking</button>
 </div>
 
 <div class="cal-row" id="calRow">
@@ -419,7 +430,6 @@ color:#fff;font-size:10.5px;font-weight:600;line-height:1}
 <div class="search-results hidden" id="searchResults"></div>
 </div>
 </div>
-<div class="legend" id="legend"></div>
 <div class="cal" id="cal"></div>
 </div>
 <aside class="day-panel" id="dayPanel">
@@ -485,8 +495,6 @@ color:#fff;font-size:10.5px;font-weight:600;line-height:1}
 <button class="btn ghost" id="rotaTodayBtn">This week</button>
 <button class="iconbtn" id="rotaNextBtn">›</button>
 <span class="spacer" style="flex:1"></span>
-<button class="btn ghost" id="manageTemplatesBtn">Manage templates</button>
-<button class="btn ghost" id="applyTemplatesBtn">Apply templates</button>
 <button class="btn ghost" id="copyLastWeekBtn">Copy last week</button>
 </div>
 
