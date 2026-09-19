@@ -1380,9 +1380,11 @@ const open = (state.timeEntries || []).find((te) => te.groomer_id === b.id && te
 return `<div class="tc-card">
 <div class="tc-name"><span class="sw" style="width:9px;height:9px;border-radius:50%;background:${b.color};display:inline-block;flex-shrink:0"></span>${b.name}</div>
 <div class="tc-status${open ? ' on-clock' : ''}">${open ? 'Clocked in ' + leadAgeLabel(open.clock_in) : 'Not clocked in'}</div>
-${open
+${(ROLE.staffId == null || isMgr() || b.id === myStaffId())
+? (open
 ? `<button class="btn ghost" data-clockout="${open.id}">Clock out</button>`
-: `<button class="btn primary" data-clockin="${b.id}">Clock in</button>`}
+: `<button class="btn primary" data-clockin="${b.id}">Clock in</button>`)
+: ''}
 </div>`;
 }).join('');
 grid.querySelectorAll('[data-clockin]').forEach((btn) => btn.onclick = async () => {
@@ -1571,26 +1573,32 @@ function roleStyles() {
   const st = document.createElement('style');
   st.id = 'roleCss';
   st.textContent = [
-    '.rq-wrap{position:relative;display:inline-block}',
-    '.rq-badge{position:absolute;top:-6px;right:-6px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#e8695f;color:#fff;font-size:10.5px;font-weight:800;line-height:17px;text-align:center}',
-    '.rq-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:min(380px,86vw);max-height:420px;overflow:auto;padding:8px;border:1px solid var(--line);border-radius:14px;background:var(--card3,var(--card2));box-shadow:0 24px 60px rgba(0,0,0,.5)}',
-    '.rq-item{padding:9px 10px;border-radius:10px}',
-    '.rq-item + .rq-item{border-top:1px solid var(--line)}',
-    '.rq-t{font-size:13px;font-weight:700;color:var(--ink)}',
-    '.rq-s{font-size:11.5px;color:var(--muted);margin-top:2px}',
-    '.rq-acts{display:flex;gap:6px;margin-top:7px}',
-    '.rq-acts button{font-size:11.5px;padding:4px 10px;border-radius:9px;border:1px solid var(--line);background:none;color:var(--ink);cursor:pointer;font-family:inherit;font-weight:600}',
+    // The count sits inside the button rather than floating on its corner: the nav
+    // scrolls sideways, and anything hanging outside a button gets clipped away. That
+    // clipping is what hid the old drop-down panel, so Requests is a page now.
+    '.rq-badge{display:inline-block;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e8695f;color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center;pointer-events:none}',
+    '.rq-list{display:flex;flex-direction:column;gap:10px;padding:6px 0 10px;max-width:760px}',
+    '.rq-item{padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--card)}',
+    '.rq-t{font-size:14.5px;font-weight:700;color:var(--ink)}',
+    '.rq-s{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.45}',
+    '.rq-acts{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}',
+    '.rq-acts button{font-size:13px;padding:7px 16px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--ink);cursor:pointer;font-family:inherit;font-weight:700}',
     '.rq-acts button.yes{background:var(--forest,#1f3327);border-color:transparent;color:#fff}',
-    '.rq-none{padding:12px;font-size:12px;color:var(--muted)}',
+    '.rq-acts button[disabled]{opacity:.55;cursor:default}',
+    '.rq-err{font-size:12.5px;color:var(--danger);margin-top:8px}',
+    '.rq-none{padding:20px 0;font-size:13.5px;color:var(--muted)}',
+    '.vis-card{max-width:760px;margin-top:26px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--card)}',
+    '.vis-head{font-size:14.5px;font-weight:700;color:var(--ink)}',
+    '.vis-row{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--slate);padding:9px 0 0}',
+    '.vis-row input{width:auto;accent-color:var(--terracotta,#d97b4f)}',
+    '.vis-row label{margin:0;cursor:pointer}',
     // Time off still waiting on a manager. It holds the slot either way, so it has to
     // look different from one that is settled.
     '.blk-pending{outline:2px dashed rgba(194,86,74,.9);outline-offset:-2px}',
     '.wh-blk.blk-pending{background:repeating-linear-gradient(135deg,rgba(194,86,74,.55),rgba(194,86,74,.55) 3px,transparent 3px,transparent 6px)}',
     // Staff read the rota; its cells stop being clickable so nothing invites an edit
     // that the Worker would only refuse.
-    'body.is-staff #rotaGrid .rota-cell{pointer-events:none;cursor:default}',
-    '.vis-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:6px 10px}',
-    '.vis-row input{accent-color:var(--terracotta,#d97b4f)}'
+    'body.is-staff #rotaGrid .rota-cell{pointer-events:none;cursor:default}'
   ].join('');
   document.head.appendChild(st);
 }
@@ -1606,8 +1614,8 @@ async function loadRole() {
   ROLE.hideLeads = !!r.data.hideLeads;
   ROLE.hideInsights = !!r.data.hideInsights;
   roleStyles();
-  applyRole();
   mountRequests();
+  applyRole();
   refreshRequests();
 }
 
@@ -1637,27 +1645,32 @@ function applyRole() {
     const bar = rota.querySelector('.rota-toolbar');
     if (bar && bar.parentElement) bar.parentElement.insertBefore(note, bar.nextSibling);
   }
+  if (typeof renderTimeclock === 'function' && $('#timeclockGrid') && $('#timeclockGrid').children.length) {
+    renderTimeclock();
+  }
 }
 
-/* ---------- pending requests ---------- */
+/* ---------- the Requests page ---------- */
+// It used to be a drop-down under the nav. The nav scrolls sideways, so the browser
+// clipped the panel and the Accept buttons could end up off the screen entirely.
 let REQUESTS = [];
+let requestsMounted = false;
+
 function mountRequests() {
-  if (document.getElementById('rqBtn')) return;
-  const nav = $('#navCalendarBtn') ? $('#navCalendarBtn').parentElement : null;
-  if (!nav) return;
-  const wrap = document.createElement('span');
-  wrap.className = 'rq-wrap';
-  wrap.innerHTML = '<button class="btn ghost" id="rqBtn">Requests</button><span class="rq-badge hidden" id="rqBadge">0</span><div class="rq-panel hidden" id="rqPanel"></div>';
-  nav.insertBefore(wrap, $('#navCalendarBtn').nextSibling);
-  $('#rqBtn').onclick = function (e) {
-    e.stopPropagation();
-    const p = $('#rqPanel');
-    p.classList.toggle('hidden');
-    if (!p.classList.contains('hidden')) refreshRequests();
+  if (requestsMounted) return;
+  const btn = $('#navRequestsBtn');
+  if (!btn || typeof switchPage !== 'function') return;
+  requestsMounted = true;
+  btn.onclick = function () { switchPage('requests'); };
+  const base = switchPage;
+  switchPage = function (page) {
+    base(page);
+    const pg = $('#requestsPage');
+    if (pg) pg.classList.toggle('hidden', page !== 'requests');
+    btn.classList.toggle('primary', page === 'requests');
+    btn.classList.toggle('ghost', page !== 'requests');
+    if (page === 'requests') refreshRequests();
   };
-  document.addEventListener('click', function (e) {
-    if (!e.target.closest('.rq-wrap')) { const p = $('#rqPanel'); if (p) p.classList.add('hidden'); }
-  });
 }
 
 function rqWhen(ts) {
@@ -1667,63 +1680,67 @@ function rqWhen(ts) {
     ' ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
 }
 
+function rqCanAnswer(q) {
+  if (q.kind === 'handover') return isMgr() || q.to_staff_id === myStaffId();
+  return isMgr();
+}
+
 async function refreshRequests() {
   const r = await api('/api/requests');
   REQUESTS = (r && r.ok && Array.isArray(r.data)) ? r.data : [];
+  const waiting = REQUESTS.filter(rqCanAnswer);
   const badge = $('#rqBadge');
-  const mine = REQUESTS.filter(function (q) {
-    if (isMgr()) return true;
-    return q.kind === 'handover' && q.to_staff_id === myStaffId();
-  });
   if (badge) {
-    badge.textContent = String(mine.length);
-    badge.classList.toggle('hidden', mine.length === 0);
+    badge.textContent = String(waiting.length);
+    badge.classList.toggle('hidden', waiting.length === 0);
   }
-  const panel = $('#rqPanel');
-  if (!panel || panel.classList.contains('hidden')) return;
+  const list = $('#requestsList');
+  if (!list) return;
   if (!REQUESTS.length) {
-    panel.innerHTML = '<div class="rq-none">Nothing waiting.</div>';
-    mountVisibility(panel);
-    return;
-  }
-  panel.innerHTML = REQUESTS.map(function (q) {
-    const mineToAnswer = isMgr() || (q.kind === 'handover' && q.to_staff_id === myStaffId());
-    let title, sub;
-    if (q.kind === 'handover') {
-      title = (q.from_name || 'Someone') + ' wants to hand over ' + (q.client_name || 'a booking');
-      sub = (q.service_name ? q.service_name + ' · ' : '') + rqWhen(q.appt_start) + ' · to ' + (q.to_name || 'someone');
-    } else {
-      title = (q.from_name || 'Someone') + ' has asked for time off';
-      sub = rqWhen(q.start_ts) + ' to ' + rqWhen(q.end_ts) + (q.reason ? ' · ' + q.reason : '');
-    }
-    const acts = mineToAnswer
-      ? '<div class="rq-acts"><button class="yes" data-rq="' + q.id + '" data-act="accept">' +
-        (q.kind === 'handover' ? 'Accept' : 'Approve') + '</button>' +
-        '<button data-rq="' + q.id + '" data-act="decline">Decline</button></div>'
-      : '<div class="rq-s">Waiting on ' + (q.kind === 'handover' ? (q.to_name || 'them') : 'a manager') + '</div>';
-    return '<div class="rq-item"><div class="rq-t">' + srEsc(title) + '</div><div class="rq-s">' + srEsc(sub) + '</div>' + acts + '</div>';
-  }).join('');
-  mountVisibility(panel);
-  panel.querySelectorAll('button[data-rq]').forEach(function (b) {
-    b.onclick = async function (e) {
-      e.stopPropagation();
-      b.disabled = true;
-      const res = await api('/api/requests/' + b.dataset.rq + '/respond', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: b.dataset.act })
-      });
-      if (!res.ok) {
-        b.disabled = false;
-        const msg = document.createElement('div');
-        msg.className = 'rq-s';
-        msg.textContent = (res.data && res.data.error) || 'That did not work.';
-        b.parentElement.appendChild(msg);
-        return;
+    list.innerHTML = '<div class="rq-none">Nothing waiting.</div>';
+  } else {
+    list.innerHTML = REQUESTS.map(function (q) {
+      let title, sub;
+      if (q.kind === 'handover') {
+        title = (q.from_name || 'Someone') + ' wants to hand over ' + (q.client_name || 'a booking');
+        sub = (q.service_name ? q.service_name + ' · ' : '') + rqWhen(q.appt_start) +
+          ' · offered to ' + (q.to_name || 'someone');
+      } else {
+        title = (q.from_name || 'Someone') + ' has asked for time off';
+        sub = rqWhen(q.start_ts) + ' to ' + rqWhen(q.end_ts) + (q.reason ? ' · ' + q.reason : '');
       }
-      await refreshRequests();
-      load();
-    };
-  });
+      const acts = rqCanAnswer(q)
+        ? '<div class="rq-acts"><button class="yes" data-rq="' + q.id + '" data-act="accept">' +
+          (q.kind === 'handover' ? 'Accept' : 'Approve') + '</button>' +
+          '<button data-rq="' + q.id + '" data-act="decline">Decline</button></div>'
+        : '<div class="rq-s">Waiting on ' + (q.kind === 'handover' ? (q.to_name || 'them') : 'a manager') + '</div>';
+      return '<div class="rq-item"><div class="rq-t">' + srEsc(title) + '</div><div class="rq-s">' +
+        srEsc(sub) + '</div>' + acts + '</div>';
+    }).join('');
+    list.querySelectorAll('button[data-rq]').forEach(function (b) {
+      b.onclick = async function () {
+        const row = b.parentElement;
+        row.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
+        const res = await api('/api/requests/' + b.dataset.rq + '/respond', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: b.dataset.act })
+        });
+        if (!res.ok) {
+          row.querySelectorAll('button').forEach(function (x) { x.disabled = false; });
+          const old = row.parentElement.querySelector('.rq-err');
+          if (old) old.remove();
+          const msg = document.createElement('div');
+          msg.className = 'rq-err';
+          msg.textContent = (res.data && res.data.error) || 'That did not work.';
+          row.parentElement.appendChild(msg);
+          return;
+        }
+        await refreshRequests();
+        load();
+      };
+    });
+  }
+  mountVisibility();
 }
 
 /* ---------- offering a booking to someone else ---------- */
@@ -1748,7 +1765,7 @@ openAppt = async function (id, forDate) {
   box.innerHTML = '<label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px">Hand this booking over</label>' +
     '<div style="display:flex;gap:6px"><select id="offerTo" style="flex:1">' + opts + '</select>' +
     '<button class="btn ghost" id="offerBtn" type="button">Offer</button></div>' +
-    '<div class="rq-s" id="offerMsg">They have to accept before it moves.</div>';
+    '<div class="rq-s" id="offerMsg">They have to accept before it moves. It shows up on their Requests page.</div>';
   const info = $('#apptInfo');
   if (info && info.parentElement) info.parentElement.insertBefore(box, info.nextSibling);
   $('#offerBtn').onclick = async function () {
@@ -1759,25 +1776,28 @@ openAppt = async function (id, forDate) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ appointmentId: appt.id, toStaffId: to })
     });
-    $('#offerMsg').textContent = res.ok ? 'Offered. It stays yours until they accept.' : ((res.data && res.data.error) || 'That did not work.');
+    $('#offerMsg').textContent = res.ok
+      ? 'Offered. It stays yours until they accept it on their Requests page.'
+      : ((res.data && res.data.error) || 'That did not work.');
+    if (!res.ok) $('#offerBtn').disabled = false;
     if (res.ok) refreshRequests();
   };
 };
 
 /* ---------- manager: hide leads or insights from the team ---------- */
-// Lives at the bottom of the requests panel: it is the only manager-only drawer in the
-// calendar, so a second one would be a second thing to find.
-function mountVisibility(panel) {
-  if (!isMgr() || !panel || panel.querySelector('#visRow')) return;
-  const row = document.createElement('div');
-  row.id = 'visRow';
-  row.style.cssText = 'border-top:1px solid var(--line);margin-top:6px;padding-top:4px';
-  row.innerHTML =
-    '<div class="vis-row" style="font-weight:700;color:var(--ink)">What the team can see</div>' +
+function mountVisibility() {
+  const host = $('#requestsVisibility');
+  if (!host) return;
+  if (!isMgr()) { host.innerHTML = ''; return; }
+  if (host.querySelector('#visLeads')) return;
+  host.innerHTML =
+    '<div class="vis-card">' +
+    '<div class="vis-head">What the team can see</div>' +
+    '<div class="rq-s">These only apply to staff. You keep both either way.</div>' +
     '<div class="vis-row"><input type="checkbox" id="visLeads"> <label for="visLeads">Hide Leads from staff</label></div>' +
-    '<div class="vis-row"><input type="checkbox" id="visIns"> <label for="visIns">Hide Insights from staff</label></div>';
-  panel.appendChild(row);
-  const leads = row.querySelector('#visLeads'), ins = row.querySelector('#visIns');
+    '<div class="vis-row"><input type="checkbox" id="visIns"> <label for="visIns">Hide Insights from staff</label></div>' +
+    '</div>';
+  const leads = host.querySelector('#visLeads'), ins = host.querySelector('#visIns');
   leads.checked = ROLE.hideLeads;
   ins.checked = ROLE.hideInsights;
   const save = async function () {
@@ -1788,6 +1808,8 @@ function mountVisibility(panel) {
     if (res.ok && res.data) {
       ROLE.hideLeads = !!res.data.hideLeads;
       ROLE.hideInsights = !!res.data.hideInsights;
+      leads.checked = ROLE.hideLeads;
+      ins.checked = ROLE.hideInsights;
       applyRole();
     }
   };
