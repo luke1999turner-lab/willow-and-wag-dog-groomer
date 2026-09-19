@@ -73,9 +73,6 @@ async function init() {
   const t = new Date(); state.date = t.toISOString().slice(0, 10);
   state.rotaWeekDate = mondayOf(state.date);
   $('#date').value = state.date;
-  $('#legend').innerHTML = state.groomers.map((b) =>
-    `<span class="lg"><span class="sw" style="background:${b.color}"></span>${b.name}</span>`).join('') +
-    `<span class="lg"><span class="sw" style="background:#8a8272"></span>Blocked / holiday</span>`;
   // Populate groomer selects
   const opts = state.groomers.map((b) => `<option value="${b.id}">${b.name}</option>`).join('');
   $('#rGroomer').innerHTML = opts;
@@ -125,8 +122,6 @@ $('#navInsightsBtn').onclick = () => switchPage('insights');
   $('#rotaPrevBtn').onclick = () => switchRotaWeek(-1);
   $('#rotaTodayBtn').onclick = () => { state.rotaWeekDate = mondayOf(new Date().toISOString().slice(0, 10)); loadRota(); };
   $('#rotaNextBtn').onclick = () => switchRotaWeek(1);
-  $('#manageTemplatesBtn').onclick = openTemplatesModal;
-  $('#applyTemplatesBtn').onclick = applyTemplates;
   $('#copyLastWeekBtn').onclick = copyLastWeek;
   $('#saveShiftBtn').onclick = saveShift;
   $('#deleteShiftBtn').onclick = deleteShift;
@@ -1456,11 +1451,12 @@ async function login(pin) {
     if (!pin) return;
     const res = await login(pin);
     if (res.ok && res.data.token) {
-      STAFF_TOKEN = res.data.token;
-      sessionStorage.setItem('staffToken', STAFF_TOKEN);
-      $('#loginGate').classList.add('hidden');
-      $('#app').classList.remove('hidden');
-      init();
+      // A second person signing in on the same device used to land on the first person's
+      // page: their greeting, their role, their calendar already drawn. Reloading is the
+      // only way to be sure nothing of the last session is left behind.
+      sessionStorage.setItem('staffToken', res.data.token);
+      location.reload();
+      return;
     } else if (res.status === 429) {
       showGate(res.data.error || 'Too many failed attempts. Please try again in a few minutes.');
     } else {
@@ -1470,8 +1466,7 @@ async function login(pin) {
   function signOut() {
     STAFF_TOKEN = '';
     sessionStorage.removeItem('staffToken');
-    $('#app').classList.add('hidden');
-    showGate();
+    location.reload();
   }
   $('#pinSubmit').onclick = tryPin;
   $('#pinInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') tryPin(); });
@@ -1646,7 +1641,7 @@ function applyRole() {
   if (noIns && state.page === 'insights') switchPage('calendar');
   // The rota is the manager's to change. Staff still page through it and read it; the
   // buttons that write to it go away, and the Worker refuses them regardless.
-  ['manageTemplatesBtn', 'applyTemplatesBtn', 'copyLastWeekBtn'].forEach(function (id) {
+  ['copyLastWeekBtn'].forEach(function (id) {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('hidden', !isMgr());
   });
@@ -1852,12 +1847,15 @@ openAppt = async function (id, forDate) {
   box.style.cssText = 'margin:10px 0';
   const opts = (state.groomers || []).filter(function (b) { return b.id !== myStaffId(); })
     .map(function (b) { return '<option value="' + b.id + '">' + srEsc(b.name) + '</option>'; }).join('');
-  box.innerHTML = '<label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px">Hand this booking over</label>' +
-    '<div style="display:flex;gap:6px"><select id="offerTo" style="flex:1">' + opts + '</select>' +
-    '<button class="btn ghost" id="offerBtn" type="button">Offer</button></div>' +
+  // Starting on whoever happens to be first in the list is how a booking gets
+  // offered to the wrong person by one stray tap. Start on nobody instead.
+  box.innerHTML = '<label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px">Select a member</label>' +
+    '<div style="display:flex;gap:6px"><select id="offerTo" style="flex:1"><option value="">Select a member\u2026</option>' + opts + '</select>' +
+    '<button class="btn ghost" id="offerBtn" type="button" disabled>Offer</button></div>' +
     '<div class="rq-s" id="offerMsg">They have to accept before it moves. It shows up on their Requests page.</div>';
   const info = $('#apptInfo');
   if (info && info.parentElement) info.parentElement.insertBefore(box, info.nextSibling);
+  $('#offerTo').onchange = function () { $('#offerBtn').disabled = !this.value; };
   $('#offerBtn').onclick = async function () {
     const to = Number($('#offerTo').value);
     if (!to) return;
@@ -1916,3 +1914,35 @@ function mountVisibility() {
   }, 400);
   setTimeout(function () { clearInterval(boot); }, 20000);
 })();
+
+/* ---------- the toolbar's secondary actions, behind one menu ---------- */
+// Five buttons in a row scrolled sideways on a phone. The popup is position:fixed and
+// placed from the button's own rect, so no ancestor's overflow can clip it -- which is
+// exactly what broke the old Requests drop-down.
+(function toolbarMenu() {
+  const btn = document.getElementById('tbMenuBtn');
+  const pop = document.getElementById('tbPop');
+  if (!btn || !pop) return;
+  const shut = function () { return pop.classList.contains('hidden'); };
+  function place() {
+    const r = btn.getBoundingClientRect();
+    pop.style.top = (r.bottom + 6) + 'px';
+    const w = pop.offsetWidth || 210;
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+  }
+  function close() { pop.classList.add('hidden'); btn.setAttribute('aria-expanded', 'false'); }
+  function open() {
+    pop.classList.remove('hidden');
+    btn.setAttribute('aria-expanded', 'true');
+    place();
+  }
+  btn.addEventListener('click', function (e) { e.stopPropagation(); if (shut()) open(); else close(); });
+  pop.addEventListener('click', function () { close(); });
+  document.addEventListener('click', function (e) {
+    if (!shut() && !pop.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  window.addEventListener('resize', function () { if (!shut()) place(); });
+  window.addEventListener('scroll', function () { if (!shut()) close(); }, true);
+})();
+
