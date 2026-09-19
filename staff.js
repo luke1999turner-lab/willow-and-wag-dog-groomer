@@ -477,7 +477,7 @@ function renderWeek(monday, appts, blocks) {
         blocks.filter((bl) => bl.groomer_id == null || bl.groomer_id === st.id).forEach((bl) => {
           const s = Math.max(bl.start_ts - dayTs, W0), e = Math.min(bl.end_ts - dayTs, W1);
           if (e <= s) return;
-          lane += '<div class="wh-blk" style="left:' + pct(s) + '%;width:' + (pct(e) - pct(s)) + '%" title="' + (bl.reason || 'Blocked') + '"></div>';
+          lane += '<div class="wh-blk' + (bl.status === 'pending' ? ' blk-pending' : '') + '" style="left:' + pct(s) + '%;width:' + (pct(e) - pct(s)) + '%" title="' + (bl.reason || 'Blocked') + '"></div>';
         });
         live.filter((a) => a.groomer_id === st.id).forEach((a) => {
           const s = a.start_ts - dayTs, e = a.end_ts - dayTs;
@@ -611,7 +611,7 @@ function renderDay(appts, blocks) {
     blocks.filter((bl) => bl.groomer_id === b.id || bl.groomer_id == null).forEach((bl) => {
       const s = Math.max(bl.start_ts - dayTs, DAY_START), e = Math.min(bl.end_ts - dayTs, DAY_END);
       if (e <= s) return;
-      col += `<div class="blk" data-id="${bl.id}" style="top:${(s - DAY_START) * PXMIN}px;height:${(e - s) * PXMIN - 2}px" title="Click to remove this block">${bl.reason}</div>`;
+      col += `<div class="blk${bl.status === 'pending' ? ' blk-pending' : ''}" data-id="${bl.id}" style="top:${(s - DAY_START) * PXMIN}px;height:${(e - s) * PXMIN - 2}px" title="${bl.status === 'pending' ? 'Waiting on a manager. ' : ''}Click to remove this block">${bl.reason}${bl.status === 'pending' ? ' · awaiting approval' : ''}</div>`;
     });
     // appointments
     appts.filter((a) => a.groomer_id === b.id && (a.status === 'booked' || a.status === 'no-show' || a.status === 'completed')).forEach((a) => {
@@ -1485,3 +1485,319 @@ async function login(pin) {
     sessionStorage.removeItem('staffToken');
     showGate();
   })();
+
+
+/* ================= Client search =================
+   Someone rings up about their appointment: type a name, a phone number or a booking
+   reference and go straight to it, instead of paging back through months. Searches a
+   year either side of today through the existing appointments endpoint and holds the
+   rows for a minute, so repeated lookups during one phone call are instant. */
+const SEARCH_WINDOW_DAYS = 365;
+let searchRows = null, searchRowsAt = 0, searchTimer = null;
+
+function srEsc(v) {
+  return String(v == null ? '' : v).split('&').join('&amp;').split('<').join('&lt;').split('>').join('&gt;');
+}
+function srDigits(v) { return String(v || '').split('').filter((c) => c >= '0' && c <= '9').join(''); }
+function srDate(a) { return new Date(a.start_ts * 60000).toISOString().slice(0, 10); }
+function srHay(a) {
+  return [a.client_name, a.client_phone, a.client_email, a.ref, a.service_name, a.notes]
+    .map((x) => String(x || '').toLowerCase()).join(' ');
+}
+function srClose() { const b = $('#searchResults'); if (b) b.classList.add('hidden'); }
+async function srRows() {
+  if (searchRows && Date.now() - searchRowsAt < 60000) return searchRows;
+  const t0 = new Date().toISOString().slice(0, 10);
+  const r = await api('/api/appointments?from=' + addDays(t0, -SEARCH_WINDOW_DAYS) + '&to=' + addDays(t0, SEARCH_WINDOW_DAYS));
+  searchRows = Array.isArray(r.data) ? r.data : [];
+  searchRowsAt = Date.now();
+  return searchRows;
+}
+async function runSearch(raw) {
+  const box = $('#searchResults');
+  if (!box) return;
+  const q = String(raw || '').trim().toLowerCase();
+  if (q.length < 2) { srClose(); return; }
+  box.classList.remove('hidden');
+  box.innerHTML = '<div class="sr-note">Searching...</div>';
+  const rows = await srRows();
+  const digits = srDigits(q);
+  const hits = rows.filter((a) => srHay(a).indexOf(q) >= 0 ||
+    (digits.length >= 4 && srDigits(a.client_phone).indexOf(digits) >= 0));
+  const today = new Date().toISOString().slice(0, 10);
+  hits.sort((a, b) => {
+    const fa = srDate(a) >= today, fb = srDate(b) >= today;
+    if (fa !== fb) return fa ? -1 : 1;
+    return fa ? a.start_ts - b.start_ts : b.start_ts - a.start_ts;
+  });
+  if (!hits.length) {
+    box.innerHTML = '<div class="sr-note">No booking matches that. Only the year either side of today is searched.</div>';
+    return;
+  }
+  const shown = hits.slice(0, 40);
+  box.innerHTML = shown.map((a) => {
+    const d = srDate(a);
+    const st = (state.groomers || []).find((x) => x.id === a.groomer_id);
+    const when = new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+    const tail = (st ? ' · ' + srEsc(st.name) : '') + (a.status && a.status !== 'booked' ? ' · ' + srEsc(a.status) : '');
+    return '<button class="sr-row' + (d < today ? ' is-past' : '') + '" data-id="' + a.id + '" data-date="' + d + '">' +
+      '<span class="sr-when">' + when + ' · ' + fmt(a.start_ts - toTs(d, 0)) + '</span>' +
+      '<span class="sr-who">' + srEsc(a.client_name || 'No name') + '</span>' +
+      '<span class="sr-what">' + srEsc(a.service_name || '') + tail + '</span></button>';
+  }).join('') + (hits.length > shown.length ? '<div class="sr-note">Showing the first 40 of ' + hits.length + '.</div>' : '');
+  box.querySelectorAll('.sr-row').forEach((el) => {
+    el.onclick = () => { srClose(); $('#searchInput').value = ''; switchToDay(el.dataset.date); openAppt(+el.dataset.id, el.dataset.date); };
+  });
+}
+(function wireSearch() {
+  const input = $('#searchInput');
+  if (!input) return;
+  input.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => runSearch(input.value), 220); });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { input.value = ''; srClose(); input.blur(); } });
+  input.addEventListener('focus', () => { if (input.value.trim().length >= 2) runSearch(input.value); });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.cal-search')) srClose(); });
+})();
+
+/* ================= Roles, offers and time off =================
+   The Worker decides what is allowed; this only makes the calendar honest about it, so
+   people are not clicking things that come back refused. Everything here reads the role
+   from the session, never from anything the browser could be told to believe. */
+const ROLE = { role: 'staff', staffId: null, hideLeads: false, hideInsights: false };
+function isMgr() { return ROLE.role === 'manager'; }
+function myStaffId() { return ROLE.staffId; }
+
+function roleStyles() {
+  if (document.getElementById('roleCss')) return;
+  const st = document.createElement('style');
+  st.id = 'roleCss';
+  st.textContent = [
+    '.rq-wrap{position:relative;display:inline-block}',
+    '.rq-badge{position:absolute;top:-6px;right:-6px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#e8695f;color:#fff;font-size:10.5px;font-weight:800;line-height:17px;text-align:center}',
+    '.rq-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:min(380px,86vw);max-height:420px;overflow:auto;padding:8px;border:1px solid var(--line);border-radius:14px;background:var(--card3,var(--card2));box-shadow:0 24px 60px rgba(0,0,0,.5)}',
+    '.rq-item{padding:9px 10px;border-radius:10px}',
+    '.rq-item + .rq-item{border-top:1px solid var(--line)}',
+    '.rq-t{font-size:13px;font-weight:700;color:var(--ink)}',
+    '.rq-s{font-size:11.5px;color:var(--muted);margin-top:2px}',
+    '.rq-acts{display:flex;gap:6px;margin-top:7px}',
+    '.rq-acts button{font-size:11.5px;padding:4px 10px;border-radius:9px;border:1px solid var(--line);background:none;color:var(--ink);cursor:pointer;font-family:inherit;font-weight:600}',
+    '.rq-acts button.yes{background:var(--forest,#1f3327);border-color:transparent;color:#fff}',
+    '.rq-none{padding:12px;font-size:12px;color:var(--muted)}',
+    // Time off still waiting on a manager. It holds the slot either way, so it has to
+    // look different from one that is settled.
+    '.blk-pending{outline:2px dashed rgba(194,86,74,.9);outline-offset:-2px}',
+    '.wh-blk.blk-pending{background:repeating-linear-gradient(135deg,rgba(194,86,74,.55),rgba(194,86,74,.55) 3px,transparent 3px,transparent 6px)}',
+    // Staff read the rota; its cells stop being clickable so nothing invites an edit
+    // that the Worker would only refuse.
+    'body.is-staff #rotaGrid .rota-cell{pointer-events:none;cursor:default}',
+    '.vis-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:6px 10px}',
+    '.vis-row input{accent-color:var(--terracotta,#d97b4f)}'
+  ].join('');
+  document.head.appendChild(st);
+}
+
+async function loadRole() {
+  const r = await api('/api/staff/session');
+  if (!r || !r.ok || !r.data) return;
+  ROLE.role = r.data.role === 'manager' ? 'manager' : 'staff';
+  ROLE.staffId = r.data.barberId != null ? Number(r.data.barberId) : null;
+  ROLE.hideLeads = !!r.data.hideLeads;
+  ROLE.hideInsights = !!r.data.hideInsights;
+  roleStyles();
+  applyRole();
+  mountRequests();
+  refreshRequests();
+}
+
+function applyRole() {
+  document.body.classList.toggle('is-manager', isMgr());
+  document.body.classList.toggle('is-staff', !isMgr());
+  const noLeads = ROLE.hideLeads && !isMgr();
+  const noIns = ROLE.hideInsights && !isMgr();
+  const lb = $('#navLeadsBtn'), ib = $('#navInsightsBtn');
+  if (lb) lb.classList.toggle('hidden', noLeads);
+  if (ib) ib.classList.toggle('hidden', noIns);
+  if (noLeads && state.page === 'leads') switchPage('calendar');
+  if (noIns && state.page === 'insights') switchPage('calendar');
+  // The rota is the manager's to change. Staff still page through it and read it; the
+  // buttons that write to it go away, and the Worker refuses them regardless.
+  ['manageTemplatesBtn', 'applyTemplatesBtn', 'copyLastWeekBtn'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', !isMgr());
+  });
+  const rota = $('#rotaPage');
+  if (rota && !isMgr() && !document.getElementById('rotaNote')) {
+    const note = document.createElement('div');
+    note.id = 'rotaNote';
+    note.className = 'rq-s';
+    note.style.cssText = 'padding:0 0 10px';
+    note.textContent = 'You can see the rota but not change it. Ask your manager for a change.';
+    const bar = rota.querySelector('.rota-toolbar');
+    if (bar && bar.parentElement) bar.parentElement.insertBefore(note, bar.nextSibling);
+  }
+}
+
+/* ---------- pending requests ---------- */
+let REQUESTS = [];
+function mountRequests() {
+  if (document.getElementById('rqBtn')) return;
+  const nav = $('#navCalendarBtn') ? $('#navCalendarBtn').parentElement : null;
+  if (!nav) return;
+  const wrap = document.createElement('span');
+  wrap.className = 'rq-wrap';
+  wrap.innerHTML = '<button class="btn ghost" id="rqBtn">Requests</button><span class="rq-badge hidden" id="rqBadge">0</span><div class="rq-panel hidden" id="rqPanel"></div>';
+  nav.insertBefore(wrap, $('#navCalendarBtn').nextSibling);
+  $('#rqBtn').onclick = function (e) {
+    e.stopPropagation();
+    const p = $('#rqPanel');
+    p.classList.toggle('hidden');
+    if (!p.classList.contains('hidden')) refreshRequests();
+  };
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.rq-wrap')) { const p = $('#rqPanel'); if (p) p.classList.add('hidden'); }
+  });
+}
+
+function rqWhen(ts) {
+  if (ts == null) return '';
+  const d = new Date(ts * 60000);
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }) +
+    ' ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
+}
+
+async function refreshRequests() {
+  const r = await api('/api/requests');
+  REQUESTS = (r && r.ok && Array.isArray(r.data)) ? r.data : [];
+  const badge = $('#rqBadge');
+  const mine = REQUESTS.filter(function (q) {
+    if (isMgr()) return true;
+    return q.kind === 'handover' && q.to_staff_id === myStaffId();
+  });
+  if (badge) {
+    badge.textContent = String(mine.length);
+    badge.classList.toggle('hidden', mine.length === 0);
+  }
+  const panel = $('#rqPanel');
+  if (!panel || panel.classList.contains('hidden')) return;
+  if (!REQUESTS.length) {
+    panel.innerHTML = '<div class="rq-none">Nothing waiting.</div>';
+    mountVisibility(panel);
+    return;
+  }
+  panel.innerHTML = REQUESTS.map(function (q) {
+    const mineToAnswer = isMgr() || (q.kind === 'handover' && q.to_staff_id === myStaffId());
+    let title, sub;
+    if (q.kind === 'handover') {
+      title = (q.from_name || 'Someone') + ' wants to hand over ' + (q.client_name || 'a booking');
+      sub = (q.service_name ? q.service_name + ' · ' : '') + rqWhen(q.appt_start) + ' · to ' + (q.to_name || 'someone');
+    } else {
+      title = (q.from_name || 'Someone') + ' has asked for time off';
+      sub = rqWhen(q.start_ts) + ' to ' + rqWhen(q.end_ts) + (q.reason ? ' · ' + q.reason : '');
+    }
+    const acts = mineToAnswer
+      ? '<div class="rq-acts"><button class="yes" data-rq="' + q.id + '" data-act="accept">' +
+        (q.kind === 'handover' ? 'Accept' : 'Approve') + '</button>' +
+        '<button data-rq="' + q.id + '" data-act="decline">Decline</button></div>'
+      : '<div class="rq-s">Waiting on ' + (q.kind === 'handover' ? (q.to_name || 'them') : 'a manager') + '</div>';
+    return '<div class="rq-item"><div class="rq-t">' + srEsc(title) + '</div><div class="rq-s">' + srEsc(sub) + '</div>' + acts + '</div>';
+  }).join('');
+  mountVisibility(panel);
+  panel.querySelectorAll('button[data-rq]').forEach(function (b) {
+    b.onclick = async function (e) {
+      e.stopPropagation();
+      b.disabled = true;
+      const res = await api('/api/requests/' + b.dataset.rq + '/respond', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: b.dataset.act })
+      });
+      if (!res.ok) {
+        b.disabled = false;
+        const msg = document.createElement('div');
+        msg.className = 'rq-s';
+        msg.textContent = (res.data && res.data.error) || 'That did not work.';
+        b.parentElement.appendChild(msg);
+        return;
+      }
+      await refreshRequests();
+      load();
+    };
+  });
+}
+
+/* ---------- offering a booking to someone else ---------- */
+// Staff cannot reassign a booking, so the picker becomes an offer the other person has
+// to accept. A manager keeps the straight reassign they already had.
+const _openApptBase = openAppt;
+openAppt = async function (id, forDate) {
+  await _openApptBase(id, forDate);
+  const sel = $('#rGroomer');
+  if (!sel || isMgr()) return;
+  const row = sel.closest('label') || sel.parentElement;
+  if (row) row.classList.add('hidden');
+  const old = document.getElementById('offerRow');
+  if (old) old.remove();
+  const appt = state.editing;
+  if (!appt || appt.groomer_id !== myStaffId()) return;
+  const box = document.createElement('div');
+  box.id = 'offerRow';
+  box.style.cssText = 'margin:10px 0';
+  const opts = (state.groomers || []).filter(function (b) { return b.id !== myStaffId(); })
+    .map(function (b) { return '<option value="' + b.id + '">' + srEsc(b.name) + '</option>'; }).join('');
+  box.innerHTML = '<label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px">Hand this booking over</label>' +
+    '<div style="display:flex;gap:6px"><select id="offerTo" style="flex:1">' + opts + '</select>' +
+    '<button class="btn ghost" id="offerBtn" type="button">Offer</button></div>' +
+    '<div class="rq-s" id="offerMsg">They have to accept before it moves.</div>';
+  const info = $('#apptInfo');
+  if (info && info.parentElement) info.parentElement.insertBefore(box, info.nextSibling);
+  $('#offerBtn').onclick = async function () {
+    const to = Number($('#offerTo').value);
+    if (!to) return;
+    $('#offerBtn').disabled = true;
+    const res = await api('/api/requests', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appointmentId: appt.id, toStaffId: to })
+    });
+    $('#offerMsg').textContent = res.ok ? 'Offered. It stays yours until they accept.' : ((res.data && res.data.error) || 'That did not work.');
+    if (res.ok) refreshRequests();
+  };
+};
+
+/* ---------- manager: hide leads or insights from the team ---------- */
+// Lives at the bottom of the requests panel: it is the only manager-only drawer in the
+// calendar, so a second one would be a second thing to find.
+function mountVisibility(panel) {
+  if (!isMgr() || !panel || panel.querySelector('#visRow')) return;
+  const row = document.createElement('div');
+  row.id = 'visRow';
+  row.style.cssText = 'border-top:1px solid var(--line);margin-top:6px;padding-top:4px';
+  row.innerHTML =
+    '<div class="vis-row" style="font-weight:700;color:var(--ink)">What the team can see</div>' +
+    '<div class="vis-row"><input type="checkbox" id="visLeads"> <label for="visLeads">Hide Leads from staff</label></div>' +
+    '<div class="vis-row"><input type="checkbox" id="visIns"> <label for="visIns">Hide Insights from staff</label></div>';
+  panel.appendChild(row);
+  const leads = row.querySelector('#visLeads'), ins = row.querySelector('#visIns');
+  leads.checked = ROLE.hideLeads;
+  ins.checked = ROLE.hideInsights;
+  const save = async function () {
+    const res = await api('/api/settings', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hideLeads: leads.checked, hideInsights: ins.checked })
+    });
+    if (res.ok && res.data) {
+      ROLE.hideLeads = !!res.data.hideLeads;
+      ROLE.hideInsights = !!res.data.hideInsights;
+      applyRole();
+    }
+  };
+  leads.onchange = save;
+  ins.onchange = save;
+}
+
+(function wireRoles() {
+  const boot = setInterval(function () {
+    if (typeof STAFF_TOKEN === 'string' && STAFF_TOKEN && $('#navCalendarBtn')) {
+      clearInterval(boot);
+      loadRole();
+    }
+  }, 400);
+  setTimeout(function () { clearInterval(boot); }, 20000);
+})();
