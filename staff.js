@@ -1598,6 +1598,9 @@ function roleStyles() {
 async function loadRole() {
   const r = await api('/api/staff/session');
   if (!r || !r.ok || !r.data) return;
+  // A session with no role at all means the API still predates permissions. Leave the
+  // calendar exactly as it was rather than treating everyone, manager included, as staff.
+  if (r.data.role == null) return;
   ROLE.role = r.data.role === 'manager' ? 'manager' : 'staff';
   ROLE.staffId = r.data.barberId != null ? Number(r.data.barberId) : null;
   ROLE.hideLeads = !!r.data.hideLeads;
