@@ -6,9 +6,25 @@ const API_BASE = 'https://willow-and-wag-api.luke1999-turner.workers.dev';
 // near the bottom of this file.
 const $ = (s) => document.querySelector(s); function parseDogInfo(notes){ if (!notes) return null; const m = notes.match(/^Dog:\s*([^·\n]+?)\s*·\s*Breed:\s*([^·\n]+?)\s*·\s*Size:\s*([^\n]+)/); if (!m) return null; const rest = notes.slice(m[0].length).replace(/^\n/, '').trim(); return { dog: m[1].trim(), breed: m[2].trim(), size: m[3].trim(), rest }; } function dogTileLabel(a){ const info = parseDogInfo(a.notes); if (!info) return a.client_name; const firstName = (a.client_name || '').split(' ')[0]; return `${info.dog} (${firstName})`; }
 let STAFF_TOKEN = '';
+// ---------- summer time + safety helpers ----------
+// Bookings are stored as London wall-clock minutes; wallNowMin() is "now" on that
+// same clock (Date.now() alone is an hour behind all summer).
+const wallNowMin = () => Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 60000);
+const localToday = () => new Date(wallNowMin() * 60000).toISOString().slice(0, 10);
+// Anything a customer typed (names, notes, leads) is drawn into the page as HTML in
+// places, so angle brackets and double quotes from the API are swapped for harmless
+// look-alikes before any of it reaches the calendar.
+const SS_KEEP = { photo: 1, color: 1, icon: 1, token: 1 };
+function ssClean(v, k) {
+  if (typeof v === 'string') return SS_KEEP[k] ? v : v.split('<').join('‹').split('>').join('›').split('"').join('”');
+  if (Array.isArray(v)) return v.map((x) => ssClean(x, k));
+  if (v && typeof v === 'object') { const o = {}; for (const key in v) o[key] = ssClean(v[key], key); return o; }
+  return v;
+}
+const ssFetch = (url, o) => fetch(url, o).then((r) => { const j = r.json.bind(r); r.json = () => j().then((d) => ssClean(d, '')); return r; });
 const api = (u, o = {}) => {
   o.headers = { ...(o.headers || {}), Authorization: `Bearer ${STAFF_TOKEN}` };
-  return fetch(API_BASE + u, o).then(async (r) => {
+  return ssFetch(API_BASE + u, o).then(async (r) => {
     if (r.status === 401 && STAFF_TOKEN) { STAFF_TOKEN = ''; sessionStorage.removeItem('staffToken'); showGate('Your session expired. Please sign in again.'); }
     return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
   });
@@ -70,7 +86,7 @@ async function init() {
   state.groomers = (await api('/api/groomers')).data;
   state.services = (await api('/api/services')).data;
   state.hours = (await api('/api/hours')).data;
-  const t = new Date(); state.date = t.toISOString().slice(0, 10);
+  state.date = localToday();
   state.rotaWeekDate = mondayOf(state.date);
   $('#date').value = state.date;
   // Populate groomer selects
@@ -83,7 +99,7 @@ async function init() {
 
   $('#prev').onclick = () => shiftView(-1);
   $('#next').onclick = () => shiftView(1);
-  $('#today').onclick = () => { state.view = 'day'; state.date = new Date().toISOString().slice(0, 10); $('#date').value = state.date; setActiveViewBtn(); load(); };
+  $('#today').onclick = () => { state.view = 'day'; state.date = localToday(); $('#date').value = state.date; setActiveViewBtn(); load(); };
   $('#date').onchange = () => { state.date = $('#date').value; load(); };
   $('#weekBtn').onclick = () => { state.view = 'week'; setActiveViewBtn(); load(); };
   $('#monthBtn').onclick = () => { state.view = 'month'; setActiveViewBtn(); load(); };
@@ -120,7 +136,7 @@ async function init() {
   $('#navRotaBtn').onclick = () => switchPage('rota');
 $('#navInsightsBtn').onclick = () => switchPage('insights');
   $('#rotaPrevBtn').onclick = () => switchRotaWeek(-1);
-  $('#rotaTodayBtn').onclick = () => { state.rotaWeekDate = mondayOf(new Date().toISOString().slice(0, 10)); loadRota(); };
+  $('#rotaTodayBtn').onclick = () => { state.rotaWeekDate = mondayOf(localToday()); loadRota(); };
   $('#rotaNextBtn').onclick = () => switchRotaWeek(1);
   $('#copyLastWeekBtn').onclick = copyLastWeek;
   $('#saveShiftBtn').onclick = saveShift;
@@ -129,7 +145,7 @@ $('#navInsightsBtn').onclick = () => switchPage('insights');
 
   updateHero();
   setInterval(updateHero, 30000);
-  setInterval(() => { if (state.date === new Date().toISOString().slice(0, 10)) load(); }, 60000);
+  setInterval(() => { if (state.date === localToday()) load(); }, 60000);
 
   load();
   refreshWaitlistCount();
@@ -156,7 +172,7 @@ const greeting = hour < 12 ? 'Good morning, ' + who + '.' : hour < 17 ? 'Good af
 function updateStats(appts) {
   // Always reflects TODAY's real numbers, independent of whatever date/view
   // is currently being browsed in the calendar below.
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   const booked = appts.filter((a) => a.status === 'booked');
   $('#statBookings').textContent = booked.length;
   $('#statBookingsSub').textContent = "Today's schedule";
@@ -174,7 +190,7 @@ function updateStats(appts) {
   $('#statRevenueSub').textContent = groomerCount ? `Across ${groomerCount} groomer${groomerCount === 1 ? '' : 's'}` : 'No bookings today';
 }
 async function refreshTodayStats() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   const { data } = await api(`/api/appointments?from=${today}&to=${today}`);
   updateStats(data);
 }
@@ -437,7 +453,7 @@ function renderWeek(monday, appts, blocks) {
   const win = weekWindowFor(days);
   const W0 = win.start, W1 = win.end, SPAN = W1 - W0;
   const pct = (m) => (Math.max(0, Math.min(SPAN, m - W0)) / SPAN) * 100;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
   const hourCount = SPAN / 60;
   const gridBg = 'background-size:calc(100% / ' + hourCount + ') 100%';
@@ -517,7 +533,7 @@ function renderMonth(dateStr, appts, blocks) {
   const [y, m] = dateStr.split('-').map(Number);
   const monthIdx = m - 1;
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
 
   const apptsByDate = new Map();
   appts.filter((a) => a.status === 'booked' || a.status === 'no-show' || a.status === 'completed').forEach((a) => {
@@ -634,11 +650,11 @@ function renderDay(appts, blocks) {
 
   // now-line: only draw when viewing today, within the visible hour window
   const now = new Date();
-  const isToday = state.date === now.toISOString().slice(0, 10);
+  const isToday = state.date === localToday();
   if (isToday) {
     const nowMin = now.getHours() * 60 + now.getMinutes();
     if (nowMin >= DAY_START && nowMin <= DAY_END) {
-      const top = (nowMin - DAY_START) * PXMIN;
+      const top = (cal.querySelector('.daycol') || { offsetTop: 0 }).offsetTop + (nowMin - DAY_START) * PXMIN;
       cal.insertAdjacentHTML('beforeend', `<div class="now-line" style="top:${top}px"></div>`);
     }
   }
@@ -683,7 +699,7 @@ async function openAppt(id, forDate) {
   $('#rDate').value = d;
   $('#apptErr').classList.add('hidden');
   $('#toggleArrived').textContent = a.arrived_at ? 'Undo arrived' : 'Mark arrived';
-  $('#noShowAppt').style.display = (a.start_ts <= Math.floor(Date.now() / 60000)) ? '' : 'none';
+  $('#noShowAppt').style.display = (a.start_ts <= wallNowMin()) ? '' : 'none';
   await refreshRTimes();
   $('#apptModal').classList.remove('hidden');
 }
@@ -983,7 +999,7 @@ $('#leadsSub').textContent = `${state.leads.length} lead${state.leads.length ===
 
 function leadCardHtml(l) {
 const rot = isRotting(l);
-const overdue = l.follow_up_date && l.follow_up_date < new Date().toISOString().slice(0, 10) && l.status !== 'won' && l.status !== 'lost';
+const overdue = l.follow_up_date && l.follow_up_date < localToday() && l.status !== 'won' && l.status !== 'lost';
 return `<div class="lead-card${(rot || overdue) ? ' rotting' : ''}" draggable="true" data-id="${l.id}">
   <div class="lc-name">${l.contact_name}</div>
   <div class="lc-meta">${l.intent || (l.source === 'chatbot' ? 'From the chatbot' : 'Manual entry')}</div>
@@ -1195,7 +1211,7 @@ $('#rotaWeekLabel').textContent = weekLabel(monday, sunday);
 function renderRotaGrid() {
 const grid = $('#rotaGrid');
 const monday = mondayOf(state.rotaWeekDate);
-const today = new Date().toISOString().slice(0, 10);
+const today = localToday();
 const dayFor = (i) => addDays(monday, i);
 
 let html = `<div class="rota-head-row"><div class="rota-head-cell"></div>` +
@@ -1377,7 +1393,7 @@ grid.innerHTML = state.groomers.map((b) => {
 const open = (state.timeEntries || []).find((te) => te.groomer_id === b.id && te.status === 'open');
 return `<div class="tc-card">
 <div class="tc-name"><span class="sw" style="width:9px;height:9px;border-radius:50%;background:${b.color};display:inline-block;flex-shrink:0"></span>${b.name}</div>
-<div class="tc-status${open ? ' on-clock' : ''}">${open ? 'Clocked in ' + leadAgeLabel(open.clock_in) : 'Not clocked in'}</div>
+<div class="tc-status${open ? ' on-clock' : ''}">${open ? 'Clocked in ' + leadAgeLabel(open.clock_in - (wallNowMin() - Math.floor(Date.now() / 60000))) : 'Not clocked in'}</div>
 ${(ROLE.staffId == null || isMgr() || b.id === myStaffId())
 ? (open
 ? `<button class="btn ghost" data-clockout="${open.id}">Clock out</button>`
@@ -1507,7 +1523,7 @@ function srHay(a) {
 function srClose() { const b = $('#searchResults'); if (b) b.classList.add('hidden'); }
 async function srRows() {
   if (searchRows && Date.now() - searchRowsAt < 60000) return searchRows;
-  const t0 = new Date().toISOString().slice(0, 10);
+  const t0 = localToday();
   const r = await api('/api/appointments?from=' + addDays(t0, -SEARCH_WINDOW_DAYS) + '&to=' + addDays(t0, SEARCH_WINDOW_DAYS));
   searchRows = Array.isArray(r.data) ? r.data : [];
   searchRowsAt = Date.now();
@@ -1524,7 +1540,7 @@ async function runSearch(raw) {
   const digits = srDigits(q);
   const hits = rows.filter((a) => srHay(a).indexOf(q) >= 0 ||
     (digits.length >= 4 && srDigits(a.client_phone).indexOf(digits) >= 0));
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   hits.sort((a, b) => {
     const fa = srDate(a) >= today, fb = srDate(b) >= today;
     if (fa !== fb) return fa ? -1 : 1;
@@ -1867,7 +1883,7 @@ openAppt = async function (id, forDate) {
   const timeRow = $('#rTime') ? ($('#rTime').closest('.field') || $('#rTime').parentElement) : null;
   const head = row ? row.previousElementSibling : null;
   const save = $('#saveAppt');
-  const started = appt.start_ts <= Math.floor(Date.now() / 60000);
+  const started = appt.start_ts <= wallNowMin();
 
   if (started) {
     // Nothing to move. Cancel, no-show, completed and arrived all still work.
