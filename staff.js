@@ -145,7 +145,16 @@ $('#navInsightsBtn').onclick = () => switchPage('insights');
 
   updateHero();
   setInterval(updateHero, 30000);
-  setInterval(() => { if (state.date === localToday()) load(); }, 60000);
+  // Keep every open phone and computer in step. Every 20 seconds, while this tab is on
+  // screen, re-read whatever calendar day, week or month you're looking at, plus the
+  // Requests badge. Coming back to the tab does the same straight away.
+  function liveSync() {
+    if (document.hidden || !STAFF_TOKEN) return;
+    if (state.page === 'calendar') load();
+    if (!document.querySelector('#requestsList button:disabled')) refreshRequests();
+  }
+  setInterval(liveSync, 20000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && STAFF_TOKEN && state.page === 'calendar') load(); });
 
   load();
   refreshWaitlistCount();
