@@ -2012,3 +2012,89 @@ function mountVisibility() {
   window.addEventListener('scroll', function () { if (!shut()) close(); }, true);
 })();
 
+/* ================= Change PIN =================
+   Anyone signed in can change their own PIN (they type the current one first).
+   A manager can also set a new PIN for someone on the team who has forgotten
+   theirs; they then tell that person in person. Lives in the Menu. */
+(function pinChanger() {
+  const pop = document.getElementById('tbPop');
+  if (!pop) return;
+  const item = document.createElement('button');
+  item.className = 'btn ghost';
+  item.id = 'pinBtn';
+  item.type = 'button';
+  item.textContent = 'Change PIN';
+  pop.appendChild(item);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'backdrop hidden';
+  wrap.id = 'pinModal';
+  wrap.innerHTML =
+    '<div class="modal" style="max-width:380px">' +
+    '<header><span class="hicon">&#128273;</span><h3>Change PIN</h3><button class="iconbtn" id="pinClose" type="button">&#10005;</button></header>' +
+    '<div class="body">' +
+    '<div class="field" id="pinWhoRow"><label>Whose PIN</label><select id="pinWho"></select></div>' +
+    '<div class="field" id="pinCurRow"><label>Your current PIN</label><input type="password" id="pinCur" inputmode="numeric" autocomplete="current-password" maxlength="8"></div>' +
+    '<div class="field"><label id="pinNewLabel">New PIN (4 to 8 numbers)</label><input type="password" id="pinNew" inputmode="numeric" autocomplete="new-password" maxlength="8"></div>' +
+    '<div class="field"><label>New PIN again</label><input type="password" id="pinNew2" inputmode="numeric" autocomplete="new-password" maxlength="8"></div>' +
+    '<div class="notice err hidden" id="pinErr"></div>' +
+    '<div class="notice hidden" id="pinOk" style="background:rgba(76,143,108,.14);border:1px solid rgba(76,143,108,.35)"></div>' +
+    '</div>' +
+    '<footer><span></span><button class="btn primary" id="pinSave" type="button">Save new PIN</button></footer>' +
+    '</div>';
+  document.body.appendChild(wrap);
+
+  const $p = (id) => document.getElementById(id);
+  const team = () => (state.barbers && state.barbers.length ? state.barbers : state.groomers && state.groomers.length ? state.groomers : state.stylists || []);
+  const isMgr = () => typeof ROLE !== 'undefined' && ROLE.role === 'manager';
+  const myId = () => (typeof ROLE !== 'undefined' ? ROLE.staffId : null);
+  function show(el, msg) { el.textContent = msg; el.classList.remove('hidden'); }
+  function hideMsgs() { $p('pinErr').classList.add('hidden'); $p('pinOk').classList.add('hidden'); }
+  function forMe() { return !isMgr() || $p('pinWho').value === 'me'; }
+  function sync() {
+    $p('pinCurRow').style.display = forMe() ? '' : 'none';
+    $p('pinNewLabel').textContent = forMe() ? 'New PIN (4 to 8 numbers)' : 'Their new PIN (4 to 8 numbers)';
+  }
+  function open() {
+    hideMsgs();
+    ['pinCur', 'pinNew', 'pinNew2'].forEach((id) => { $p(id).value = ''; });
+    const sel = $p('pinWho');
+    if (isMgr()) {
+      const others = team().filter((p) => Number(p.id) !== Number(myId()));
+      sel.innerHTML = '<option value="me">Me</option>' + others.map((p) =>
+        '<option value="' + Number(p.id) + '">' + String(p.name || '').split('<').join('').split('>').join('') + '</option>').join('');
+      $p('pinWhoRow').style.display = others.length ? '' : 'none';
+    } else {
+      sel.innerHTML = '<option value="me">Me</option>';
+      $p('pinWhoRow').style.display = 'none';
+    }
+    sync();
+    wrap.classList.remove('hidden');
+    setTimeout(() => { (forMe() ? $p('pinCur') : $p('pinNew')).focus(); }, 50);
+  }
+  function close() { wrap.classList.add('hidden'); }
+  async function save() {
+    hideMsgs();
+    const cur = $p('pinCur').value.trim(), n1 = $p('pinNew').value.trim(), n2 = $p('pinNew2').value.trim();
+    if (forMe() && !cur) return show($p('pinErr'), 'Type your current PIN first.');
+    if (n1.length < 4 || n1.length > 8 || n1.split('').some((c) => c < '0' || c > '9')) return show($p('pinErr'), 'A PIN is 4 to 8 numbers.');
+    if (n1 !== n2) return show($p('pinErr'), 'The two new PINs do not match.');
+    const body = { newPin: n1 };
+    if (forMe()) body.currentPin = cur; else body.personId = Number($p('pinWho').value);
+    const btn = $p('pinSave');
+    btn.disabled = true;
+    try {
+      const r = await api('/api/staff/pin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!r.ok) return show($p('pinErr'), (r.data && r.data.error) || 'That did not work. Try again.');
+      ['pinCur', 'pinNew', 'pinNew2'].forEach((id) => { $p(id).value = ''; });
+      const who = forMe() ? '' : $p('pinWho').options[$p('pinWho').selectedIndex].text;
+      show($p('pinOk'), forMe() ? 'Done. Use your new PIN next time you sign in.' : 'Done. Tell ' + who + ' their new PIN in person, not by text.');
+    } finally { btn.disabled = false; }
+  }
+  item.addEventListener('click', open);
+  $p('pinClose').addEventListener('click', close);
+  wrap.addEventListener('click', (e) => { if (e.target === wrap) close(); });
+  $p('pinWho').addEventListener('change', () => { hideMsgs(); sync(); });
+  $p('pinSave').addEventListener('click', save);
+  $p('pinNew2').addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
+})();
