@@ -331,6 +331,9 @@ padding:10px 14px;gap:10px}
 .mobile-bar .mb-call{border:1.5px solid var(--line);color:var(--forest)}
 .mobile-bar .mb-book{background:var(--forest);color:#fff}
 @media(max-width:700px){.mobile-bar{display:flex}.footer{padding-bottom:96px}}
+/* chat button sits just above the sticky bar on phones, and steps aside while the booking sheet is open */
+@media(max-width:700px){body .ssc-launch{bottom:84px}}
+.bmopen .ssc-launch{display:none!important}
 
 /* ---------- reveal on scroll ---------- */
 .reveal,.reveal-left,.reveal-right,.reveal-scale{
