@@ -537,7 +537,7 @@ function renderWeek(monday, appts, blocks) {
 function renderMonth(dateStr, appts, blocks) {
   const cal = $('#cal');
   cal.className = 'cal';
-  cal.style.gridTemplateColumns = `repeat(7, 1fr)`;
+  cal.style.gridTemplateColumns = `repeat(7, minmax(0, 1fr))`;
   const gridStart = firstOfMonthGridStart(dateStr);
   const [y, m] = dateStr.split('-').map(Number);
   const monthIdx = m - 1;
@@ -570,6 +570,7 @@ function renderMonth(dateStr, appts, blocks) {
     const dayTs = toTs(d, 0);
     let cell = `<div class="monthcell ${inMonth ? '' : 'is-outside'} ${d === today ? 'is-today' : ''}" data-date="${d}">`;
     cell += `<div class="mc-num">${new Date(d + 'T00:00').getDate()}${dayBlocks.length ? ' <span class="mc-block-flag" title="' + dayBlocks.map((b) => b.reason).join(', ') + '">⛔</span>' : ''}</div>`;
+    if (dayAppts.length) cell += `<div class="mc-count">${dayAppts.length}</div>`;
     dayAppts.slice(0, 3).forEach((a) => {
       const min = a.start_ts - dayTs;
       const dimmed = a.status === 'no-show' || a.status === 'completed';
@@ -588,7 +589,126 @@ function renderMonth(dateStr, appts, blocks) {
   cal.querySelectorAll('.monthcell').forEach((el) => el.onclick = () => switchToDay(el.dataset.date));
 }
 
+// ---------- day view on a phone ----------
+// Three or four people side by side don't fit a phone: names were cut to "Ethan Pa".
+// On a phone the day shows one person at a time at full width, or everyone as one
+// time-ordered list, picked from a row of name chips. The pick is remembered on this
+// device; until there is one, a signed-in team member opens on their own day. Desktop
+// keeps the side-by-side grid below.
+const PD_STAFF = () => state.groomers;
+const pdStaffOf = (x) => x.groomer_id;
+const pdLabel = (a) => dogTileLabel(a);
+const pdDimmed = (a) => a.status === 'no-show' || a.status === 'completed';
+const PD_KEY = 'pd_who:' + location.pathname;
+const PD_MQ = window.matchMedia ? window.matchMedia('(max-width: 640px)') : null;
+function isPhoneCal() { return !!(PD_MQ && PD_MQ.matches); }
+function pdWho() {
+  const staff = PD_STAFF();
+  let saved = state.pdWho;
+  if (saved == null) { try { saved = localStorage.getItem(PD_KEY); } catch (e) { saved = null; } }
+  if (saved === 'all') return 'all';
+  if (saved != null && staff.some((b) => String(b.id) === String(saved))) return Number(saved);
+  let mine = null;
+  try { mine = ROLE.staffId; } catch (e) { mine = null; }
+  return staff.some((b) => b.id === mine) ? mine : 'all';
+}
+function renderDayPhone(appts, blocks, win) {
+  const cal = $('#cal');
+  const staff = PD_STAFF();
+  const byId = new Map(staff.map((b) => [b.id, b]));
+  const first = (n) => String(n || '').split(' ')[0];
+  const dayTs = toTs(state.date, 0);
+  const live = appts.filter((a) => a.status === 'booked' || a.status === 'no-show' || a.status === 'completed');
+  const who = pdWho();
+  const person = who === 'all' ? null : byId.get(who);
+  const isToday = state.date === localToday();
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const tick = (a) => `<span class="arrived-toggle ${a.arrived_at ? 'on' : ''}" data-id="${a.id}" title="${a.arrived_at ? 'Arrived - click to undo' : 'Mark arrived'}">✓</span>`;
+  const chip = (id, label, n, color) => `<button type="button" class="pd-chip${String(who) === String(id) ? ' on' : ''}" data-who="${id}">` +
+    (color ? `<span class="pd-dot" style="background:${color}"></span>` : '') + `${label}<span class="pd-n">${n}</span></button>`;
+  let html = '<div class="pd-who">' + chip('all', 'Everyone', live.length, '') +
+    staff.map((b) => chip(b.id, first(b.name), live.filter((a) => pdStaffOf(a) === b.id).length, b.color)).join('') + '</div>';
+
+  cal.className = 'cal cal-pd';
+  if (!person) {
+    // Everyone: one list in time order, so the next client is always the next row.
+    cal.style.gridTemplateColumns = '1fr';
+    const items = live.map((a) => ({ s: a.start_ts - dayTs, e: a.end_ts - dayTs, a }))
+      .concat(blocks.map((bl) => ({ s: Math.max(0, bl.start_ts - dayTs), e: Math.min(1440, bl.end_ts - dayTs), bl })))
+      .filter((x) => x.e > x.s)
+      .sort((x, y) => x.s - y.s || (x.bl ? 1 : 0) - (y.bl ? 1 : 0));
+    let rows = '';
+    let nowShown = !isToday;
+    const nowRow = () => `<div class="pd-now"><span>Now ${fmt(nowMin)}</span></div>`;
+    items.forEach((x) => {
+      if (!nowShown && x.s >= nowMin) { rows += nowRow(); nowShown = true; }
+      if (x.bl) {
+        const p = pdStaffOf(x.bl) == null ? null : byId.get(pdStaffOf(x.bl));
+        const allDay = x.s === 0 && x.e === 1440;
+        rows += `<div class="pd-row pd-blk"><span class="pd-time">${allDay ? 'All day' : fmt(x.s) + `<small>${fmt(x.e)}</small>`}</span><span class="pd-bar"></span>` +
+          `<span class="pd-main"><b>${x.bl.reason || 'Blocked'}</b><small>${p ? first(p.name) : 'Everyone'}${x.bl.status === 'pending' ? ' · awaiting approval' : ''}</small></span></div>`;
+        return;
+      }
+      const a = x.a, p = byId.get(pdStaffOf(a));
+      const tag = a.status === 'no-show' ? ' · NO-SHOW' : a.status === 'completed' ? ' · DONE' : '';
+      rows += `<div class="pd-row${pdDimmed(a) ? ' appt-dimmed' : ''}" data-id="${a.id}"><span class="pd-time">${fmt(x.s)}<small>${fmt(x.e)}</small></span>` +
+        `<span class="pd-bar" style="background:${p ? p.color : 'var(--muted)'}"></span>` +
+        `<span class="pd-main"><b>${pdLabel(a)}</b><small>${a.service_name}${p ? ' · ' + first(p.name) : ''}${tag}</small></span>${tick(a)}</div>`;
+    });
+    if (!items.length) rows = '<div class="pd-empty">No bookings on this day yet.</div>';
+    else if (!nowShown && nowMin < 1440) rows += nowRow();
+    html += '<div class="pd-list">' + rows + '</div>';
+    cal.innerHTML = html;
+  } else {
+    // One person: the usual time grid, full width, with taller hours so a 20-minute
+    // booking still has room for the name.
+    const DAY_START = win.start, DAY_END = win.end;
+    const pxh = 84, pxmin = pxh / 60;
+    cal.style.gridTemplateColumns = '46px 1fr';
+    const hours = [];
+    for (let h = DAY_START; h < DAY_END; h += 60) hours.push(h);
+    html += `<div class="gutter" style="grid-column:1">` + hours.map((h) => `<div class="hourline" style="height:${pxh}px"><span>${fmt(h)}</span></div>`).join('') + `</div>`;
+    let col = `<div class="daycol">` + hours.map(() => `<div class="hourline" style="height:${pxh}px"></div>`).join('');
+    blocks.filter((bl) => pdStaffOf(bl) === person.id || pdStaffOf(bl) == null).forEach((bl) => {
+      const s = Math.max(bl.start_ts - dayTs, DAY_START), e = Math.min(bl.end_ts - dayTs, DAY_END);
+      if (e <= s) return;
+      col += `<div class="blk${bl.status === 'pending' ? ' blk-pending' : ''}" data-id="${bl.id}" style="top:${(s - DAY_START) * pxmin}px;height:${(e - s) * pxmin - 2}px">${bl.reason}${bl.status === 'pending' ? ' · awaiting approval' : ''}</div>`;
+    });
+    live.filter((a) => pdStaffOf(a) === person.id).forEach((a) => {
+      const s = a.start_ts - dayTs, dur = a.end_ts - a.start_ts;
+      const label = a.status === 'no-show' ? '<span class="status-label">NO-SHOW</span>' : a.status === 'completed' ? '<span class="status-label">DONE</span>' : '';
+      col += `<div class="appt${pdDimmed(a) ? ' appt-dimmed' : ''}${dur < 30 ? ' pd-short' : ''}" data-id="${a.id}" style="top:${(s - DAY_START) * pxmin}px;height:${dur * pxmin - 2}px;background:${person.color}">` +
+        `${tick(a)}<b>${pdLabel(a)}</b><small>${fmt(s)}–${fmt(s + dur)} · ${a.service_name}</small>${label}</div>`;
+    });
+    html += col + `</div>`;
+    cal.innerHTML = html;
+    if (isToday && nowMin >= DAY_START && nowMin <= DAY_END) {
+      const line = document.createElement('div');
+      line.className = 'now-line';
+      line.style.top = `${cal.querySelector('.daycol').offsetTop + (nowMin - DAY_START) * pxmin}px`;
+      cal.appendChild(line);
+    }
+  }
+
+  cal.querySelectorAll('.pd-chip').forEach((el) => el.onclick = () => {
+    state.pdWho = el.dataset.who;
+    try { localStorage.setItem(PD_KEY, el.dataset.who); } catch (e) { /* remembered for this visit only */ }
+    renderDay(appts, blocks);
+  });
+  cal.querySelectorAll('.appt, .pd-row[data-id]').forEach((el) => el.onclick = () => openAppt(+el.dataset.id));
+  cal.querySelectorAll('.arrived-toggle').forEach((el) => el.onclick = (e) => {
+    e.stopPropagation();
+    toggleArrived(+el.dataset.id, !el.classList.contains('on'));
+  });
+  cal.querySelectorAll('.blk, .pd-blk').forEach((el) => el.onclick = () => openBlock('remove'));
+}
+// Turning the phone, or a window crossing the phone width, redraws the day in the right layout.
+if (PD_MQ && PD_MQ.addEventListener) PD_MQ.addEventListener('change', () => {
+  if (state.view === 'day' && state._day) renderDay(state._day[0], state._day[1]);
+});
+
 function renderDay(appts, blocks) {
+  state._day = [appts, blocks]; // kept so a phone can redraw on its own
   const win = dayWindowFor(state.date);
   if (!win) {
     const cal0 = $('#cal');
@@ -610,6 +730,7 @@ function renderDay(appts, blocks) {
     return;
   }
   const DAY_START = win.start, DAY_END = win.end;
+  if (isPhoneCal()) return renderDayPhone(appts, blocks, win);
   const cal = $('#cal');
   cal.className = 'cal';
   const N = state.groomers.length;
@@ -1690,6 +1811,8 @@ function applyRole() {
   if (typeof renderTimeclock === 'function' && $('#timeclockGrid') && $('#timeclockGrid').children.length) {
     renderTimeclock();
   }
+  // A phone opens on the signed-in person's own day once we know who they are.
+  if (state.view === 'day' && state._day && isPhoneCal()) renderDay(state._day[0], state._day[1]);
 }
 
 /* ---------- the Requests page ---------- */

@@ -347,6 +347,48 @@ color:#fff;font-size:10.5px;font-weight:600;line-height:1}
 .wh-appt{font-size:10px;padding:0 3px}
 }
 </style>
+<style>
+/* ---------- the calendar on a phone (staff.js renderDayPhone, renderMonth) ---------- */
+.cal-pd{--pd-acc:var(--forest);--pd-on:#fff}
+.pd-who{grid-column:1/-1;display:flex;gap:8px;overflow-x:auto;padding:10px;border-bottom:1px solid var(--line);scrollbar-width:none}
+.pd-who::-webkit-scrollbar{display:none}
+.pd-chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card2);color:var(--ink);border-radius:999px;padding:8px 13px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
+.pd-chip.on{background:var(--pd-acc);border-color:var(--pd-acc);color:var(--pd-on)}
+.pd-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.pd-n{font-size:11.5px;font-weight:700;opacity:.65}
+.pd-list{display:flex;flex-direction:column}
+.pd-row{position:relative;display:grid;grid-template-columns:50px 4px 1fr;gap:11px;align-items:center;padding:11px 40px 11px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.pd-row:last-child{border-bottom:none}
+.pd-time{font-weight:800;font-size:14px;color:var(--ink);line-height:1.2}
+.pd-time small{display:block;font-weight:600;font-size:11.5px;color:var(--muted)}
+.pd-bar{align-self:stretch;border-radius:4px;min-height:34px}
+.pd-main{min-width:0}
+.pd-main b{display:block;font-size:14.5px;color:var(--ink);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pd-main small{display:block;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pd-blk{opacity:.75}
+.pd-blk .pd-bar{background:var(--line)}
+.pd-row .arrived-toggle{top:50%;right:12px;width:22px;height:22px;margin-top:-11px;font-size:12px;background:var(--card2);border:1px solid var(--line);color:var(--muted)}
+.pd-row .arrived-toggle.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.pd-now{position:relative;height:0;border-top:2px solid var(--danger);z-index:2}
+.pd-now span{position:absolute;left:10px;top:-11px;background:var(--danger);color:#fff;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px}
+.pd-empty{padding:44px 16px;text-align:center;color:var(--muted)}
+.cal-pd .appt{left:6px;right:6px;padding:6px 34px 6px 10px}
+.cal-pd .appt b{font-size:14px}
+.cal-pd .appt small{font-size:12px}
+.cal-pd .appt .arrived-toggle{width:20px;height:20px;top:5px;right:7px}
+.cal-pd .pd-short{padding-top:4px;padding-bottom:4px;white-space:nowrap;text-overflow:ellipsis}
+.cal-pd .pd-short b,.cal-pd .pd-short small{display:inline}
+.cal-pd .pd-short small{margin-left:6px}
+.cal-pd .hourline span{left:4px}
+.mc-count{display:none}
+@media (max-width:640px){
+  /* Month: seven narrow days fit the screen, each showing how many bookings it has. */
+  .monthcolhead{padding:8px 0;font-size:10px;letter-spacing:.02em}
+  .monthcell{min-height:58px;padding:5px 3px;align-items:center}
+  .mc-chip,.mc-more{display:none}
+  .mc-count{display:block;margin-top:auto;font-size:11px;font-weight:800;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
+}
+</style>
 </head>
 <body>
 <header class="site-header"><div class="container">
