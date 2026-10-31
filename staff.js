@@ -536,6 +536,10 @@ function renderWeek(monday, appts, blocks) {
 // chips (click to open), a "+N more" note if there are more, and a flag icon
 // if any block/holiday covers that day. Click anywhere else on a day cell to
 // jump into Day view for that date.
+// Month dates read "1st", "2nd", "20th", so on a phone the date doesn't look like a
+// second number beside the day's booking count.
+const ordinalSuffix = (n) => (n % 100 >= 11 && n % 100 <= 13) ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] || 'th');
+const mcDay = (n) => `${n}<span class="mc-suf">${ordinalSuffix(n)}</span>`;
 function renderMonth(dateStr, appts, blocks) {
   const cal = $('#cal');
   cal.className = 'cal';
@@ -571,7 +575,7 @@ function renderMonth(dateStr, appts, blocks) {
     const dayBlocks = blocksByDate.get(d) || [];
     const dayTs = toTs(d, 0);
     let cell = `<div class="monthcell ${inMonth ? '' : 'is-outside'} ${d === today ? 'is-today' : ''}" data-date="${d}">`;
-    cell += `<div class="mc-num">${new Date(d + 'T00:00').getDate()}${dayBlocks.length ? ' <span class="mc-block-flag" title="' + dayBlocks.map((b) => b.reason).join(', ') + '">⛔</span>' : ''}</div>`;
+    cell += `<div class="mc-num">${mcDay(new Date(d + 'T00:00').getDate())}${dayBlocks.length ? ' <span class="mc-block-flag" title="' + dayBlocks.map((b) => b.reason).join(', ') + '">⛔</span>' : ''}</div>`;
     if (dayAppts.length) cell += `<div class="mc-count">${dayAppts.length}</div>`;
     dayAppts.slice(0, 3).forEach((a) => {
       const min = a.start_ts - dayTs;
