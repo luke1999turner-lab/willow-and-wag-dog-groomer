@@ -380,6 +380,28 @@ color:#fff;font-size:10.5px;font-weight:600;line-height:1}
 .cal-pd .pd-short b,.cal-pd .pd-short small{display:inline}
 .cal-pd .pd-short small{margin-left:6px}
 .cal-pd .hourline span{left:4px}
+/* week on a phone: a card per day (staff.js renderWeekPhone) */
+.pw-list{display:flex;flex-direction:column;gap:10px;padding:10px}
+.pw-day{border:1px solid var(--line);border-radius:14px;background:var(--card2);overflow:hidden;cursor:pointer}
+.pw-day.is-today{border-color:var(--pd-acc);box-shadow:0 0 0 1px var(--pd-acc)}
+.pw-day.is-closed{cursor:default;opacity:.55}
+.pw-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:11px 13px 9px}
+.pw-name{font-weight:800;font-size:15px;color:var(--ink)}
+.pw-today{display:inline-block;margin-left:7px;font-size:10.5px;font-weight:800;background:var(--pd-acc);color:var(--pd-on);border-radius:999px;padding:2px 7px;vertical-align:2px}
+.pw-meta{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.pw-staff{display:grid;grid-template-columns:78px 1fr 26px;gap:9px;align-items:center;padding:0 13px 9px;font-size:13px}
+.pw-staff:last-child{padding-bottom:13px}
+.pw-who{display:flex;align-items:center;gap:6px;font-weight:700;color:var(--ink);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.pw-track{display:block;height:8px;border-radius:999px;background:var(--line);overflow:hidden}
+.pw-fill{display:block;height:100%;border-radius:999px}
+.pw-n{text-align:right;font-weight:800;color:var(--muted);font-size:12.5px}
+.pw-off{font-size:12px;color:var(--muted)}
+.pw-row{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:baseline;padding:8px 13px;border-top:1px solid var(--line);cursor:pointer}
+.pw-t{font-weight:800;font-size:13px;color:var(--ink)}
+.pw-row b{display:block;font-size:13.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pw-row small{display:block;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pw-blk{opacity:.7;cursor:inherit}
+.pw-empty{padding:0 13px 12px;font-size:12.5px;color:var(--muted)}
 .mc-count{display:none}
 @media (max-width:640px){
   /* Month: seven narrow days fit the screen, each showing how many bookings it has. */

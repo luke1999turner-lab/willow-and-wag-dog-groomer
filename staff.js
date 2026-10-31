@@ -452,6 +452,8 @@ async function loadMonth() {
 // the same time never visually collide. Click a chip to open it exactly like
 // the day view; click a day's header to jump straight into Day view for it.
 function renderWeek(monday, appts, blocks) {
+  state._week = [monday, appts, blocks]; // kept so a phone can redraw on its own
+  if (isPhoneCal()) return renderWeekPhone(monday, appts, blocks);
   // Horizontal week: one row per day, time runs left to right, one thin lane per team member.
   // Blocks sit at their real times, so the hour scale along the top genuinely lines up.
   const cal = $('#cal');
@@ -624,10 +626,7 @@ function renderDayPhone(appts, blocks, win) {
   const isToday = state.date === localToday();
   const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
   const tick = (a) => `<span class="arrived-toggle ${a.arrived_at ? 'on' : ''}" data-id="${a.id}" title="${a.arrived_at ? 'Arrived - click to undo' : 'Mark arrived'}">✓</span>`;
-  const chip = (id, label, n, color) => `<button type="button" class="pd-chip${String(who) === String(id) ? ' on' : ''}" data-who="${id}">` +
-    (color ? `<span class="pd-dot" style="background:${color}"></span>` : '') + `${label}<span class="pd-n">${n}</span></button>`;
-  let html = '<div class="pd-who">' + chip('all', 'Everyone', live.length, '') +
-    staff.map((b) => chip(b.id, first(b.name), live.filter((a) => pdStaffOf(a) === b.id).length, b.color)).join('') + '</div>';
+  let html = pdChips(live, who);
 
   cal.className = 'cal cal-pd';
   if (!person) {
@@ -690,11 +689,7 @@ function renderDayPhone(appts, blocks, win) {
     }
   }
 
-  cal.querySelectorAll('.pd-chip').forEach((el) => el.onclick = () => {
-    state.pdWho = el.dataset.who;
-    try { localStorage.setItem(PD_KEY, el.dataset.who); } catch (e) { /* remembered for this visit only */ }
-    renderDay(appts, blocks);
-  });
+  pdWireChips(cal, () => renderDay(appts, blocks));
   cal.querySelectorAll('.appt, .pd-row[data-id]').forEach((el) => el.onclick = () => openAppt(+el.dataset.id));
   cal.querySelectorAll('.arrived-toggle').forEach((el) => el.onclick = (e) => {
     e.stopPropagation();
@@ -702,10 +697,94 @@ function renderDayPhone(appts, blocks, win) {
   });
   cal.querySelectorAll('.blk, .pd-blk').forEach((el) => el.onclick = () => openBlock('remove'));
 }
-// Turning the phone, or a window crossing the phone width, redraws the day in the right layout.
-if (PD_MQ && PD_MQ.addEventListener) PD_MQ.addEventListener('change', () => {
+// ---------- week view on a phone ----------
+// The desktop week is a strip per day with a lane per person; on a phone each booking
+// came out a few pixels wide. On a phone the week is a card per day instead. With
+// Everyone picked it shows how many are booked and how full each person's day is; with
+// one person picked, that person's bookings. Tap a day to open it.
+function pdChips(live, who) {
+  const chip = (id, label, n, color) => `<button type="button" class="pd-chip${String(who) === String(id) ? ' on' : ''}" data-who="${id}">` +
+    (color ? `<span class="pd-dot" style="background:${color}"></span>` : '') + `${label}<span class="pd-n">${n}</span></button>`;
+  return '<div class="pd-who">' + chip('all', 'Everyone', live.length, '') +
+    PD_STAFF().map((b) => chip(b.id, String(b.name || '').split(' ')[0], live.filter((a) => pdStaffOf(a) === b.id).length, b.color)).join('') + '</div>';
+}
+function pdWireChips(cal, redraw) {
+  cal.querySelectorAll('.pd-chip').forEach((el) => el.onclick = () => {
+    state.pdWho = el.dataset.who;
+    try { localStorage.setItem(PD_KEY, el.dataset.who); } catch (e) { /* remembered for this visit only */ }
+    redraw();
+  });
+}
+function pdRedraw() {
   if (state.view === 'day' && state._day) renderDay(state._day[0], state._day[1]);
-});
+  else if (state.view === 'week' && state._week) renderWeek(state._week[0], state._week[1], state._week[2]);
+}
+function renderWeekPhone(monday, appts, blocks) {
+  const cal = $('#cal');
+  const staff = PD_STAFF();
+  const byId = new Map(staff.map((b) => [b.id, b]));
+  const first = (n) => String(n || '').split(' ')[0];
+  const who = pdWho();
+  const person = who === 'all' ? null : byId.get(who);
+  const today = localToday();
+  const live = appts.filter((a) => a.status === 'booked' || a.status === 'no-show' || a.status === 'completed');
+  const priceOf = (id) => { const s = (state.services || []).find((x) => x.id === id); return s ? s.price_pence : 0; };
+  const money = (p) => '£' + Math.round(p / 100).toLocaleString('en-GB');
+  // Minutes of one person's open hours lost to blocks (holiday, lunch...), overlaps counted once.
+  const blockedMin = (dayBlocks, id, open, close) => {
+    const iv = dayBlocks.filter((bl) => pdStaffOf(bl) == null || pdStaffOf(bl) === id)
+      .map((bl) => [Math.max(open, bl.s), Math.min(close, bl.e)]).filter((x) => x[1] > x[0]).sort((x, y) => x[0] - y[0]);
+    let total = 0, end = open;
+    iv.forEach(([s, e]) => { if (e > end) { total += e - Math.max(s, end); end = e; } });
+    return total;
+  };
+  let html = pdChips(live, who) + '<div class="pw-list">';
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(monday, i);
+    const dayTs = toTs(d, 0);
+    const hrs = hoursForDow(dowOf(d));
+    const name = new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+    const dayAll = live.filter((a) => fromTs(a.start_ts).date === d);
+    const mine = (person ? dayAll.filter((a) => pdStaffOf(a) === person.id) : dayAll).sort((a, b) => a.start_ts - b.start_ts);
+    const takings = mine.filter((a) => a.status !== 'no-show').reduce((n, a) => n + priceOf(a.service_id), 0);
+    const dayBlocks = blocks.map((bl) => Object.assign({}, bl, { s: bl.start_ts - dayTs, e: bl.end_ts - dayTs })).filter((bl) => bl.e > 0 && bl.s < 1440);
+    const meta = hrs ? `${mine.length} booked${takings ? ' · ' + money(takings) : ''}` : 'Closed';
+    let body = '';
+    if (hrs && !person) {
+      body = staff.map((b) => {
+        const theirs = dayAll.filter((a) => pdStaffOf(a) === b.id);
+        const avail = (hrs.close_min - hrs.open_min) - blockedMin(dayBlocks, b.id, hrs.open_min, hrs.close_min);
+        const used = theirs.filter((a) => a.status !== 'no-show').reduce((n, a) => n + (a.end_ts - a.start_ts), 0);
+        const bar = avail > 0
+          ? `<span class="pw-track"><span class="pw-fill" style="width:${Math.min(100, Math.round(used / avail * 100))}%;background:${b.color}"></span></span>`
+          : '<span class="pw-off">Off</span>';
+        return `<div class="pw-staff"><span class="pw-who"><span class="pd-dot" style="background:${b.color}"></span>${first(b.name)}</span>${bar}<span class="pw-n">${theirs.length}</span></div>`;
+      }).join('');
+    } else if (hrs) {
+      const theirBlocks = dayBlocks.filter((bl) => pdStaffOf(bl) == null || pdStaffOf(bl) === person.id);
+      const items = mine.map((a) => ({ s: a.start_ts - dayTs, a }))
+        .concat(theirBlocks.map((bl) => ({ s: Math.max(0, bl.s), bl })))
+        .sort((x, y) => x.s - y.s || (x.bl ? 1 : 0) - (y.bl ? 1 : 0));
+      body = items.map((x) => x.bl
+        ? `<div class="pw-row pw-blk"><span class="pw-t">${x.bl.s <= 0 && x.bl.e >= 1440 ? 'All day' : fmt(x.s)}</span><span><b>${x.bl.reason || 'Blocked'}</b></span></div>`
+        : `<div class="pw-row${pdDimmed(x.a) ? ' appt-dimmed' : ''}" data-id="${x.a.id}"><span class="pw-t">${fmt(x.s)}</span><span><b>${pdLabel(x.a)}</b><small>${x.a.service_name}</small></span></div>`
+      ).join('') || '<div class="pw-empty">Nothing booked</div>';
+    }
+    html += `<div class="pw-day${d === today ? ' is-today' : ''}${hrs ? '' : ' is-closed'}" data-date="${d}">` +
+      `<div class="pw-head"><span class="pw-name">${name}${d === today ? '<span class="pw-today">Today</span>' : ''}</span><span class="pw-meta">${meta}</span></div>${body}</div>`;
+  }
+  cal.className = 'cal cal-pd';
+  cal.style.gridTemplateColumns = '1fr';
+  cal.innerHTML = html + '</div>';
+  pdWireChips(cal, () => renderWeek(monday, appts, blocks));
+  cal.querySelectorAll('.pw-day:not(.is-closed)').forEach((el) => el.onclick = () => switchToDay(el.dataset.date));
+  cal.querySelectorAll('.pw-row[data-id]').forEach((el) => el.onclick = (e) => {
+    e.stopPropagation();
+    openAppt(+el.dataset.id, el.closest('.pw-day').dataset.date);
+  });
+}
+// Turning the phone, or a window crossing the phone width, redraws the day or week in the right layout.
+if (PD_MQ && PD_MQ.addEventListener) PD_MQ.addEventListener('change', pdRedraw);
 
 function renderDay(appts, blocks) {
   state._day = [appts, blocks]; // kept so a phone can redraw on its own
@@ -1811,8 +1890,8 @@ function applyRole() {
   if (typeof renderTimeclock === 'function' && $('#timeclockGrid') && $('#timeclockGrid').children.length) {
     renderTimeclock();
   }
-  // A phone opens on the signed-in person's own day once we know who they are.
-  if (state.view === 'day' && state._day && isPhoneCal()) renderDay(state._day[0], state._day[1]);
+  // A phone opens on the signed-in person's own day or week once we know who they are.
+  if (isPhoneCal()) pdRedraw();
 }
 
 /* ---------- the Requests page ---------- */
