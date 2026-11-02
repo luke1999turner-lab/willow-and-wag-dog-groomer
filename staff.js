@@ -903,6 +903,7 @@ async function openAppt(id, forDate) {
   const dayTs = toTs(d, 0);
   $('#apptInfo').innerHTML = `
     <div><span class="k">Client</span><span class="v">${a.client_name}</span></div>
+    ${a.ref ? `<div><span class="k">Ref</span><span class="v" style="font-weight:700;letter-spacing:.08em">${a.ref}</span></div>` : ''}
     <div><span class="k">Contact</span><span class="v">${a.client_email} · ${a.client_phone || ''}</span></div>
     <div><span class="k">Service</span><span class="v">${a.service_name} (${a.duration_min} min)</span></div>
     <div><span class="k">With</span><span class="v">${a.groomer_name}</span></div>
@@ -1772,7 +1773,7 @@ async function runSearch(raw) {
     return '<button class="sr-row' + (d < today ? ' is-past' : '') + '" data-id="' + a.id + '" data-date="' + d + '">' +
       '<span class="sr-when">' + when + ' · ' + fmt(a.start_ts - toTs(d, 0)) + '</span>' +
       '<span class="sr-who">' + srEsc(a.client_name || 'No name') + '</span>' +
-      '<span class="sr-what">' + srEsc(a.service_name || '') + tail + '</span></button>';
+      '<span class="sr-what">' + srEsc(a.service_name || '') + tail + (a.ref ? ' · Ref ' + srEsc(a.ref) : '') + '</span></button>';
   }).join('') + (hits.length > shown.length ? '<div class="sr-note">Showing the first 40 of ' + hits.length + '.</div>' : '');
   box.querySelectorAll('.sr-row').forEach((el) => {
     el.onclick = () => { srClose(); $('#searchInput').value = ''; switchToDay(el.dataset.date); openAppt(+el.dataset.id, el.dataset.date); };
