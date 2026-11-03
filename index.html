@@ -8,7 +8,7 @@
 <meta name="description" content="Willow &amp; Wag: elevated, artisanal dog grooming in a boutique English countryside-inspired studio. Book your dog's groom online in seconds.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800;900&family=Fraunces:ital,opsz,wght,SOFT,WONK@1,144,900,100,1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
 WILLOW & WAG — "Countryside Boutique" theme: warm, soft, premium.
@@ -23,6 +23,7 @@ WILLOW & WAG — "Countryside Boutique" theme: warm, soft, premium.
 --shadow:0 1px 3px rgba(40,30,10,.06),0 20px 44px -18px rgba(40,30,10,.18);
 --serif:'Playfair Display',Georgia,serif;
 --sans:'Inter',ui-sans-serif,system-ui,sans-serif;
+--soft:'Fraunces','Playfair Display',Georgia,serif;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -64,6 +65,20 @@ padding:13px 26px;font:inherit;font-weight:700;font-size:14.5px;cursor:pointer;t
 .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(217,123,79,.4);background:var(--terracotta-soft);
 border-radius:999px;padding:7px 16px;font-size:12px;color:var(--terracotta-dark);font-weight:700;margin-bottom:22px;letter-spacing:.1em;text-transform:uppercase}
 .hero h1{font-size:clamp(2.3rem,4.8vw,3.6rem);font-weight:800;line-height:1.1;margin:0 0 18px}
+.hero-grid{position:relative;z-index:1}
+/* headline: Playfair, then a big bouncy line in soft, wonky Fraunces italic, set at a jaunty angle */
+.hero h1 .ln{display:block}
+.hero h1 .ln+.ln{position:relative;width:fit-content;max-width:100%;margin:.04em 0 0 .3em;font-family:var(--soft);font-style:italic;font-weight:900;font-variation-settings:"SOFT" 100,"WONK" 1;font-size:1.55em;line-height:1;letter-spacing:-.01em;color:var(--terracotta-dark);transform:rotate(-3deg);transform-origin:0 100%}
+@media(max-width:860px){.hero h1 .ln+.ln{margin-left:auto;margin-right:auto;transform-origin:50% 100%}}
+.hero-bubbles{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.hbadge{position:absolute;z-index:3;left:-1%;bottom:1%;width:112px;height:112px;border-radius:50%;background:var(--forest);color:var(--cream);box-shadow:0 18px 36px -18px rgba(31,51,39,.75);transition:transform .35s var(--spring,ease)}
+.hbadge:hover{transform:scale(1.07) rotate(-6deg)}
+.hbadge:focus-visible{outline:2px solid var(--terracotta);outline-offset:4px}
+.hbadge svg{display:block;width:100%;height:100%;animation:spin 34s linear infinite}
+.hbadge text{font-family:var(--sans);font-size:9.4px;font-weight:700;letter-spacing:.16em;fill:currentColor}
+.hbadge .paw{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;background:var(--paw) center/contain no-repeat;transform-origin:50% 85%}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:860px){.hbadge{width:86px;height:86px;left:3%;bottom:0}.hbadge .paw{width:23px;height:23px;margin:-11.5px 0 0 -11.5px}}
 .hero .sub{font-size:17px;color:var(--slate);max-width:480px;margin:0 0 32px}
 @media(max-width:860px){.hero .sub{margin:0 auto 32px}}
 .hero-cta{display:flex;gap:14px;flex-wrap:wrap}
@@ -417,14 +432,28 @@ html.bmopen{overflow:hidden}
 @keyframes trot{to{transform:translateY(-3px) rotate(98deg)}}
 /* hero: words hop into place, stars pop, the button gives a little wag */
 .hero h1 .w{display:inline-block}
+/* hero v2: the letters of the second line drop in and bounce, squashing as they land, then sparkle
+   like something freshly washed. Soap bubbles drift up behind and pop under the pointer. */
+.hero h1 .lt{display:inline-block;transform-origin:50% 100%}
+.js .hero h1 .ln+.ln .w{animation:none}
+.js .hero h1 .lt{animation:drop-bounce .95s cubic-bezier(.3,.7,.4,1) calc(.55s + var(--k)*.06s) backwards}
+.hero h1 .spk{position:absolute;left:var(--x);top:var(--y);width:var(--s);height:var(--s);margin:calc(var(--s)/-2) 0 0 calc(var(--s)/-2);background:var(--c);clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);transform:scale(0);pointer-events:none;animation:spk 2.8s ease-in-out calc(2s + var(--d)) infinite}
+.js .hero-bubbles{animation:rv-fade 2s ease 1.2s backwards}
+.js .hbadge{animation:badge-pop .8s var(--spring) 1.7s backwards}
+.js .hbadge .paw{animation:paw-wave 6s ease-in-out 3s infinite}
+.hbadge:hover .paw{animation:paw-wave 1.2s ease-in-out}
+@keyframes drop-bounce{0%{opacity:0;transform:translateY(-1.2em) scaleY(1.12)}40%{opacity:1;transform:translateY(0) scale(1.14,.8)}60%{transform:translateY(-.2em) scale(.95,1.06)}78%{transform:translateY(0) scale(1.04,.96)}100%{transform:none}}
+@keyframes spk{0%,100%{transform:scale(0) rotate(0)}16%{transform:scale(1) rotate(45deg)}32%{transform:scale(0) rotate(90deg)}}
+@keyframes badge-pop{from{opacity:0;transform:scale(.3) rotate(-40deg)}}
+@keyframes paw-wave{0%,20%,100%{transform:none}5%{transform:rotate(-18deg)}10%{transform:rotate(14deg)}15%{transform:rotate(-7deg)}}
 .js .hero .pill{animation:pop-in .7s var(--spring) .05s backwards}
 .js .hero h1 .w{animation:word-in .7s var(--spring) calc(.2s + var(--w)*.09s) backwards}
-.js .hero .sub{animation:rv-up .8s var(--ease) .65s backwards}
-.js .hero .hero-cta{animation:rv-up .8s var(--ease) .8s backwards}
-.js .hero .hero-cta .btn.primary{animation:wag .9s ease-in-out 2.1s}
-.js .hero .trust{animation:rv-fade .8s ease .95s backwards}
+.js .hero .sub{animation:rv-up .8s var(--ease) .95s backwards}
+.js .hero .hero-cta{animation:rv-up .8s var(--ease) 1.1s backwards}
+.js .hero .hero-cta .btn.primary{animation:wag .9s ease-in-out 2.4s}
+.js .hero .trust{animation:rv-fade .8s ease 1.25s backwards}
 .trust .stars i{display:inline-block;font-style:normal}
-.js .trust .stars i{animation:star-in .5s var(--spring) calc(1.05s + var(--n)*.08s) backwards}
+.js .trust .stars i{animation:star-in .5s var(--spring) calc(1.35s + var(--n)*.08s) backwards}
 @keyframes pop-in{from{opacity:0;transform:scale(.6)}}
 @keyframes word-in{from{opacity:0;transform:translateY(.5em) scale(.8) rotate(-4deg)}}
 @keyframes star-in{from{opacity:0;transform:scale(.3) rotate(-50deg)}}
@@ -434,7 +463,7 @@ html.bmopen{overflow:hidden}
 .nc-slot{min-height:60px;display:flex;align-items:flex-end}
 @media(max-width:860px){.nc-slot{justify-content:center}}
 .nextchair{display:none}
-.js .nextchair{display:inline-flex;align-items:center;gap:10px;max-width:100%;padding:9px 16px 9px 13px;border-radius:999px;border:1px solid rgba(76,143,108,.35);background:#fff;box-shadow:var(--shadow);color:var(--ink);font:inherit;font-size:13.5px;text-align:left;cursor:default;transition:border-color .2s,background .2s,opacity .4s;animation:rv-up .7s var(--ease) 1.2s backwards}
+.js .nextchair{display:inline-flex;align-items:center;gap:10px;max-width:100%;padding:9px 16px 9px 13px;border-radius:999px;border:1px solid rgba(76,143,108,.35);background:#fff;box-shadow:var(--shadow);color:var(--ink);font:inherit;font-size:13.5px;text-align:left;cursor:default;transition:border-color .2s,background .2s,opacity .4s;animation:rv-up .7s var(--ease) 1.5s backwards}
 .nextchair b{color:var(--ok);font-weight:700}
 .nextchair.got{cursor:pointer}
 .nextchair.got:hover{border-color:var(--ok);background:#f3faf5}
@@ -585,6 +614,7 @@ html.bmopen{overflow:hidden}
 
 <!-- ============ HERO ============ -->
 <section class="hero">
+<canvas class="hero-bubbles" id="heroBubbles" aria-hidden="true"></canvas>
 <div class="drift" style="top:6%;left:4%;width:60px;height:60px;transform:rotate(-18deg)">
   <svg viewBox="0 0 100 100"><ellipse cx="50" cy="72" rx="26" ry="21"/><circle cx="16" cy="46" r="12"/><circle cx="37" cy="24" r="14"/><circle cx="63" cy="24" r="14"/><circle cx="84" cy="46" r="12"/></svg>
 </div>
@@ -600,7 +630,7 @@ html.bmopen{overflow:hidden}
 <div class="container hero-grid">
 <div>
 <span class="pill">Boutique Grooming · Est. Sheffield</span>
-<h1><span class="w" style="--w:0">The</span> <span class="w" style="--w:1">Art</span> <span class="w" style="--w:2">of</span> <span class="w" style="--w:3">the</span> <span class="w" style="--w:4">Groom.</span></h1>
+<h1><span class="ln"><span class="w" style="--w:0">The</span> <span class="w" style="--w:1">Art</span> <span class="w" style="--w:2">of</span></span> <span class="ln"><span class="w" style="--w:3">the</span> <span class="w" style="--w:4">Groom.</span></span></h1>
 <p class="sub">Elevated grooming experiences for your most cherished companions. We blend traditional artisanal care with modern wellness, in a boutique English countryside-inspired studio.</p>
 <div class="hero-cta">
 <a href="#book" class="btn primary big">Book Appointment</a>
@@ -610,6 +640,7 @@ html.bmopen{overflow:hidden}
 <div class="trust"><span class="stars"><i style="--n:0">★</i><i style="--n:1">★</i><i style="--n:2">★</i><i style="--n:3">★</i><i style="--n:4">★</i></span><span>4.9 out of 5 · 210+ Google reviews</span></div>
 </div>
 <div class="hero-photo-wrap floaty">
+<a class="hbadge" href="#book" aria-label="Book a groom online"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><path id="hbPath" d="M60,60 m-45,0 a45,45 0 1,1 90,0 a45,45 0 1,1 -90,0"/></defs><text><textPath href="#hbPath" textLength="280" lengthAdjust="spacing">BOOK A GROOM &#10022; HAPPY TAILS &#10022; </textPath></text></svg><i class="paw" aria-hidden="true"></i></a>
 <div class="paw-mosaic">
 <div class="pad" style="left:15.056%;top:44.145%;width:70.193%;height:55.855%">
   <div class="tile" style="clip-path:url(#padHeel);-webkit-clip-path:url(#padHeel)">
@@ -871,7 +902,94 @@ var WW=(function(){
   });
  }).observe(panels,{childList:true,subtree:true});
 
+ /* hero. Bubbles, letter bounce, sparkles, scroll drift and count-ups are all skipped with reduced motion */
+ function heroBubbles(){
+  var cv=document.getElementById("heroBubbles"),hero=cv&&cv.parentNode,ctx=cv&&cv.getContext&&cv.getContext("2d");
+  if(!ctx||RM)return;
+  var dpr=Math.min(2,window.devicePixelRatio||1),W=0,H=0,B=[],P=[],n=innerWidth<700?7:12,run=false,raf=0,last=0,mx=-999,my=-999;
+  /* one soap-bubble sprite: clear middle, a highlight, a faint blue-to-peach rim */
+  var sp=document.createElement("canvas");sp.width=sp.height=128;
+  var s=sp.getContext("2d"),g=s.createRadialGradient(50,46,6,64,64,62);
+  g.addColorStop(0,"rgba(255,255,255,.5)");g.addColorStop(.6,"rgba(255,255,255,.06)");g.addColorStop(.86,"rgba(150,195,220,.22)");g.addColorStop(1,"rgba(217,123,79,.3)");
+  s.fillStyle=g;s.beginPath();s.arc(64,64,62,0,6.283);s.fill();
+  s.lineWidth=2.2;s.strokeStyle="rgba(120,170,200,.55)";s.beginPath();s.arc(64,64,61,0,6.283);s.stroke();
+  s.fillStyle="rgba(255,255,255,.9)";s.beginPath();s.ellipse(42,40,13,8,-.7,0,6.283);s.fill();
+  function size(){W=hero.offsetWidth;H=hero.offsetHeight;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
+  function seed(b,any){b.r=8+Math.random()*18;b.x=Math.random()*W;b.y=any?Math.random()*H:H+b.r+Math.random()*120;b.vy=-(16+Math.random()*20);b.sw=10+Math.random()*24;b.ph=Math.random()*6.283;b.fr=.5+Math.random()*.8;return b;}
+  function pop(b,x){
+   for(var k=0;k<7;k++){var a=k/7*6.283+Math.random()*.5;P.push({x:x,y:b.y,vx:Math.cos(a)*(40+Math.random()*50),vy:Math.sin(a)*(40+Math.random()*50),t:0,r:b.r});}
+   P.push({ring:1,x:x,y:b.y,t:0,r:b.r});
+   seed(b,false);
+  }
+  function tick(now){
+   raf=0;if(!run)return;
+   var dt=Math.min(.05,(now-(last||now))/1000),t=now/1000;last=now;
+   ctx.clearRect(0,0,W,H);
+   for(var i=0;i<B.length;i++){
+    var b=B[i];b.y+=b.vy*dt;if(b.y<-b.r-10){seed(b,false);continue;}
+    var x=b.x+Math.sin(t*b.fr+b.ph)*b.sw,dx=x-mx,dy=b.y-my;
+    if(dx*dx+dy*dy<(b.r+6)*(b.r+6)){pop(b,x);continue;}
+    var wob=1+Math.sin(t*3+b.ph)*.04;
+    ctx.globalAlpha=Math.min(1,(H-b.y)/80,(b.y+b.r)/60);
+    ctx.drawImage(sp,x-b.r*wob,b.y-b.r/wob,b.r*2*wob,b.r*2/wob);
+   }
+   for(var j=P.length-1;j>=0;j--){
+    var p=P[j];p.t+=dt;var q=p.t/.35;if(q>=1){P.splice(j,1);continue;}
+    ctx.globalAlpha=1-q;
+    if(p.ring){ctx.strokeStyle="rgba(120,170,200,.7)";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,p.r*(1+q*.6),0,6.283);ctx.stroke();}
+    else{p.x+=p.vx*dt;p.y+=p.vy*dt;ctx.fillStyle="rgba(140,185,210,.8)";ctx.beginPath();ctx.arc(p.x,p.y,1.6,0,6.283);ctx.fill();}
+   }
+   raf=requestAnimationFrame(tick);
+  }
+  function go(on){run=on;last=0;if(on&&!raf)raf=requestAnimationFrame(tick);}
+  function at(e){var r=hero.getBoundingClientRect();mx=e.clientX-r.left;my=e.clientY-r.top;}
+  size();for(var i=0;i<n;i++)B.push(seed({},true));
+  addEventListener("resize",size);
+  hero.addEventListener("pointermove",function(e){if(e.pointerType==="mouse")at(e);});
+  hero.addEventListener("pointerdown",at);
+  hero.addEventListener("pointerleave",function(){mx=my=-999;});
+  if("IntersectionObserver" in window)new IntersectionObserver(function(es){go(es[0].isIntersecting);}).observe(hero);else go(true);
+ }
+ function hero(){
+  var h1=document.querySelector(".hero h1");if(!h1)return;
+  heroBubbles();
+  if(RM)return;
+  h1.setAttribute("aria-label",Array.prototype.map.call(h1.querySelectorAll(".ln"),function(l){return l.textContent.trim();}).join(" ").replace(/\s+/g," ")||h1.textContent.trim());
+  /* the second line's letters, for the drop-and-bounce; words stay unbroken */
+  var two=h1.querySelector(".ln+.ln"),k=0;
+  if(two){
+   two.querySelectorAll(".w").forEach(function(w){
+    var txt=w.textContent;w.textContent="";
+    Array.from(txt).forEach(function(c){var s=document.createElement("span");s.className="lt";s.style.setProperty("--k",k++);s.textContent=c;w.appendChild(s);});
+   });
+   /* three sparkles round it, freshly washed */
+   [["-4%","6%","20px","#e9b95f","0s"],["97%","-10%","28px","#e9b95f",".9s"],["105%","62%","17px","#d97b4f","1.7s"]].forEach(function(v){
+    var i=document.createElement("i");i.className="spk";i.setAttribute("aria-hidden","true");
+    i.style.cssText="--x:"+v[0]+";--y:"+v[1]+";--s:"+v[2]+";--c:"+v[3]+";--d:"+v[4];two.appendChild(i);
+   });
+  }
+  /* the rating and review count count up with the trust line ("out of 5" stays put) */
+  var tr=document.querySelector(".hero .trust span:last-child");
+  if(tr){
+   var bits=tr.textContent.split(/(\d+(?:\.\d+)?)/);
+   var put=function(e){tr.textContent=bits.map(function(b,i){if(i%2===0||/of\s*$/.test(bits[i-1]))return b;var d=(b.split(".")[1]||"").length;return (parseFloat(b)*e).toFixed(d);}).join("");};
+   put(0);
+   setTimeout(function(){var t0=performance.now();(function step(now){var p=Math.min(1,(now-t0)/1500);put(1-Math.pow(1-p,3));if(p<1)requestAnimationFrame(step);})(t0);},1250);
+  }
+  /* on scroll the headline lines drift apart and the paw of photos sinks a little slower */
+  var sec=document.querySelector(".hero"),one=h1.querySelector(".ln"),mos=document.querySelector(".hero .paw-mosaic"),q=false;
+  function drift(){
+   q=false;var y=window.scrollY||document.documentElement.scrollTop;
+   if(y>sec.offsetHeight+100)return;
+   if(one)one.style.translate="0 "+(-y*.06).toFixed(1)+"px";
+   if(two)two.style.translate="0 "+(y*.05).toFixed(1)+"px";
+   if(mos)mos.style.translate="0 "+(y*.1).toFixed(1)+"px";
+  }
+  if(sec){addEventListener("scroll",function(){if(!q){q=true;requestAnimationFrame(drift);}},{passive:true});drift();}
+ }
+
  return {
+  hero:hero,
   timer:null,
   /* mark the pick, let it register for a moment, then move on */
   pick:function(el,fn){
@@ -1007,7 +1125,9 @@ $("#yr").textContent = new Date().getFullYear();
    function renderBrand(){
         $(".nav .brand").textContent = CONFIG.brand.name;
         $(".hero .pill").textContent = CONFIG.brand.pill;
-        $(".hero h1").innerHTML = CONFIG.brand.heroTitle.split(" ").map((w, i) => '<span class="w" style="--w:' + i + '">' + esc(w) + '</span>').join(" ");
+        const hw = CONFIG.brand.heroTitle.trim().split(/\s+/), cut = hw.length >= 4 ? hw.length - 2 : Math.max(1, hw.length - 1);
+        const word = (w, i) => '<span class="w" style="--w:' + i + '">' + esc(w) + '</span>';
+        $(".hero h1").innerHTML = '<span class="ln">' + hw.slice(0, cut).map(word).join(" ") + '</span>' + (hw.length > 1 ? ' <span class="ln">' + hw.slice(cut).map((w, i) => word(w, cut + i)).join(" ") + '</span>' : '');
         $(".hero .sub").textContent = CONFIG.brand.heroSub;
         $(".trust span:last-child").textContent = `${CONFIG.rating.score} out of 5 · ${CONFIG.rating.count}`;
         $(".stats-band .stats").innerHTML = CONFIG.stats.map((s) => `<div class="stat"><b>${esc(s.value)}</b><span>${esc(s.label)}</span></div>`).join("");
@@ -1024,6 +1144,7 @@ $("#yr").textContent = new Date().getFullYear();
         $(".mb-call").href = CONFIG.business.phoneHref;
    }
    renderBrand();
+   WW.hero();
    WW.hours();
    SSMotion.scan();
    
